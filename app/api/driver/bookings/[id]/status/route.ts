@@ -6,12 +6,13 @@ import { eq } from 'drizzle-orm';
 // PATCH - Update booking status
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication check for driver
 
-    const bookingId = parseInt(params.id);
+    const { id } = await params;
+    const bookingId = parseInt(id);
     const body = await request.json();
     const { status } = body;
 
