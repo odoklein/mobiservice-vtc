@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { createCheckoutSession } from '@/lib/stripe';
 import { completeBookingSchema } from '@/lib/validations/booking';
 
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     await db
       .update(bookings)
       .set({ stripeSessionId: session.id })
-      .where({ id: booking.id });
+      .where(eq(bookings.id, booking.id));
 
     return NextResponse.json({
       success: true,
