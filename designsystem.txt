@@ -1,0 +1,176 @@
+# MobiService VTC - Design System
+
+## 🎨 Palette de Couleurs
+
+### Couleurs Principales
+- **Vert MobiService** (Primary Green): #00FF88 / rgb(0, 255, 136) / bright green
+  - Utilisation: Accents, CTA, éléments interactifs, logo VTC
+  - Contraste: Utiliser sur fonds sombres (noir, gris foncé)
+  
+- **Noir** (Black): #000000 / rgb(0, 0, 0)
+  - Utilisation: Texte principal, fonds, logo principal
+  - Contraste: Excellent avec vert et blanc
+  
+- **Blanc** (White): #FFFFFF / rgb(255, 255, 255)
+  - Utilisation: Fond principal, texte sur fonds sombres
+  - Contraste: Excellent avec noir et vert
+
+### Couleur d'Accent
+- **Bleu Clair** (Light Blue): #4A9EFF / rgb(74, 158, 255)
+  - Utilisation: Éléments secondaires, highlights, variations
+  - Contraste: Utilisable sur fonds clairs et sombres
+
+### Couleurs Neutres
+- **Gris Foncé** (Dark Gray): #1A1A1A / rgb(26, 26, 26)
+  - Utilisation: Fond alternatif, sections sombres
+- **Gris Moyen** (Medium Gray): #666666 / rgb(102, 102, 102)
+  - Utilisation: Texte secondaire, bordures
+- **Gris Clair** (Light Gray): #F5F5F5 / rgb(245, 245, 245)
+  - Utilisation: Fond de sections, cartes
+
+## 🔤 Typographie
+
+### Police Principale (Primary Font)
+- **Usage**: Paragraphes, légendes, texte de corps
+- **Caractéristiques**: Sans-serif moderne, lisible, professionnelle
+- **Poids disponibles**: Regular (400), Medium (500), Bold (700)
+- **Exemple**: Samsung Sharp Sans (actuellement utilisée)
+
+### Police Secondaire (Secondary Font)
+- **Usage**: Titres, intertitres, éléments de navigation
+- **Caractéristiques**: Sans-serif, plus distinctive, impact visuel
+- **Poids disponibles**: Regular (400), Bold (700)
+- **Exemple**: Samsung Sharp Sans Bold (actuellement utilisée)
+
+### Hiérarchie Typographique
+- **H1**: 48px / 3rem - Titres principaux, hero sections
+- **H2**: 36px / 2.25rem - Titres de sections
+- **H3**: 24px / 1.5rem - Sous-titres
+- **H4**: 20px / 1.25rem - Intertitres
+- **Body Large**: 18px / 1.125rem - Texte important
+- **Body**: 16px / 1rem - Texte standard
+- **Body Small**: 14px / 0.875rem - Légendes, métadonnées
+- **Caption**: 12px / 0.75rem - Petits textes, labels
+
+## 🎯 Logo
+
+### Logo Principal (Horizontal)
+- **Format**: Horizontal, ratio 4:1
+- **Variations**:
+  1. Noir sur blanc: "MobiService" en noir, "VTC" en vert avec icône voiture
+  2. Blanc sur noir: "MobiService" en blanc, "VTC" en vert avec icône voiture
+  3. Noir sur bleu clair: Version alternative
+
+### Logo Secondaire (Carré)
+- **Format**: Carré, ratio 1:1
+- **Variations**:
+  1. Blanc sur vert: Logo complet en blanc sur fond vert
+  2. Blanc sur noir: Logo complet en blanc sur fond noir
+  3. Noir sur bleu clair: Version alternative
+
+### Icône de Logo
+- **Format**: Carré compact, icône seule
+- **Usage**: Favicon, icônes d'application, petits espaces
+
+## 🧩 Composants UI
+
+### Boutons
+- **Primaire**: Fond vert (#00FF88), texte noir, hover: vert plus foncé
+- **Secondaire**: Fond transparent, bordure verte, texte vert
+- **Tertiaire**: Fond blanc/gris, texte noir, bordure grise
+- **Taille**: Small (32px), Medium (40px), Large (48px)
+- **Border radius**: 8px
+
+### Cartes
+- **Fond**: Blanc ou gris très clair
+- **Ombre**: Subtile, 0 2px 8px rgba(0,0,0,0.1)
+- **Border radius**: 12px
+- **Padding**: 24px
+
+### Inputs
+- **Fond**: Blanc
+- **Bordure**: 2px, gris clair (#E5E5E5)
+- **Focus**: Bordure verte (#00FF88)
+- **Border radius**: 8px
+- **Hauteur**: 48px
+
+### Badges
+- **Vert**: Fond vert clair, texte vert foncé
+- **Noir**: Fond gris foncé, texte blanc
+- **Bleu**: Fond bleu clair, texte bleu foncé
+
+## 📐 Espacements
+
+### Scale d'espacement
+- **xs**: 4px (0.25rem)
+- **sm**: 8px (0.5rem)
+- **md**: 16px (1rem)
+- **lg**: 24px (1.5rem)
+- **xl**: 32px (2rem)
+- **2xl**: 48px (3rem)
+- **3xl**: 64px (4rem)
+
+## 🎭 États et Interactions
+
+### Hover
+- **Boutons**: Opacité 90%, légère élévation (shadow)
+- **Liens**: Soulignement vert, transition douce
+- **Cartes**: Élévation accrue, ombre plus prononcée
+
+### Focus
+- **Inputs**: Bordure verte, outline vert
+- **Boutons**: Outline vert, 2px
+
+### Active
+- **Boutons**: Légère réduction d'échelle (scale 0.98)
+
+### Disabled
+- **Éléments**: Opacité 50%, curseur not-allowed
+
+## 🌈 Gradients
+
+### Gradient Principal
+- **Vert dégradé**: De #00FF88 à #00CC6A
+- **Usage**: Hero sections, CTA importants
+
+### Gradient Sombre
+- **Noir dégradé**: De #1A1A1A à #000000
+- **Usage**: Sections sombres, footers
+
+## 📱 Responsive Breakpoints
+
+- **Mobile**: < 640px
+- **Tablet**: 640px - 1024px
+- **Desktop**: > 1024px
+- **Large Desktop**: > 1280px
+
+## ✨ Principes de Design
+
+1. **Clarté**: Design épuré, informations facilement lisibles
+2. **Cohérence**: Utilisation systématique des couleurs et typographie
+3. **Modernité**: Style contemporain, professionnel
+4. **Accessibilité**: Contraste suffisant, tailles de texte lisibles
+5. **Reconnaissance**: Logo et couleurs distinctives pour la marque
+
+## 🎨 Application des Couleurs
+
+### Sections Hero
+- Fond: Noir ou gradient noir-vert
+- Texte: Blanc
+- CTA: Vert sur fond sombre
+
+### Sections de Contenu
+- Fond: Blanc ou gris très clair
+- Texte: Noir
+- Accents: Vert pour les éléments importants
+
+### Cartes et Composants
+- Fond: Blanc
+- Bordure: Gris clair
+- Hover: Ombre verte subtile
+
+### Navigation
+- Fond: Blanc avec backdrop blur
+- Liens: Noir, hover vert
+- Active: Vert
+
