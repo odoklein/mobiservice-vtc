@@ -227,7 +227,7 @@ export default function ReservationPage() {
         // Clear draft data
         clearBookingDraft();
         
-        // Redirect to Stripe Checkout
+        // Redirect to payment success page (mock payment)
         window.location.href = result.checkoutUrl;
       } else {
         alert('Erreur lors de la création de la réservation');
@@ -921,7 +921,7 @@ export default function ReservationPage() {
                     </div>
                     <div className="flex-1">
                       <div className="text-sm font-medium text-slate-900">Paiement sécurisé</div>
-                      <div className="text-xs text-slate-600">Transactions protégées par Stripe</div>
+                      <div className="text-xs text-slate-600">Transactions sécurisées et protégées</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">

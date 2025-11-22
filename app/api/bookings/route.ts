@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { createCheckoutSession } from '@/lib/stripe';
 import { completeBookingSchema } from '@/lib/validations/booking';
 
 export async function POST(request: NextRequest) {
@@ -40,32 +39,33 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    // Create Stripe checkout session
-    const session = await createCheckoutSession({
-      bookingId: booking.id,
-      amount: validatedData.totalPrice,
-      customerEmail: validatedData.guestEmail,
-      customerName: validatedData.guestName,
-      metadata: {
-        bookingId: booking.id.toString(),
-        pickupAddress: validatedData.pickupAddress,
-        dropoffAddress: validatedData.dropoffAddress,
-        pickupDate: validatedData.pickupDate.toISOString(),
-        pickupTime: validatedData.pickupTime,
-      },
-    });
-
-    // Update booking with Stripe session ID
+    // Mock payment - simulate successful payment
+    // In production, this would redirect to Stripe Checkout
+    const mockSessionId = `mock_session_${Date.now()}_${booking.id}`;
+    
+    // Simulate payment processing delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Update booking with mock session ID and mark as paid
     await db
       .update(bookings)
-      .set({ stripeSessionId: session.id })
+      .set({ 
+        stripeSessionId: mockSessionId,
+        paymentStatus: 'paid',
+        status: 'confirmed',
+        confirmedAt: new Date(),
+      })
       .where(eq(bookings.id, booking.id));
+
+    // Return success URL for mock payment
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const checkoutUrl = `${appUrl}/reservation/success?session_id=${mockSessionId}&booking_id=${booking.id}`;
 
     return NextResponse.json({
       success: true,
       bookingId: booking.id,
-      sessionId: session.id,
-      checkoutUrl: session.url,
+      sessionId: mockSessionId,
+      checkoutUrl: checkoutUrl,
     });
   } catch (error) {
     console.error('Booking creation error:', error);
