@@ -146,11 +146,21 @@ export default function ReservationPage() {
         duration = result.duration;
       }
 
-      // Calculate price
+      // Combine date and time for day/night rate calculation
+      let pickupDateTime: Date | undefined;
+      if (data.pickupDate && data.pickupTime) {
+        const [hours, minutes] = data.pickupTime.split(':').map(Number);
+        pickupDateTime = new Date(data.pickupDate);
+        pickupDateTime.setHours(hours, minutes, 0, 0);
+      }
+
+      // Calculate price with day/night rates
       const pricing = calculatePrice({
         serviceType: data.serviceType,
         distance,
         duration,
+        pickupTime: pickupDateTime,
+        hours: data.serviceType === 'hourly' ? (data.hours || 2) : undefined,
       });
 
       const completeBookingData = {
@@ -173,8 +183,16 @@ export default function ReservationPage() {
     } catch (error) {
       console.error('Error calculating distance:', error);
       // Continue without distance
+      let pickupDateTime: Date | undefined;
+      if (data.pickupDate && data.pickupTime) {
+        const [hours, minutes] = data.pickupTime.split(':').map(Number);
+        pickupDateTime = new Date(data.pickupDate);
+        pickupDateTime.setHours(hours, minutes, 0, 0);
+      }
       const pricing = calculatePrice({
         serviceType: data.serviceType,
+        pickupTime: pickupDateTime,
+        hours: data.serviceType === 'hourly' ? (data.hours || 2) : undefined,
       });
 
       const completeBookingData = {
@@ -244,12 +262,12 @@ export default function ReservationPage() {
       <section className="bg-gradient-premium-hero text-white py-20 relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-pattern-dots opacity-30"></div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#00FF88]/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#D4AF37]/5 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#5CD85A]/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#B8D4E3]/5 rounded-full blur-3xl"></div>
         
         <div className="container mx-auto px-4 text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-[#00FF88]/20 mb-6">
-            <IconCar className="h-4 w-4 text-[#00FF88]" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-[#5CD85A]/20 mb-6">
+            <IconCar className="h-4 w-4 text-[#5CD85A]" />
             <span className="text-sm font-medium text-white/90">Réservation Premium</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
@@ -275,7 +293,7 @@ export default function ReservationPage() {
                   <div
                     className={`flex items-center justify-center w-14 h-14 rounded-2xl font-semibold transition-all duration-500 ${
                       step >= s.num
-                        ? 'bg-gradient-to-br from-[#00FF88] to-[#00CC6A] text-[#0A0A0A] shadow-lg shadow-[#00FF88]/30 scale-110'
+                        ? 'bg-gradient-to-br from-[#5CD85A] to-[#4BC449] text-[#0A0A0A] shadow-lg shadow-[#5CD85A]/30 scale-110'
                         : 'bg-[#F5F5F5] text-[#A0A0A0] border-2 border-[#E8E8E8]'
                     }`}
                   >
@@ -286,7 +304,7 @@ export default function ReservationPage() {
                     )}
                   </div>
                   <span className={`text-xs font-medium mt-3 transition-colors ${
-                    step >= s.num ? 'text-[#00CC6A]' : 'text-[#A0A0A0]'
+                    step >= s.num ? 'text-[#4BC449]' : 'text-[#A0A0A0]'
                   }`}>
                     {s.label}
                   </span>
@@ -295,7 +313,7 @@ export default function ReservationPage() {
                   <div className="relative mx-4">
                     <div className="w-16 md:w-24 h-1 bg-[#E8E8E8] rounded-full overflow-hidden">
                       <div
-                        className={`h-full bg-gradient-to-r from-[#00FF88] to-[#00CC6A] rounded-full transition-all duration-500 ${
+                        className={`h-full bg-gradient-to-r from-[#5CD85A] to-[#4BC449] rounded-full transition-all duration-500 ${
                           step > s.num ? 'w-full' : 'w-0'
                         }`}
                       />
@@ -319,8 +337,8 @@ export default function ReservationPage() {
                 <Card className="card-premium border-0 shadow-xl overflow-hidden">
                   <CardHeader className="pb-4 bg-gradient-to-r from-[#FAFAFA] to-white border-b border-[#E8E8E8]">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00FF88]/20 to-[#00FF88]/5 flex items-center justify-center">
-                        <IconMapPin className="h-6 w-6 text-[#00CC6A]" />
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#5CD85A]/20 to-[#5CD85A]/5 flex items-center justify-center">
+                        <IconMapPin className="h-6 w-6 text-[#4BC449]" />
                       </div>
                       <div>
                         <CardTitle className="text-2xl text-[#0A0A0A]">Détails de votre trajet</CardTitle>
@@ -349,14 +367,14 @@ export default function ReservationPage() {
                             onClick={() => setValueStep1('serviceType', service.id as any)}
                             className={`cursor-pointer p-5 rounded-xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
                               step1Data.serviceType === service.id
-                                ? 'bg-gradient-to-br from-[#00FF88]/10 to-[#00FF88]/5 border-2 border-[#00FF88] shadow-lg shadow-[#00FF88]/10 scale-[1.02]'
-                                : 'bg-white border-2 border-[#E8E8E8] hover:border-[#00FF88]/50'
+                                ? 'bg-gradient-to-br from-[#5CD85A]/10 to-[#5CD85A]/5 border-2 border-[#5CD85A] shadow-lg shadow-[#5CD85A]/10 scale-[1.02]'
+                                : 'bg-white border-2 border-[#E8E8E8] hover:border-[#5CD85A]/50'
                             }`}
                           >
                             <div className="flex items-start gap-4">
                               <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
                                 step1Data.serviceType === service.id
-                                  ? 'bg-gradient-to-br from-[#00FF88] to-[#00CC6A] text-[#0A0A0A]'
+                                  ? 'bg-gradient-to-br from-[#5CD85A] to-[#4BC449] text-[#0A0A0A]'
                                   : 'bg-[#F5F5F5] text-[#A0A0A0]'
                               }`}>
                                 <IconComponent className="h-6 w-6" />
@@ -366,7 +384,7 @@ export default function ReservationPage() {
                                 <div className="text-sm text-[#A0A0A0]">{service.priceInfo}</div>
                               </div>
                               {step1Data.serviceType === service.id && (
-                                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#00FF88] flex items-center justify-center">
+                                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#5CD85A] flex items-center justify-center">
                                   <IconCheck className="h-4 w-4 text-[#0A0A0A]" />
                                 </div>
                               )}
@@ -519,7 +537,7 @@ export default function ReservationPage() {
 
                       <Button 
                         type="submit" 
-                        className="w-full h-14 text-base font-semibold bg-gradient-to-r from-[#00FF88] to-[#00CC6A] hover:from-[#00CC6A] hover:to-[#00FF88] text-[#0A0A0A] border-0 shadow-lg shadow-[#00FF88]/30 hover:shadow-xl hover:shadow-[#00FF88]/40 transition-all duration-300" 
+                        className="w-full h-14 text-base font-semibold bg-gradient-to-r from-[#5CD85A] to-[#4BC449] hover:from-[#4BC449] hover:to-[#5CD85A] text-[#0A0A0A] border-0 shadow-lg shadow-[#5CD85A]/30 hover:shadow-xl hover:shadow-[#5CD85A]/40 transition-all duration-300" 
                         size="lg" 
                         disabled={isCalculating}
                       >
@@ -545,8 +563,8 @@ export default function ReservationPage() {
                 <Card className="card-premium border-0 shadow-xl overflow-hidden">
                   <CardHeader className="pb-4 bg-gradient-to-r from-[#FAFAFA] to-white border-b border-[#E8E8E8]">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4AF37]/20 to-[#D4AF37]/5 flex items-center justify-center">
-                        <IconCheck className="h-6 w-6 text-[#D4AF37]" />
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#B8D4E3]/20 to-[#B8D4E3]/5 flex items-center justify-center">
+                        <IconCheck className="h-6 w-6 text-[#B8D4E3]" />
                       </div>
                       <div>
                         <CardTitle className="text-2xl text-[#0A0A0A]">Récapitulatif et prix</CardTitle>
@@ -558,9 +576,9 @@ export default function ReservationPage() {
                   </CardHeader>
                   <CardContent className="space-y-6 pt-6">
                 {/* Trip Summary */}
-                <div className="space-y-4 p-6 bg-gradient-to-br from-[#00FF88]/5 to-[#FAFAFA] rounded-xl border border-[#00FF88]/20">
+                <div className="space-y-4 p-6 bg-gradient-to-br from-[#5CD85A]/5 to-[#FAFAFA] rounded-xl border border-[#5CD85A]/20">
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#00FF88] to-[#00CC6A] flex items-center justify-center">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#5CD85A] to-[#4BC449] flex items-center justify-center">
                       <IconMapPin className="h-5 w-5 text-[#0A0A0A]" />
                     </div>
                     <div className="flex-1">
@@ -569,7 +587,7 @@ export default function ReservationPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#B8860B] flex items-center justify-center">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#B8D4E3] to-[#9CC4D9] flex items-center justify-center">
                       <IconMapPin className="h-5 w-5 text-[#0A0A0A]" />
                     </div>
                     <div className="flex-1">
@@ -607,11 +625,36 @@ export default function ReservationPage() {
 
                 {/* Price Breakdown */}
                 <div className="border-t border-[#E8E8E8] pt-6">
-                  <h3 className="font-semibold mb-4 text-lg text-[#0A0A0A]">Détail du prix</h3>
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <h3 className="font-semibold text-lg text-[#0A0A0A]">Détail du prix</h3>
+                    <div className="flex gap-2 flex-wrap">
+                      {/* Day/Night Rate Badge */}
+                      <Badge className={`${bookingData.isNightRate ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'} border font-medium`}>
+                        {bookingData.isNightRate ? '🌙 Tarif nuit' : '☀️ Tarif jour'}
+                      </Badge>
+                      {/* Forfait Badge */}
+                      {bookingData.isForfait && (
+                        <Badge className="bg-[#5CD85A]/10 text-[#4BC449] border border-[#5CD85A]/20 font-semibold">
+                          🎉 {bookingData.breakdown?.forfaitName || 'Forfait'}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Rate Info */}
+                  {bookingData.rateType && (
+                    <div className="text-xs text-[#A0A0A0] mb-3 flex items-center gap-1">
+                      <span>📋</span>
+                      <span>{bookingData.rateType}</span>
+                      <span className="ml-2">•</span>
+                      <span className="ml-2">{bookingData.isNightRate ? '20h-7h + Dim/JF' : '7h-20h (sauf Dim/JF)'}</span>
+                    </div>
+                  )}
+                  
                   <div className="space-y-3 bg-[#FAFAFA] p-5 rounded-xl border border-[#E8E8E8]">
                     {bookingData.breakdown?.baseFare && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-[#A0A0A0]">Prix de base</span>
+                        <span className="text-[#A0A0A0]">Prise en charge</span>
                         <span className="font-medium text-[#0A0A0A]">{formatPrice(bookingData.breakdown.baseFare)}</span>
                       </div>
                     )}
@@ -623,17 +666,42 @@ export default function ReservationPage() {
                         <span className="font-medium text-[#0A0A0A]">{formatPrice(bookingData.breakdown.distanceCharge)}</span>
                       </div>
                     )}
-                    {bookingData.breakdown?.hourlyCharge && (
+                    {bookingData.breakdown?.hourlyCharge && !bookingData.isForfait && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-[#A0A0A0]">Tarif horaire</span>
+                        <span className="text-[#A0A0A0]">Heures supplémentaires</span>
                         <span className="font-medium text-[#0A0A0A]">{formatPrice(bookingData.breakdown.hourlyCharge)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between items-center text-xl font-bold pt-4 border-t border-[#E8E8E8] mt-3">
-                      <span className="text-[#0A0A0A]">Total</span>
-                      <span className="text-[#00FF88] text-2xl">{formatPrice(bookingData.totalPrice)}</span>
+                    {bookingData.breakdown?.forfaitDiscount > 0 && (
+                      <div className="flex justify-between items-center text-sm bg-[#5CD85A]/10 p-3 rounded-lg -mx-2">
+                        <span className="text-[#4BC449] font-medium">💰 Économie forfait</span>
+                        <span className="font-semibold text-[#4BC449]">-{formatPrice(bookingData.breakdown.forfaitDiscount)}</span>
+                      </div>
+                    )}
+                    
+                    {/* HT Price */}
+                    {bookingData.totalPriceHT && (
+                      <div className="flex justify-between items-center text-sm pt-3 border-t border-[#E8E8E8]">
+                        <span className="text-[#A0A0A0]">Total HT</span>
+                        <span className="font-medium text-[#0A0A0A]">{formatPrice(bookingData.totalPriceHT)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#A0A0A0] text-sm">TVA (10%)</span>
+                      <span className="font-medium text-[#0A0A0A] text-sm">{formatPrice(bookingData.totalPrice - (bookingData.totalPriceHT || 0))}</span>
+                    </div>
+                    
+                    {/* TTC Price */}
+                    <div className="flex justify-between items-center text-xl font-bold pt-3 border-t border-[#E8E8E8]">
+                      <span className="text-[#0A0A0A]">Total TTC</span>
+                      <span className="text-[#5CD85A] text-2xl">{formatPrice(bookingData.totalPrice)}</span>
                     </div>
                   </div>
+                  
+                  {/* Pricing notes */}
+                  <p className="text-xs text-[#A0A0A0] mt-3">
+                    * Hors frais de péage et mise à disposition. Devis valable 5 jours.
+                  </p>
                 </div>
 
                     <div className="flex gap-4 pt-6">
@@ -643,7 +711,7 @@ export default function ReservationPage() {
                           setStep(1);
                           saveBookingDraft({ ...bookingData, step: 1 });
                         }}
-                        className="flex-1 h-12 border-2 border-[#E8E8E8] hover:border-[#00FF88] hover:bg-[#00FF88]/5 text-[#0A0A0A] transition-all duration-300"
+                        className="flex-1 h-12 border-2 border-[#E8E8E8] hover:border-[#5CD85A] hover:bg-[#5CD85A]/5 text-[#0A0A0A] transition-all duration-300"
                       >
                         <IconArrowLeft className="mr-2 h-4 w-4" />
                         Modifier
@@ -653,7 +721,7 @@ export default function ReservationPage() {
                           setStep(3);
                           saveBookingDraft({ ...bookingData, step: 3 });
                         }}
-                        className="flex-1 h-12 bg-gradient-to-r from-[#00FF88] to-[#00CC6A] hover:from-[#00CC6A] hover:to-[#00FF88] text-[#0A0A0A] font-semibold border-0 shadow-lg shadow-[#00FF88]/30 transition-all duration-300"
+                        className="flex-1 h-12 bg-gradient-to-r from-[#5CD85A] to-[#4BC449] hover:from-[#4BC449] hover:to-[#5CD85A] text-[#0A0A0A] font-semibold border-0 shadow-lg shadow-[#5CD85A]/30 transition-all duration-300"
                       >
                         Continuer
                         <IconArrowRight className="ml-2 h-4 w-4" />
@@ -668,8 +736,8 @@ export default function ReservationPage() {
                 <Card className="card-premium border-0 shadow-xl overflow-hidden">
                   <CardHeader className="pb-4 bg-gradient-to-r from-[#FAFAFA] to-white border-b border-[#E8E8E8]">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00FF88]/20 to-[#00FF88]/5 flex items-center justify-center">
-                        <IconCreditCard className="h-6 w-6 text-[#00CC6A]" />
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#5CD85A]/20 to-[#5CD85A]/5 flex items-center justify-center">
+                        <IconCreditCard className="h-6 w-6 text-[#4BC449]" />
                       </div>
                       <div>
                         <CardTitle className="text-2xl text-[#0A0A0A]">Vos informations</CardTitle>
@@ -740,15 +808,15 @@ export default function ReservationPage() {
                   </div>
 
                   {/* Price Summary */}
-                  <div className="bg-gradient-to-br from-[#0A0A0A] to-[#1E1E1E] p-6 rounded-xl text-white shadow-xl border border-[#00FF88]/20">
+                  <div className="bg-gradient-to-br from-[#0A0A0A] to-[#1E1E1E] p-6 rounded-xl text-white shadow-xl border border-[#5CD85A]/20">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#00FF88]/20 flex items-center justify-center">
-                          <IconShieldLock className="h-5 w-5 text-[#00FF88]" />
+                        <div className="w-8 h-8 rounded-lg bg-[#5CD85A]/20 flex items-center justify-center">
+                          <IconShieldLock className="h-5 w-5 text-[#5CD85A]" />
                         </div>
                         <span className="text-sm font-medium text-white/80">Montant à payer</span>
                       </div>
-                      <span className="text-3xl font-bold text-[#00FF88]">
+                      <span className="text-3xl font-bold text-[#5CD85A]">
                         {formatPrice(bookingData.totalPrice)}
                       </span>
                     </div>
@@ -766,14 +834,14 @@ export default function ReservationPage() {
                             setStep(2);
                             saveBookingDraft({ ...bookingData, step: 2 });
                           }}
-                          className="flex-1 h-12 border-2 border-[#E8E8E8] hover:border-[#00FF88] hover:bg-[#00FF88]/5 text-[#0A0A0A] transition-all duration-300"
+                          className="flex-1 h-12 border-2 border-[#E8E8E8] hover:border-[#5CD85A] hover:bg-[#5CD85A]/5 text-[#0A0A0A] transition-all duration-300"
                         >
                           <IconArrowLeft className="mr-2 h-4 w-4" />
                           Retour
                         </Button>
                         <Button 
                           type="submit" 
-                          className="flex-1 h-14 text-base font-semibold bg-gradient-to-r from-[#00FF88] to-[#00CC6A] hover:from-[#00CC6A] hover:to-[#00FF88] text-[#0A0A0A] border-0 shadow-lg shadow-[#00FF88]/30 hover:shadow-xl hover:shadow-[#00FF88]/40 transition-all duration-300" 
+                          className="flex-1 h-14 text-base font-semibold bg-gradient-to-r from-[#5CD85A] to-[#4BC449] hover:from-[#4BC449] hover:to-[#5CD85A] text-[#0A0A0A] border-0 shadow-lg shadow-[#5CD85A]/30 hover:shadow-xl hover:shadow-[#5CD85A]/40 transition-all duration-300" 
                           size="lg"
                         >
                           Payer et réserver

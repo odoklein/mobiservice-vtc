@@ -31,10 +31,10 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className="text-sm font-medium transition-all duration-300 hover:text-[#00CC6A] text-[#0A0A0A] relative group py-2"
+              className="text-sm font-medium transition-all duration-300 hover:text-[#4BC449] text-[#0A0A0A] relative group py-2"
             >
               {item.label}
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#00FF88] to-[#00CC6A] transition-all duration-300 group-hover:w-full rounded-full"></span>
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#5CD85A] to-[#4BC449] transition-all duration-300 group-hover:w-full rounded-full"></span>
             </Link>
           ))}
         </div>
@@ -45,7 +45,7 @@ export function Header() {
             variant="outline" 
             size="sm" 
             asChild 
-            className="border-2 border-[#E8E8E8] hover:border-[#00FF88] hover:bg-[#00FF88]/5 text-[#0A0A0A] transition-all duration-300 rounded-xl px-4"
+            className="border-2 border-[#E8E8E8] hover:border-[#5CD85A] hover:bg-[#5CD85A]/5 text-[#0A0A0A] transition-all duration-300 rounded-xl px-4"
           >
             <a href={`tel:${CONTACT.phone}`}>
               <Phone className="mr-2 h-4 w-4" />
@@ -55,7 +55,7 @@ export function Header() {
           <Button 
             size="sm" 
             asChild 
-            className="bg-gradient-to-r from-[#00FF88] to-[#00CC6A] hover:from-[#00CC6A] hover:to-[#00FF88] text-[#0A0A0A] font-semibold shadow-lg shadow-[#00FF88]/20 hover:shadow-xl hover:shadow-[#00FF88]/30 transition-all duration-300 rounded-xl px-5 border-0"
+            className="bg-gradient-to-r from-[#5CD85A] to-[#4BC449] hover:from-[#4BC449] hover:to-[#5CD85A] text-[#0A0A0A] font-semibold shadow-lg shadow-[#5CD85A]/20 hover:shadow-xl hover:shadow-[#5CD85A]/30 transition-all duration-300 rounded-xl px-5 border-0"
           >
             <Link href="/reservation" className="flex items-center gap-2">
               Réserver
@@ -67,7 +67,7 @@ export function Header() {
         {/* Mobile menu button */}
         <button
           type="button"
-          className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[#00FF88]/10 transition-colors"
+          className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[#5CD85A]/10 transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? (
@@ -86,7 +86,7 @@ export function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-base font-medium transition-all duration-300 hover:text-[#00CC6A] text-[#0A0A0A] py-3 px-4 rounded-xl hover:bg-[#00FF88]/5"
+                className="text-base font-medium transition-all duration-300 hover:text-[#4BC449] text-[#0A0A0A] py-3 px-4 rounded-xl hover:bg-[#5CD85A]/5"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
@@ -97,7 +97,7 @@ export function Header() {
                 variant="outline" 
                 size="lg" 
                 asChild 
-                className="w-full border-2 border-[#E8E8E8] hover:border-[#00FF88] text-[#0A0A0A] rounded-xl"
+                className="w-full border-2 border-[#E8E8E8] hover:border-[#5CD85A] text-[#0A0A0A] rounded-xl"
               >
                 <a href={`tel:${CONTACT.phone}`}>
                   <Phone className="mr-2 h-4 w-4" />
@@ -107,7 +107,7 @@ export function Header() {
               <Button 
                 size="lg" 
                 asChild 
-                className="w-full bg-gradient-to-r from-[#00FF88] to-[#00CC6A] text-[#0A0A0A] font-semibold rounded-xl shadow-lg shadow-[#00FF88]/20 border-0"
+                className="w-full bg-gradient-to-r from-[#5CD85A] to-[#4BC449] text-[#0A0A0A] font-semibold rounded-xl shadow-lg shadow-[#5CD85A]/20 border-0"
               >
                 <Link href="/reservation" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2">
                   Réserver maintenant

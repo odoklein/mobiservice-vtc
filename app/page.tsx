@@ -9,24 +9,23 @@ import { ArrowRight, Star, Car, Shield, Leaf, Clock, Check, ChevronLeft, Chevron
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Premium Hero Section - Dark Luxury Theme */}
+      {/* Hero Section */}
       <section className="relative min-h-[90vh] bg-gradient-premium-hero overflow-hidden">
         {/* Background Pattern */}
-        <div className="absolute inset-0 bg-pattern-grid opacity-30"></div>
+        <div className="absolute inset-0 bg-pattern-grid opacity-20"></div>
         
-        {/* Animated Glow Orbs */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-[#00FF88]/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#00FF88]/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#D4AF37]/5 rounded-full blur-3xl"></div>
+        {/* Subtle Background Accents */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-[#5CD85A]/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#B8D4E3]/5 rounded-full blur-3xl"></div>
         
         <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left Column - Premium Marketing Content */}
             <div className="order-2 lg:order-1 space-y-8">
               {/* Premium Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-[#00FF88]/20">
-                <Sparkles className="h-4 w-4 text-[#00FF88]" />
-                <span className="text-sm font-medium text-white/90">Service VTC Premium à Lyon</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-[#5CD85A]/20">
+                <Sparkles className="h-4 w-4 text-[#5CD85A]" />
+                <span className="text-sm font-medium text-white/90">Service VTC Premium en Haute-Savoie</span>
               </div>
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] tracking-tight">
@@ -36,23 +35,23 @@ export default function Home() {
               </h1>
               
               <p className="text-lg md:text-xl text-white/70 max-w-xl leading-relaxed">
-                Découvrez un service de chauffeur privé d'exception. Confort, ponctualité et discrétion pour tous vos déplacements à Lyon et au-delà.
+                Votre chauffeur privé d'exception en Haute-Savoie. Confort, ponctualité et discrétion pour tous vos déplacements professionnels et personnels.
               </p>
               
               {/* Premium Stats */}
               <div className="flex flex-wrap gap-6 py-4">
                 <div className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-[#00FF88]">400+</div>
+                  <div className="text-3xl md:text-4xl font-bold text-[#5CD85A]">400+</div>
                   <div className="text-sm text-white/60">Clients satisfaits</div>
                 </div>
                 <div className="w-px bg-white/10"></div>
                 <div className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-[#00FF88]">15+</div>
+                  <div className="text-3xl md:text-4xl font-bold text-[#5CD85A]">15+</div>
                   <div className="text-sm text-white/60">Ans d'expérience</div>
                 </div>
                 <div className="w-px bg-white/10"></div>
                 <div className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-[#00FF88]">5.0</div>
+                  <div className="text-3xl md:text-4xl font-bold text-[#5CD85A]">5.0</div>
                   <div className="text-sm text-white/60">Note moyenne</div>
                 </div>
               </div>
@@ -71,11 +70,11 @@ export default function Home() {
               {/* Trust Indicators */}
               <div className="flex items-center gap-6 pt-4">
                 <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-[#00FF88]" />
+                  <Shield className="h-5 w-5 text-[#5CD85A]" />
                   <span className="text-sm text-white/60">Paiement sécurisé</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-[#D4AF37]" />
+                  <Award className="h-5 w-5 text-[#B8D4E3]" />
                   <span className="text-sm text-white/60">Service Premium</span>
                 </div>
               </div>
@@ -99,7 +98,7 @@ export default function Home() {
                 {/* Glass Testimonial Card */}
                 <div className="absolute bottom-6 left-6 right-6 glass-dark p-5 rounded-2xl border border-white/10">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#00FF88] to-[#00CC6A] flex items-center justify-center text-[#0A0A0A] font-bold text-sm flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#5CD85A] to-[#4BC449] flex items-center justify-center text-[#0A0A0A] font-bold text-sm flex-shrink-0">
                       MD
                     </div>
                     <div className="flex-1">
@@ -113,7 +112,7 @@ export default function Home() {
                         </div>
                         <div className="flex gap-1">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="h-4 w-4 fill-[#D4AF37] text-[#D4AF37]" />
+                            <Star key={i} className="h-4 w-4 fill-[#B8D4E3] text-[#B8D4E3]" />
                           ))}
                         </div>
                       </div>
@@ -122,17 +121,17 @@ export default function Home() {
                 </div>
                 
                 {/* Floating Badge */}
-                <div className="absolute top-6 right-6 glass px-4 py-2 rounded-full border border-[#00FF88]/30">
+                <div className="absolute top-6 right-6 glass px-4 py-2 rounded-full border border-[#5CD85A]/30">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#00FF88] animate-pulse"></div>
+                    <div className="w-2 h-2 rounded-full bg-[#5CD85A] animate-pulse"></div>
                     <span className="text-sm font-medium text-white">Disponible 24/7</span>
                   </div>
                 </div>
               </div>
               
               {/* Decorative Elements */}
-              <div className="absolute -bottom-4 -left-4 w-24 h-24 border-2 border-[#00FF88]/20 rounded-2xl -z-10"></div>
-              <div className="absolute -top-4 -right-4 w-32 h-32 border-2 border-[#D4AF37]/10 rounded-2xl -z-10"></div>
+              <div className="absolute -bottom-4 -left-4 w-24 h-24 border-2 border-[#5CD85A]/20 rounded-2xl -z-10"></div>
+              <div className="absolute -top-4 -right-4 w-32 h-32 border-2 border-[#B8D4E3]/10 rounded-2xl -z-10"></div>
             </div>
           </div>
         </div>
@@ -150,8 +149,8 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             {/* Image with Premium Frame */}
             <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#00FF88]/20 to-[#D4AF37]/10 rounded-3xl blur-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
-              <div className="relative rounded-3xl overflow-hidden border-2 border-[#00FF88]/10 shadow-2xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#5CD85A]/20 to-[#B8D4E3]/10 rounded-3xl blur-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
+              <div className="relative rounded-3xl overflow-hidden border-2 border-[#5CD85A]/10 shadow-2xl">
                 <Image
                   src="/Gemini_Generated_Image_v3rrr3v3rrr3v3rr.png"
                   alt={`${DRIVER.name} au volant de son véhicule premium`}
@@ -166,7 +165,7 @@ export default function Home() {
               {/* Floating Experience Badge */}
               <div className="absolute -bottom-6 -right-6 glass-light p-6 rounded-2xl shadow-xl border border-white/50">
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-[#00FF88]">15+</div>
+                  <div className="text-4xl font-bold text-[#5CD85A]">15+</div>
                   <div className="text-sm text-gray-600 font-medium">Ans d'expérience</div>
                 </div>
               </div>
@@ -174,8 +173,8 @@ export default function Home() {
             
             {/* Content */}
             <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#00FF88]/10 border border-[#00FF88]/20">
-                <Award className="h-4 w-4 text-[#00FF88]" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#5CD85A]/10 border border-[#5CD85A]/20">
+                <Award className="h-4 w-4 text-[#5CD85A]" />
                 <span className="text-sm font-semibold text-[#0A0A0A]">Chauffeur Certifié</span>
               </div>
               
@@ -201,7 +200,7 @@ export default function Home() {
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{stat.icon}</span>
                       <div>
-                        <div className="text-2xl font-bold text-[#0A0A0A] group-hover:text-[#00CC6A] transition-colors">{stat.value}</div>
+                        <div className="text-2xl font-bold text-[#0A0A0A] group-hover:text-[#4BC449] transition-colors">{stat.value}</div>
                         <div className="text-sm text-gray-500">{stat.label}</div>
                       </div>
                     </div>
@@ -222,13 +221,13 @@ export default function Home() {
       <section className="py-24 bg-gradient-premium-hero relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-pattern-dots"></div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#00FF88]/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#D4AF37]/5 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#5CD85A]/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#B8D4E3]/5 rounded-full blur-3xl"></div>
         
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-[#00FF88]/20 mb-6">
-              <Sparkles className="h-4 w-4 text-[#00FF88]" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-[#5CD85A]/20 mb-6">
+              <Sparkles className="h-4 w-4 text-[#5CD85A]" />
               <span className="text-sm font-medium text-white/90">Nos Engagements</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
@@ -242,10 +241,10 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {VALUES.map((value, index) => (
               <div key={index} className="card-premium-dark p-8 group text-center">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#00FF88]/20 to-[#00FF88]/5 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-300">
+                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#5CD85A]/20 to-[#5CD85A]/5 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-300">
                   {value.icon}
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-[#00FF88] transition-colors">{value.title}</h3>
+                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-[#5CD85A] transition-colors">{value.title}</h3>
                 <p className="text-white/60 leading-relaxed">{value.description}</p>
               </div>
             ))}
@@ -260,8 +259,8 @@ export default function Home() {
         
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 mb-6">
-              <Zap className="h-4 w-4 text-[#D4AF37]" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#B8D4E3]/10 border border-[#B8D4E3]/20 mb-6">
+              <Zap className="h-4 w-4 text-[#B8D4E3]" />
               <span className="text-sm font-semibold text-[#0A0A0A]">Nos Services Premium</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-[#0A0A0A]">
@@ -277,19 +276,19 @@ export default function Home() {
             {SERVICES.map((service, index) => (
               <div key={service.id} className="card-premium p-8 group relative overflow-hidden">
                 {/* Hover Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#00FF88]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-[#5CD85A]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
                 <div className="relative z-10">
                   <div className="flex items-start gap-6">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#00FF88]/10 to-[#00FF88]/5 flex items-center justify-center text-4xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#5CD85A]/10 to-[#5CD85A]/5 flex items-center justify-center text-4xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
                       {service.icon}
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-[#0A0A0A] mb-2 group-hover:text-[#00CC6A] transition-colors">{service.name}</h3>
+                      <h3 className="text-2xl font-bold text-[#0A0A0A] mb-2 group-hover:text-[#4BC449] transition-colors">{service.name}</h3>
                       <p className="text-gray-600 leading-relaxed mb-4">{service.description}</p>
                       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <span className="text-lg font-bold text-[#00FF88]">{service.priceInfo}</span>
-                        <Link href="/reservation" className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A0A0A] hover:text-[#00CC6A] transition-colors">
+                        <span className="text-lg font-bold text-[#5CD85A]">{service.priceInfo}</span>
+                        <Link href="/reservation" className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A0A0A] hover:text-[#4BC449] transition-colors">
                           Réserver
                           <ArrowRight className="h-4 w-4" />
                         </Link>
@@ -314,12 +313,12 @@ export default function Home() {
       <section className="py-24 bg-gradient-premium-hero relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-pattern-grid opacity-20"></div>
-        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-[#00FF88]/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-[#5CD85A]/5 rounded-full blur-3xl"></div>
         
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-[#D4AF37]/20 mb-6">
-              <Car className="h-4 w-4 text-[#D4AF37]" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-[#B8D4E3]/20 mb-6">
+              <Car className="h-4 w-4 text-[#B8D4E3]" />
               <span className="text-sm font-medium text-white/90">Véhicule d'Exception</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
@@ -334,9 +333,9 @@ export default function Home() {
             {/* Features Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
               {VEHICLE.features.map((feature, index) => (
-                <div key={index} className="glass p-5 rounded-xl border border-white/10 group hover:border-[#00FF88]/30 transition-all duration-300">
+                <div key={index} className="glass p-5 rounded-xl border border-white/10 group hover:border-[#5CD85A]/30 transition-all duration-300">
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-[#00FF88] rounded-full flex-shrink-0 group-hover:animate-pulse" />
+                    <div className="w-3 h-3 bg-[#5CD85A] rounded-full flex-shrink-0 group-hover:animate-pulse" />
                     <span className="text-sm font-medium text-white/90">{feature}</span>
                   </div>
                 </div>
@@ -344,20 +343,20 @@ export default function Home() {
             </div>
             
             {/* Capacity Card */}
-            <div className="glass p-8 rounded-2xl border border-[#D4AF37]/20 text-center">
+            <div className="glass p-8 rounded-2xl border border-[#B8D4E3]/20 text-center">
               <div className="flex items-center justify-center gap-8 flex-wrap">
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-[#D4AF37] mb-2">{VEHICLE.seats}</div>
+                  <div className="text-4xl font-bold text-[#B8D4E3] mb-2">{VEHICLE.seats}</div>
                   <div className="text-sm text-white/60">Passagers max</div>
                 </div>
                 <div className="w-px h-12 bg-white/10 hidden md:block"></div>
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-[#D4AF37] mb-2">{VEHICLE.luggage}</div>
+                  <div className="text-4xl font-bold text-[#B8D4E3] mb-2">{VEHICLE.luggage}</div>
                   <div className="text-sm text-white/60">Bagages</div>
                 </div>
                 <div className="w-px h-12 bg-white/10 hidden md:block"></div>
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-[#00FF88] mb-2">Hybride</div>
+                  <div className="text-4xl font-bold text-[#5CD85A] mb-2">Hybride</div>
                   <div className="text-sm text-white/60">Motorisation</div>
                 </div>
               </div>
@@ -370,13 +369,13 @@ export default function Home() {
       <section className="py-32 bg-white relative overflow-hidden">
         {/* Background Elements */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,136,0.05),transparent_70%)]"></div>
-        <div className="absolute top-10 left-10 w-32 h-32 border-2 border-[#00FF88]/10 rounded-full"></div>
-        <div className="absolute bottom-10 right-10 w-48 h-48 border-2 border-[#D4AF37]/10 rounded-full"></div>
+        <div className="absolute top-10 left-10 w-32 h-32 border-2 border-[#5CD85A]/10 rounded-full"></div>
+        <div className="absolute bottom-10 right-10 w-48 h-48 border-2 border-[#B8D4E3]/10 rounded-full"></div>
         
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#00FF88]/10 border border-[#00FF88]/20 mb-8">
-              <Sparkles className="h-4 w-4 text-[#00FF88]" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#5CD85A]/10 border border-[#5CD85A]/20 mb-8">
+              <Sparkles className="h-4 w-4 text-[#5CD85A]" />
               <span className="text-sm font-semibold text-[#0A0A0A]">Réservation Instantanée</span>
             </div>
             
@@ -402,15 +401,15 @@ export default function Home() {
             {/* Trust Badges */}
             <div className="flex items-center justify-center gap-8 mt-12 flex-wrap">
               <div className="flex items-center gap-2 text-gray-500">
-                <Shield className="h-5 w-5 text-[#00FF88]" />
+                <Shield className="h-5 w-5 text-[#5CD85A]" />
                 <span className="text-sm">Paiement sécurisé</span>
               </div>
               <div className="flex items-center gap-2 text-gray-500">
-                <Clock className="h-5 w-5 text-[#00FF88]" />
+                <Clock className="h-5 w-5 text-[#5CD85A]" />
                 <span className="text-sm">Confirmation instantanée</span>
               </div>
               <div className="flex items-center gap-2 text-gray-500">
-                <Star className="h-5 w-5 text-[#D4AF37]" />
+                <Star className="h-5 w-5 text-[#B8D4E3]" />
                 <span className="text-sm">5.0 étoiles</span>
               </div>
             </div>
