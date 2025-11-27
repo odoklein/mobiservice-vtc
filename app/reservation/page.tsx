@@ -239,51 +239,71 @@ export default function ReservationPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Hero */}
-      <section className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white py-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAzNGMyLjIwOSAwIDQtMS43OTEgNC00cy0xLjc5MS00LTQtNC00IDEuNzkxLTQgNCAxLjc5MSA0IDQgNHoiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii4wNSIvPjwvZz48L3N2Zz4=')] opacity-20"></div>
+    <div className="flex flex-col min-h-screen bg-[#FAFAFA]">
+      {/* Premium Hero */}
+      <section className="bg-gradient-premium-hero text-white py-20 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-pattern-dots opacity-30"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#00FF88]/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#D4AF37]/5 rounded-full blur-3xl"></div>
+        
         <div className="container mx-auto px-4 text-center relative z-10">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Réserver votre trajet</h1>
-          <p className="text-xl text-slate-300">En moins de 30 secondes</p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-[#00FF88]/20 mb-6">
+            <IconCar className="h-4 w-4 text-[#00FF88]" />
+            <span className="text-sm font-medium text-white/90">Réservation Premium</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+            Réservez votre <span className="text-gradient-emerald">trajet</span>
+          </h1>
+          <p className="text-xl text-white/60 max-w-xl mx-auto">
+            Une expérience de réservation simple et élégante en moins de 30 secondes
+          </p>
         </div>
       </section>
 
-      {/* Progress Steps */}
-      <section className="bg-white border-b py-8 shadow-sm">
+      {/* Premium Progress Steps */}
+      <section className="bg-white border-b border-[#E8E8E8] py-10 shadow-sm relative">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center gap-2">
-            {[1, 2, 3].map((s) => (
-              <div key={s} className="flex items-center">
-                <div
-                  className={`flex items-center justify-center w-12 h-12 rounded-full font-semibold transition-all ${
-                    step >= s
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50'
-                      : 'bg-slate-200 text-slate-500'
-                  }`}
-                >
-                  {step > s ? <IconCheck className="h-6 w-6" /> : s}
-                </div>
-                {s < 3 && (
+            {[
+              { num: 1, label: 'Détails du trajet', icon: IconMapPin },
+              { num: 2, label: 'Confirmation', icon: IconCheck },
+              { num: 3, label: 'Paiement', icon: IconCreditCard },
+            ].map((s, index) => (
+              <div key={s.num} className="flex items-center">
+                <div className="flex flex-col items-center">
                   <div
-                    className={`w-16 md:w-32 h-1.5 mx-2 rounded-full transition-all ${
-                      step > s ? 'bg-blue-600' : 'bg-slate-200'
+                    className={`flex items-center justify-center w-14 h-14 rounded-2xl font-semibold transition-all duration-500 ${
+                      step >= s.num
+                        ? 'bg-gradient-to-br from-[#00FF88] to-[#00CC6A] text-[#0A0A0A] shadow-lg shadow-[#00FF88]/30 scale-110'
+                        : 'bg-[#F5F5F5] text-[#A0A0A0] border-2 border-[#E8E8E8]'
                     }`}
-                  />
+                  >
+                    {step > s.num ? (
+                      <IconCheck className="h-6 w-6" />
+                    ) : (
+                      <s.icon className="h-6 w-6" />
+                    )}
+                  </div>
+                  <span className={`text-xs font-medium mt-3 transition-colors ${
+                    step >= s.num ? 'text-[#00CC6A]' : 'text-[#A0A0A0]'
+                  }`}>
+                    {s.label}
+                  </span>
+                </div>
+                {index < 2 && (
+                  <div className="relative mx-4">
+                    <div className="w-16 md:w-24 h-1 bg-[#E8E8E8] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full bg-gradient-to-r from-[#00FF88] to-[#00CC6A] rounded-full transition-all duration-500 ${
+                          step > s.num ? 'w-full' : 'w-0'
+                        }`}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
-          </div>
-          <div className="flex justify-center gap-8 md:gap-32 mt-6">
-            <span className={`text-sm font-medium ${step >= 1 ? 'text-blue-600' : 'text-slate-500'}`}>
-              Détails
-            </span>
-            <span className={`text-sm font-medium ${step >= 2 ? 'text-blue-600' : 'text-slate-500'}`}>
-              Prix
-            </span>
-            <span className={`text-sm font-medium ${step >= 3 ? 'text-blue-600' : 'text-slate-500'}`}>
-              Paiement
-            </span>
           </div>
         </div>
       </section>
@@ -296,18 +316,25 @@ export default function ReservationPage() {
             <div className="lg:col-span-3">
               {/* Step 1: Trip Details */}
               {step === 1 && (
-                <Card className="border-2 shadow-xl transition-all duration-300 hover:shadow-2xl">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-2xl">Détails de votre trajet</CardTitle>
-                    <CardDescription className="text-base">
-                      Renseignez les informations de votre déplacement
-                    </CardDescription>
+                <Card className="card-premium border-0 shadow-xl overflow-hidden">
+                  <CardHeader className="pb-4 bg-gradient-to-r from-[#FAFAFA] to-white border-b border-[#E8E8E8]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00FF88]/20 to-[#00FF88]/5 flex items-center justify-center">
+                        <IconMapPin className="h-6 w-6 text-[#00CC6A]" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-2xl text-[#0A0A0A]">Détails de votre trajet</CardTitle>
+                        <CardDescription className="text-base text-[#A0A0A0]">
+                          Renseignez les informations de votre déplacement
+                        </CardDescription>
+                      </div>
+                    </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     <form onSubmit={handleSubmitStep1(onStep1Submit)} className="space-y-6">
                   {/* Service Type */}
                   <div className="space-y-3">
-                    <Label className="text-sm font-semibold text-slate-900">Type de service</Label>
+                    <Label className="text-sm font-semibold text-[#0A0A0A]">Type de service</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {SERVICES.map((service) => {
                         const IconComponent = 
@@ -320,26 +347,28 @@ export default function ReservationPage() {
                           <div
                             key={service.id}
                             onClick={() => setValueStep1('serviceType', service.id as any)}
-                            className={`cursor-pointer p-5 border-2 rounded-xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
+                            className={`cursor-pointer p-5 rounded-xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
                               step1Data.serviceType === service.id
-                                ? 'border-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg ring-2 ring-blue-200 scale-[1.02]'
-                                : 'border-slate-200 hover:border-blue-300 bg-white'
+                                ? 'bg-gradient-to-br from-[#00FF88]/10 to-[#00FF88]/5 border-2 border-[#00FF88] shadow-lg shadow-[#00FF88]/10 scale-[1.02]'
+                                : 'bg-white border-2 border-[#E8E8E8] hover:border-[#00FF88]/50'
                             }`}
                           >
                             <div className="flex items-start gap-4">
-                              <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center ${
+                              <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
                                 step1Data.serviceType === service.id
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-slate-100 text-slate-600'
+                                  ? 'bg-gradient-to-br from-[#00FF88] to-[#00CC6A] text-[#0A0A0A]'
+                                  : 'bg-[#F5F5F5] text-[#A0A0A0]'
                               }`}>
                                 <IconComponent className="h-6 w-6" />
                               </div>
                               <div className="flex-1">
-                                <div className="font-semibold text-base mb-1">{service.name}</div>
-                                <div className="text-sm text-slate-600">{service.priceInfo}</div>
+                                <div className="font-semibold text-base mb-1 text-[#0A0A0A]">{service.name}</div>
+                                <div className="text-sm text-[#A0A0A0]">{service.priceInfo}</div>
                               </div>
                               {step1Data.serviceType === service.id && (
-                                <IconCheck className="h-5 w-5 text-blue-600 flex-shrink-0 mt-1" />
+                                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#00FF88] flex items-center justify-center">
+                                  <IconCheck className="h-4 w-4 text-[#0A0A0A]" />
+                                </div>
                               )}
                             </div>
                           </div>
@@ -488,7 +517,12 @@ export default function ReservationPage() {
                     </div>
                   </div>
 
-                      <Button type="submit" className="w-full" size="lg" disabled={isCalculating}>
+                      <Button 
+                        type="submit" 
+                        className="w-full h-14 text-base font-semibold bg-gradient-to-r from-[#00FF88] to-[#00CC6A] hover:from-[#00CC6A] hover:to-[#00FF88] text-[#0A0A0A] border-0 shadow-lg shadow-[#00FF88]/30 hover:shadow-xl hover:shadow-[#00FF88]/40 transition-all duration-300" 
+                        size="lg" 
+                        disabled={isCalculating}
+                      >
                         {isCalculating ? (
                           <>
                             <IconLoader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -508,41 +542,48 @@ export default function ReservationPage() {
 
               {/* Step 2: Price Confirmation */}
               {step === 2 && (
-                <Card className="border-2 shadow-xl transition-all duration-300 hover:shadow-2xl">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-2xl">Récapitulatif et prix</CardTitle>
-                    <CardDescription className="text-base">
-                      Vérifiez les détails de votre réservation
-                    </CardDescription>
+                <Card className="card-premium border-0 shadow-xl overflow-hidden">
+                  <CardHeader className="pb-4 bg-gradient-to-r from-[#FAFAFA] to-white border-b border-[#E8E8E8]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4AF37]/20 to-[#D4AF37]/5 flex items-center justify-center">
+                        <IconCheck className="h-6 w-6 text-[#D4AF37]" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-2xl text-[#0A0A0A]">Récapitulatif et prix</CardTitle>
+                        <CardDescription className="text-base text-[#A0A0A0]">
+                          Vérifiez les détails de votre réservation
+                        </CardDescription>
+                      </div>
+                    </div>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-6 pt-6">
                 {/* Trip Summary */}
-                <div className="space-y-4 p-6 bg-gradient-to-br from-blue-50 to-slate-50 rounded-xl border border-blue-100">
+                <div className="space-y-4 p-6 bg-gradient-to-br from-[#00FF88]/5 to-[#FAFAFA] rounded-xl border border-[#00FF88]/20">
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                      <IconMapPin className="h-5 w-5 text-white" />
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#00FF88] to-[#00CC6A] flex items-center justify-center">
+                      <IconMapPin className="h-5 w-5 text-[#0A0A0A]" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-slate-900 mb-1">Départ</div>
-                      <div className="text-sm text-slate-600">{bookingData.pickupAddress}</div>
+                      <div className="font-semibold text-[#0A0A0A] mb-1">Départ</div>
+                      <div className="text-sm text-[#A0A0A0]">{bookingData.pickupAddress}</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
-                      <IconMapPin className="h-5 w-5 text-white" />
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#B8860B] flex items-center justify-center">
+                      <IconMapPin className="h-5 w-5 text-[#0A0A0A]" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-slate-900 mb-1">Arrivée</div>
-                      <div className="text-sm text-slate-600">{bookingData.dropoffAddress}</div>
+                      <div className="font-semibold text-[#0A0A0A] mb-1">Arrivée</div>
+                      <div className="text-sm text-[#A0A0A0]">{bookingData.dropoffAddress}</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                      <IconCalendar className="h-5 w-5 text-white" />
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#F5F5F5] border border-[#E8E8E8] flex items-center justify-center">
+                      <IconCalendar className="h-5 w-5 text-[#0A0A0A]" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-slate-900 mb-1">Date et heure</div>
-                      <div className="text-sm text-slate-600">
+                      <div className="font-semibold text-[#0A0A0A] mb-1">Date et heure</div>
+                      <div className="text-sm text-[#A0A0A0]">
                         {bookingData.pickupDate 
                           ? (bookingData.pickupDate instanceof Date 
                               ? bookingData.pickupDate.toLocaleDateString('fr-FR')
@@ -552,12 +593,12 @@ export default function ReservationPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                      <IconUsers className="h-5 w-5 text-white" />
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#F5F5F5] border border-[#E8E8E8] flex items-center justify-center">
+                      <IconUsers className="h-5 w-5 text-[#0A0A0A]" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-slate-900 mb-1">Passagers et bagages</div>
-                      <div className="text-sm text-slate-600">
+                      <div className="font-semibold text-[#0A0A0A] mb-1">Passagers et bagages</div>
+                      <div className="text-sm text-[#A0A0A0]">
                         {bookingData.passengers} passager(s) • {bookingData.luggage} bagage(s)
                       </div>
                     </div>
@@ -565,44 +606,44 @@ export default function ReservationPage() {
                 </div>
 
                 {/* Price Breakdown */}
-                <div className="border-t pt-6">
-                  <h3 className="font-semibold mb-4 text-lg">Détail du prix</h3>
-                  <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
+                <div className="border-t border-[#E8E8E8] pt-6">
+                  <h3 className="font-semibold mb-4 text-lg text-[#0A0A0A]">Détail du prix</h3>
+                  <div className="space-y-3 bg-[#FAFAFA] p-5 rounded-xl border border-[#E8E8E8]">
                     {bookingData.breakdown?.baseFare && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-slate-600">Prix de base</span>
-                        <span className="font-medium text-slate-900">{formatPrice(bookingData.breakdown.baseFare)}</span>
+                        <span className="text-[#A0A0A0]">Prix de base</span>
+                        <span className="font-medium text-[#0A0A0A]">{formatPrice(bookingData.breakdown.baseFare)}</span>
                       </div>
                     )}
                     {bookingData.breakdown?.distanceCharge && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-slate-600">
+                        <span className="text-[#A0A0A0]">
                           Distance ({Math.round(bookingData.distance)} km)
                         </span>
-                        <span className="font-medium text-slate-900">{formatPrice(bookingData.breakdown.distanceCharge)}</span>
+                        <span className="font-medium text-[#0A0A0A]">{formatPrice(bookingData.breakdown.distanceCharge)}</span>
                       </div>
                     )}
                     {bookingData.breakdown?.hourlyCharge && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-slate-600">Tarif horaire</span>
-                        <span className="font-medium text-slate-900">{formatPrice(bookingData.breakdown.hourlyCharge)}</span>
+                        <span className="text-[#A0A0A0]">Tarif horaire</span>
+                        <span className="font-medium text-[#0A0A0A]">{formatPrice(bookingData.breakdown.hourlyCharge)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between items-center text-xl font-bold pt-3 border-t border-slate-200 mt-3">
-                      <span className="text-slate-900">Total</span>
-                      <span className="text-blue-600">{formatPrice(bookingData.totalPrice)}</span>
+                    <div className="flex justify-between items-center text-xl font-bold pt-4 border-t border-[#E8E8E8] mt-3">
+                      <span className="text-[#0A0A0A]">Total</span>
+                      <span className="text-[#00FF88] text-2xl">{formatPrice(bookingData.totalPrice)}</span>
                     </div>
                   </div>
                 </div>
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-4 pt-6">
                       <Button
                         variant="outline"
                         onClick={() => {
                           setStep(1);
                           saveBookingDraft({ ...bookingData, step: 1 });
                         }}
-                        className="flex-1 border-slate-300 hover:bg-slate-50"
+                        className="flex-1 h-12 border-2 border-[#E8E8E8] hover:border-[#00FF88] hover:bg-[#00FF88]/5 text-[#0A0A0A] transition-all duration-300"
                       >
                         <IconArrowLeft className="mr-2 h-4 w-4" />
                         Modifier
@@ -612,7 +653,7 @@ export default function ReservationPage() {
                           setStep(3);
                           saveBookingDraft({ ...bookingData, step: 3 });
                         }}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        className="flex-1 h-12 bg-gradient-to-r from-[#00FF88] to-[#00CC6A] hover:from-[#00CC6A] hover:to-[#00FF88] text-[#0A0A0A] font-semibold border-0 shadow-lg shadow-[#00FF88]/30 transition-all duration-300"
                       >
                         Continuer
                         <IconArrowRight className="ml-2 h-4 w-4" />
@@ -624,14 +665,21 @@ export default function ReservationPage() {
 
               {/* Step 3: Customer Info & Payment */}
               {step === 3 && (
-                <Card className="border-2 shadow-xl transition-all duration-300 hover:shadow-2xl">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-2xl">Vos informations</CardTitle>
-                    <CardDescription className="text-base">
-                      Dernière étape avant la réservation
-                    </CardDescription>
+                <Card className="card-premium border-0 shadow-xl overflow-hidden">
+                  <CardHeader className="pb-4 bg-gradient-to-r from-[#FAFAFA] to-white border-b border-[#E8E8E8]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00FF88]/20 to-[#00FF88]/5 flex items-center justify-center">
+                        <IconCreditCard className="h-6 w-6 text-[#00CC6A]" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-2xl text-[#0A0A0A]">Vos informations</CardTitle>
+                        <CardDescription className="text-base text-[#A0A0A0]">
+                          Dernière étape avant la réservation
+                        </CardDescription>
+                      </div>
+                    </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     <form onSubmit={handleSubmitStep3(onStep3Submit)} className="space-y-6">
                   <div className="space-y-5">
                     <div className="space-y-2">
@@ -692,23 +740,25 @@ export default function ReservationPage() {
                   </div>
 
                   {/* Price Summary */}
-                  <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-xl text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-3">
+                  <div className="bg-gradient-to-br from-[#0A0A0A] to-[#1E1E1E] p-6 rounded-xl text-white shadow-xl border border-[#00FF88]/20">
+                    <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <IconShieldLock className="h-5 w-5" />
-                        <span className="text-sm font-medium">Montant à payer</span>
+                        <div className="w-8 h-8 rounded-lg bg-[#00FF88]/20 flex items-center justify-center">
+                          <IconShieldLock className="h-5 w-5 text-[#00FF88]" />
+                        </div>
+                        <span className="text-sm font-medium text-white/80">Montant à payer</span>
                       </div>
-                      <span className="text-3xl font-bold">
+                      <span className="text-3xl font-bold text-[#00FF88]">
                         {formatPrice(bookingData.totalPrice)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-blue-100">
+                    <div className="flex items-center gap-2 text-sm text-white/60 pt-3 border-t border-white/10">
                       <IconCreditCard className="h-4 w-4" />
                       <span>Paiement sécurisé par carte bancaire</span>
                     </div>
                   </div>
 
-                      <div className="flex gap-3 pt-4">
+                      <div className="flex gap-4 pt-6">
                         <Button
                           type="button"
                           variant="outline"
@@ -716,12 +766,16 @@ export default function ReservationPage() {
                             setStep(2);
                             saveBookingDraft({ ...bookingData, step: 2 });
                           }}
-                          className="flex-1 border-slate-300 hover:bg-slate-50"
+                          className="flex-1 h-12 border-2 border-[#E8E8E8] hover:border-[#00FF88] hover:bg-[#00FF88]/5 text-[#0A0A0A] transition-all duration-300"
                         >
                           <IconArrowLeft className="mr-2 h-4 w-4" />
                           Retour
                         </Button>
-                        <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" size="lg">
+                        <Button 
+                          type="submit" 
+                          className="flex-1 h-14 text-base font-semibold bg-gradient-to-r from-[#00FF88] to-[#00CC6A] hover:from-[#00CC6A] hover:to-[#00FF88] text-[#0A0A0A] border-0 shadow-lg shadow-[#00FF88]/30 hover:shadow-xl hover:shadow-[#00FF88]/40 transition-all duration-300" 
+                          size="lg"
+                        >
                           Payer et réserver
                           <IconArrowRight className="ml-2 h-4 w-4" />
                         </Button>

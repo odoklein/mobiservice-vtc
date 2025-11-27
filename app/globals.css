@@ -43,57 +43,75 @@
 }
 
 :root {
-  /* MobiService VTC Design System Colors */
-  --radius: 0.5rem;
+  /* MobiService VTC Premium Design System */
+  --radius: 0.75rem;
   
-  /* Primary Colors - MobiService Green */
-  --mobiservice-green: #00FF88;
-  --mobiservice-green-dark: #00CC6A;
-  --mobiservice-green-light: #33FFAA;
+  /* Premium Colors - Emerald & Gold Luxury */
+  --premium-emerald: #00FF88;
+  --premium-emerald-dark: #00CC6A;
+  --premium-emerald-light: #33FFAA;
+  --premium-emerald-glow: rgba(0, 255, 136, 0.15);
   
-  /* Neutral Colors */
-  --black: #000000;
+  /* Luxury Gold Accent */
+  --premium-gold: #D4AF37;
+  --premium-gold-light: #F4D03F;
+  --premium-gold-dark: #B8860B;
+  
+  /* Dark Premium Neutrals */
+  --premium-black: #0A0A0A;
+  --premium-charcoal: #141414;
+  --premium-slate: #1E1E1E;
+  --premium-graphite: #2A2A2A;
+  
+  /* Light Neutrals */
   --white: #FFFFFF;
-  --gray-dark: #1A1A1A;
-  --gray-medium: #666666;
-  --gray-light: #F5F5F5;
+  --ivory: #FAFAFA;
+  --platinum: #E8E8E8;
+  --silver: #A0A0A0;
   
-  /* Accent Color - Light Blue */
-  --accent-blue: #4A9EFF;
-  --accent-blue-light: #6BB0FF;
+  /* Legacy colors for compatibility */
+  --mobiservice-green: var(--premium-emerald);
+  --mobiservice-green-dark: var(--premium-emerald-dark);
+  --mobiservice-green-light: var(--premium-emerald-light);
+  --black: var(--premium-black);
+  --gray-dark: var(--premium-charcoal);
+  --gray-medium: var(--silver);
+  --gray-light: var(--ivory);
+  --accent-blue: var(--premium-emerald);
+  --accent-blue-light: var(--premium-emerald-light);
   
   /* Semantic Colors */
   --background: var(--white);
-  --foreground: var(--black);
+  --foreground: var(--premium-black);
   --card: var(--white);
-  --card-foreground: var(--black);
+  --card-foreground: var(--premium-black);
   --popover: var(--white);
-  --popover-foreground: var(--black);
-  --primary: var(--mobiservice-green);
-  --primary-foreground: var(--black);
-  --secondary: var(--gray-light);
-  --secondary-foreground: var(--black);
-  --muted: var(--gray-light);
-  --muted-foreground: var(--gray-medium);
-  --accent: var(--accent-blue);
-  --accent-foreground: var(--white);
+  --popover-foreground: var(--premium-black);
+  --primary: var(--premium-emerald);
+  --primary-foreground: var(--premium-black);
+  --secondary: var(--ivory);
+  --secondary-foreground: var(--premium-black);
+  --muted: var(--ivory);
+  --muted-foreground: var(--silver);
+  --accent: var(--premium-gold);
+  --accent-foreground: var(--premium-black);
   --destructive: #EF4444;
-  --border: #E5E5E5;
+  --border: var(--platinum);
   --input: var(--white);
-  --ring: var(--mobiservice-green);
-  --chart-1: var(--mobiservice-green);
-  --chart-2: var(--accent-blue);
-  --chart-3: var(--gray-medium);
-  --chart-4: var(--mobiservice-green-dark);
-  --chart-5: var(--accent-blue-light);
+  --ring: var(--premium-emerald);
+  --chart-1: var(--premium-emerald);
+  --chart-2: var(--premium-gold);
+  --chart-3: var(--silver);
+  --chart-4: var(--premium-emerald-dark);
+  --chart-5: var(--premium-gold-light);
   --sidebar: var(--white);
-  --sidebar-foreground: var(--black);
-  --sidebar-primary: var(--mobiservice-green);
-  --sidebar-primary-foreground: var(--black);
-  --sidebar-accent: var(--gray-light);
-  --sidebar-accent-foreground: var(--black);
+  --sidebar-foreground: var(--premium-black);
+  --sidebar-primary: var(--premium-emerald);
+  --sidebar-primary-foreground: var(--premium-black);
+  --sidebar-accent: var(--ivory);
+  --sidebar-accent-foreground: var(--premium-black);
   --sidebar-border: var(--border);
-  --sidebar-ring: var(--mobiservice-green);
+  --sidebar-ring: var(--premium-emerald);
 }
 
 .dark {
@@ -157,38 +175,320 @@
 }
 
 @layer utilities {
-  /* MobiService VTC Brand Colors */
+  /* Premium Brand Colors */
   .bg-mobiservice-green {
-    background-color: var(--mobiservice-green);
+    background-color: var(--premium-emerald);
   }
   .text-mobiservice-green {
-    color: var(--mobiservice-green);
+    color: var(--premium-emerald);
   }
   .border-mobiservice-green {
-    border-color: var(--mobiservice-green);
+    border-color: var(--premium-emerald);
   }
   
   .bg-mobiservice-green-dark {
-    background-color: var(--mobiservice-green-dark);
+    background-color: var(--premium-emerald-dark);
   }
   .text-mobiservice-green-dark {
-    color: var(--mobiservice-green-dark);
+    color: var(--premium-emerald-dark);
   }
   
   .bg-mobiservice-green-light {
-    background-color: var(--mobiservice-green-light);
+    background-color: var(--premium-emerald-light);
   }
   
-  /* Gradient MobiService */
+  /* Premium Gold Accent */
+  .bg-premium-gold {
+    background-color: var(--premium-gold);
+  }
+  .text-premium-gold {
+    color: var(--premium-gold);
+  }
+  .border-premium-gold {
+    border-color: var(--premium-gold);
+  }
+  
+  /* Premium Gradients */
   .bg-gradient-mobiservice {
-    background: linear-gradient(135deg, var(--mobiservice-green) 0%, var(--mobiservice-green-dark) 100%);
+    background: linear-gradient(135deg, var(--premium-emerald) 0%, var(--premium-emerald-dark) 100%);
   }
   
-  /* Accent Blue */
+  .bg-gradient-premium-dark {
+    background: linear-gradient(180deg, var(--premium-black) 0%, var(--premium-charcoal) 50%, var(--premium-slate) 100%);
+  }
+  
+  .bg-gradient-premium-hero {
+    background: linear-gradient(135deg, var(--premium-black) 0%, var(--premium-charcoal) 40%, var(--premium-slate) 100%);
+  }
+  
+  .bg-gradient-premium-gold {
+    background: linear-gradient(135deg, var(--premium-gold-dark) 0%, var(--premium-gold) 50%, var(--premium-gold-light) 100%);
+  }
+  
+  .bg-gradient-premium-emerald {
+    background: linear-gradient(135deg, var(--premium-emerald-dark) 0%, var(--premium-emerald) 100%);
+  }
+  
+  /* Glassmorphism Effects */
+  .glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .glass-light {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .glass-dark {
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  /* Premium Glow Effects */
+  .glow-emerald {
+    box-shadow: 0 0 40px rgba(0, 255, 136, 0.15), 0 0 80px rgba(0, 255, 136, 0.05);
+  }
+  
+  .glow-gold {
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.15), 0 0 80px rgba(212, 175, 55, 0.05);
+  }
+  
+  .text-glow-emerald {
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+  }
+  
+  .text-glow-gold {
+    text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+  }
+  
+  /* Premium Border Effects */
+  .border-gradient-emerald {
+    border: 2px solid transparent;
+    background: linear-gradient(var(--white), var(--white)) padding-box,
+                linear-gradient(135deg, var(--premium-emerald), var(--premium-emerald-dark)) border-box;
+  }
+  
+  .border-gradient-gold {
+    border: 2px solid transparent;
+    background: linear-gradient(var(--white), var(--white)) padding-box,
+                linear-gradient(135deg, var(--premium-gold), var(--premium-gold-dark)) border-box;
+  }
+  
+  /* Premium Card Styles */
+  .card-premium {
+    background: var(--white);
+    border: 1px solid var(--platinum);
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 
+                0 10px 15px -3px rgba(0, 0, 0, 0.08),
+                0 20px 25px -5px rgba(0, 0, 0, 0.05);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .card-premium:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 12px -1px rgba(0, 0, 0, 0.08), 
+                0 20px 30px -3px rgba(0, 0, 0, 0.12),
+                0 25px 40px -5px rgba(0, 0, 0, 0.08);
+    border-color: var(--premium-emerald);
+  }
+  
+  .card-premium-dark {
+    background: var(--premium-charcoal);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 
+                0 10px 15px -3px rgba(0, 0, 0, 0.4);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .card-premium-dark:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 12px -1px rgba(0, 255, 136, 0.1), 
+                0 20px 30px -3px rgba(0, 0, 0, 0.5);
+    border-color: rgba(0, 255, 136, 0.3);
+  }
+  
+  /* Accent Blue (legacy) */
   .bg-accent-blue {
-    background-color: var(--accent-blue);
+    background-color: var(--premium-emerald);
   }
   .text-accent-blue {
-    color: var(--accent-blue);
+    color: var(--premium-emerald);
   }
+}
+
+/* Premium Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+  }
+  50% { 
+    box-shadow: 0 0 40px rgba(0, 255, 136, 0.4);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out forwards;
+}
+
+/* Premium Background Patterns */
+.bg-pattern-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.bg-pattern-grid {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.bg-pattern-diagonal {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(255, 255, 255, 0.02) 10px,
+    rgba(255, 255, 255, 0.02) 20px
+  );
+}
+
+/* Premium Typography */
+.text-gradient-emerald {
+  background: linear-gradient(135deg, var(--premium-emerald) 0%, var(--premium-emerald-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--premium-gold-dark) 0%, var(--premium-gold-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Premium Button Styles */
+.btn-premium {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--premium-emerald) 0%, var(--premium-emerald-dark) 100%);
+  color: var(--premium-black);
+  font-weight: 600;
+  padding: 0.875rem 2rem;
+  border-radius: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+}
+
+.btn-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
+}
+
+.btn-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-premium:hover::before {
+  left: 100%;
+}
+
+.btn-premium-outline {
+  position: relative;
+  background: transparent;
+  color: var(--premium-emerald);
+  font-weight: 600;
+  padding: 0.875rem 2rem;
+  border-radius: 0.75rem;
+  border: 2px solid var(--premium-emerald);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-premium-outline:hover {
+  background: var(--premium-emerald);
+  color: var(--premium-black);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 255, 136, 0.3);
+}
+
+/* Premium Input Styles */
+.input-premium {
+  background: var(--white);
+  border: 2px solid var(--platinum);
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-premium:focus {
+  outline: none;
+  border-color: var(--premium-emerald);
+  box-shadow: 0 0 0 4px rgba(0, 255, 136, 0.1);
 }
