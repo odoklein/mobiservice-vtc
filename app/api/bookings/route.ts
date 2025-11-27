@@ -11,7 +11,12 @@ export async function POST(request: NextRequest) {
     // Validate the booking data
     const validatedData = completeBookingSchema.parse(body);
 
-    // Create booking in database
+    // Calculate TVA if not provided
+    const totalPriceTTC = validatedData.totalPrice;
+    const totalPriceHT = validatedData.totalPriceHT || Math.round((totalPriceTTC / 1.10) * 100) / 100;
+    const tvaAmount = validatedData.tvaAmount || Math.round((totalPriceTTC - totalPriceHT) * 100) / 100;
+
+    // Create booking in database with 2025/2026 pricing
     const [booking] = await db
       .insert(bookings)
       .values({
@@ -29,10 +34,40 @@ export async function POST(request: NextRequest) {
         passengers: validatedData.passengers,
         luggage: validatedData.luggage,
         serviceType: validatedData.serviceType,
+        
+        // Trip metrics
         distance: validatedData.distance?.toString(),
         duration: validatedData.duration,
+        hours: validatedData.hours,
+        
+        // Pricing - 2025/2026 Tariff Grid
+        isNightRate: validatedData.isNightRate || false,
+        rateType: validatedData.rateType,
+        
+        // Forfait info
+        isForfait: validatedData.isForfait || false,
+        forfaitName: validatedData.forfaitName || validatedData.breakdown?.forfaitName,
+        
+        // Price breakdown
+        baseFare: validatedData.baseFare?.toString() || validatedData.breakdown?.baseFare?.toString(),
+        distanceCharge: validatedData.distanceCharge?.toString() || validatedData.breakdown?.distanceCharge?.toString(),
+        hourlyCharge: validatedData.hourlyCharge?.toString() || validatedData.breakdown?.hourlyCharge?.toString(),
+        waitingCharge: validatedData.waitingCharge?.toString() || validatedData.breakdown?.waitingCharge?.toString(),
+        forfaitDiscount: validatedData.forfaitDiscount?.toString() || validatedData.breakdown?.forfaitDiscount?.toString(),
+        
+        // Final prices (HT/TTC)
+        totalPriceHT: totalPriceHT.toString(),
+        totalPriceTTC: totalPriceTTC.toString(),
+        tvaAmount: tvaAmount.toString(),
+        tvaRate: '10.00',
+        
+        // Legacy fields
         basePrice: validatedData.basePrice.toString(),
         totalPrice: validatedData.totalPrice.toString(),
+        
+        // Full breakdown as JSON
+        priceBreakdown: validatedData.breakdown,
+        
         notes: validatedData.notes,
         status: 'pending',
         paymentStatus: 'pending',

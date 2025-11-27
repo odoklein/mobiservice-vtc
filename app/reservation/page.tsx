@@ -273,6 +273,18 @@ export default function ReservationPage() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
             Réservez votre <span className="text-gradient-emerald">trajet</span>
           </h1>
+          
+          {/* Location breadcrumb */}
+          <div className="flex items-center justify-center gap-2 text-white/50 text-sm mb-4">
+            <span>🌍 Europe</span>
+            <span className="text-white/30">›</span>
+            <span>🇫🇷 France</span>
+            <span className="text-white/30">›</span>
+            <span>🏔️ Auvergne-Rhône-Alpes</span>
+            <span className="text-white/30">›</span>
+            <span className="text-[#5CD85A] font-medium">Haute-Savoie</span>
+          </div>
+          
           <p className="text-xl text-white/60 max-w-xl mx-auto">
             Une expérience de réservation simple et élégante en moins de 30 secondes
           </p>

@@ -36,6 +36,9 @@ export interface PricingResult {
 // TVA rate
 const TVA_RATE = 0.10; // 10% TVA
 
+// Minimum price TTC
+const MIN_PRICE_TTC = 33; // 33€ minimum (forfait agglomération jour)
+
 // Check if it's night rate (20h-7h or Sunday/Holiday)
 function isNightRate(date?: Date): boolean {
   if (!date) return false;
@@ -218,6 +221,9 @@ export function calculatePrice(input: PricingInput): PricingResult {
       break;
   }
 
+  // Apply minimum price (33€ TTC)
+  totalPrice = Math.max(totalPrice, MIN_PRICE_TTC);
+  
   // Calculate HT from TTC
   totalPriceHT = Math.round((totalPrice / (1 + TVA_RATE)) * 100) / 100;
 

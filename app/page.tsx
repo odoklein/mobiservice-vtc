@@ -34,6 +34,17 @@ export default function Home() {
                 <span className="text-gradient-emerald">Transport Privé</span>
               </h1>
               
+              {/* Location breadcrumb */}
+              <div className="flex items-center gap-2 text-white/50 text-sm">
+                <span>🌍 Europe</span>
+                <span className="text-white/30">›</span>
+                <span>🇫🇷 France</span>
+                <span className="text-white/30">›</span>
+                <span>🏔️ Auvergne-Rhône-Alpes</span>
+                <span className="text-white/30">›</span>
+                <span className="text-[#5CD85A] font-medium">Haute-Savoie</span>
+              </div>
+              
               <p className="text-lg md:text-xl text-white/70 max-w-xl leading-relaxed">
                 Votre chauffeur privé d'exception en Haute-Savoie. Confort, ponctualité et discrétion pour tous vos déplacements professionnels et personnels.
               </p>

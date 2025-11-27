@@ -37,14 +37,43 @@ export const bookings = pgTable('bookings', {
   luggage: integer('luggage').notNull().default(0),
   
   // Service type
-  serviceType: text('service_type').notNull(), // 'transfer', 'hourly', 'airport', etc.
+  serviceType: text('service_type').notNull(), // 'transfer', 'hourly', 'airport', 'business', 'mda'
   
-  // Pricing
+  // Trip metrics
   distance: decimal('distance', { precision: 10, scale: 2 }), // in km
   duration: integer('duration'), // in minutes
+  hours: integer('hours'), // for hourly/forfait bookings
+  
+  // Pricing - 2025/2026 Tariff Grid
+  isNightRate: boolean('is_night_rate').notNull().default(false), // true = tarif nuit (20h-7h + Dim/JF)
+  rateType: text('rate_type'), // 'Tarif jour', 'Tarif nuit', 'Forfait 3H', etc.
+  
+  // Forfait info
+  isForfait: boolean('is_forfait').notNull().default(false),
+  forfaitName: text('forfait_name'), // 'Forfait 3H / 270km', etc.
+  forfaitHours: integer('forfait_hours'), // 3, 4, 5, 6, 7, 8
+  forfaitMaxKm: integer('forfait_max_km'), // 270, 360, 450, etc.
+  
+  // Price breakdown
+  baseFare: decimal('base_fare', { precision: 10, scale: 2 }), // Prise en charge
+  distanceCharge: decimal('distance_charge', { precision: 10, scale: 2 }), // km charge
+  hourlyCharge: decimal('hourly_charge', { precision: 10, scale: 2 }), // extra hours
+  waitingCharge: decimal('waiting_charge', { precision: 10, scale: 2 }), // MDA charge
+  forfaitDiscount: decimal('forfait_discount', { precision: 10, scale: 2 }), // savings from forfait
+  
+  // Final prices
+  totalPriceHT: decimal('total_price_ht', { precision: 10, scale: 2 }).notNull(), // Hors Taxes
+  totalPriceTTC: decimal('total_price_ttc', { precision: 10, scale: 2 }).notNull(), // Toutes Taxes Comprises
+  tvaAmount: decimal('tva_amount', { precision: 10, scale: 2 }), // TVA (10%)
+  tvaRate: decimal('tva_rate', { precision: 5, scale: 2 }).default('10.00'), // 10%
+  
+  // Legacy field (keep for compatibility)
   basePrice: decimal('base_price', { precision: 10, scale: 2 }).notNull(),
   totalPrice: decimal('total_price', { precision: 10, scale: 2 }).notNull(),
   currency: text('currency').notNull().default('EUR'),
+  
+  // Price breakdown as JSON (for complex scenarios)
+  priceBreakdown: jsonb('price_breakdown'),
   
   // Special requests
   notes: text('notes'),
@@ -92,17 +121,41 @@ export const availability = pgTable('availability', {
   isAvailable: boolean('is_available').notNull().default(true),
 });
 
-// Pricing rules
+// Pricing rules - Grille Tarifaire 2025/2026
 export const pricingRules = pgTable('pricing_rules', {
   id: serial('id').primaryKey(),
-  serviceType: text('service_type').notNull(),
-  baseFare: decimal('base_fare', { precision: 10, scale: 2 }).notNull(),
+  ruleType: text('rule_type').notNull(), // 'hourly', 'per_km', 'forfait', 'airport', 'mda', 'extra_hour'
+  serviceType: text('service_type'), // 'transfer', 'hourly', 'airport', 'business', 'mda'
+  
+  // Rate type
+  timeSlot: text('time_slot').notNull().default('day'), // 'day' or 'night'
+  
+  // Prices HT and TTC
+  priceHT: decimal('price_ht', { precision: 10, scale: 2 }).notNull(),
+  priceTTC: decimal('price_ttc', { precision: 10, scale: 2 }).notNull(),
+  
+  // For forfaits
+  forfaitHours: integer('forfait_hours'), // 3, 4, 5, 6, 7, 8
+  forfaitMaxKm: integer('forfait_max_km'), // 270, 360, 450, 540, 630, 720
+  hourlyRateTTC: decimal('hourly_rate_ttc', { precision: 10, scale: 2 }), // effective hourly rate
+  
+  // For per-km rates
+  zoneType: text('zone_type'), // 'agglomeration', 'hors_agglo', 'hors_agglo_one_way', 'deplacement'
+  maxKm: integer('max_km'), // e.g., 24 for agglomeration
+  
+  // Legacy fields (for compatibility)
+  baseFare: decimal('base_fare', { precision: 10, scale: 2 }),
   perKm: decimal('per_km', { precision: 10, scale: 2 }),
   perMinute: decimal('per_minute', { precision: 10, scale: 2 }),
   perHour: decimal('per_hour', { precision: 10, scale: 2 }),
   minPrice: decimal('min_price', { precision: 10, scale: 2 }),
+  
   description: text('description'),
   isActive: boolean('is_active').notNull().default(true),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // Types

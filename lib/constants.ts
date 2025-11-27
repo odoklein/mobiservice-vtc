@@ -113,11 +113,15 @@ export const PRICING = {
   // TVA rate
   tvaRate: 0.10,
   
+  // Minimum price
+  minPriceTTC: 33, // 33€ minimum (forfait agglomération jour)
+  
   // Notes
   notes: [
     'Tarif jour: 7h00 à 20h00 (sauf Dim & JF)',
     'Tarif nuit: 20h00 à 7h00 + Dim & JF',
     'Forfait agglomération: jusqu\'à 24 km max (A/R)',
+    'Minimum de réservation: 33€ TTC',
     'Hors frais de péage et mise à disposition',
     'Devis valable 5 jours',
   ],
