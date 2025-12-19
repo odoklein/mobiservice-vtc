@@ -81,7 +81,7 @@ export async function calculateDistance(
 
   try {
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Mapbox API error: ${response.statusText}`);
     }
@@ -104,4 +104,60 @@ export async function calculateDistance(
     throw new Error('Distance calculation failed');
   }
 }
+
+/**
+ * Calculate distances for all three segments of a VTC journey:
+ * 1. CA (Coût Additionnel): Depot → Pickup
+ * 2. TP (Trajet Principal): Pickup → Dropoff
+ * 3. Return: Dropoff → Depot
+ * 
+ * This uses 3 separate API calls to ensure accurate driving distance
+ * for each segment (important in mountainous Haute-Savoie region).
+ */
+export async function calculateThreeSegments(
+  depot: { lat: number; lng: number },
+  pickup: { lat: number; lng: number },
+  dropoff: { lat: number; lng: number }
+): Promise<{
+  distanceCA: number; // km
+  distanceTP: number; // km
+  distanceReturn: number; // km
+  totalDistance: number; // km
+  totalDuration: number; // minutes
+  durationCA: number;
+  durationTP: number;
+  durationReturn: number;
+}> {
+  const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+
+  if (!accessToken) {
+    throw new Error('Mapbox access token not found');
+  }
+
+  try {
+    // Make 3 parallel API calls for accurate routing
+    const [segmentCA, segmentTP, segmentReturn] = await Promise.all([
+      calculateDistance(depot, pickup), // Depot → Pickup
+      calculateDistance(pickup, dropoff), // Pickup → Dropoff
+      calculateDistance(dropoff, depot), // Dropoff → Depot
+    ]);
+
+    return {
+      distanceCA: Math.round(segmentCA.distance * 10) / 10,
+      distanceTP: Math.round(segmentTP.distance * 10) / 10,
+      distanceReturn: Math.round(segmentReturn.distance * 10) / 10,
+      totalDistance: Math.round((segmentCA.distance + segmentTP.distance + segmentReturn.distance) * 10) / 10,
+      totalDuration: Math.round(segmentCA.duration + segmentTP.duration + segmentReturn.duration),
+      durationCA: Math.round(segmentCA.duration),
+      durationTP: Math.round(segmentTP.duration),
+      durationReturn: Math.round(segmentReturn.duration),
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('3-segment distance calculation failed');
+  }
+}
+
 

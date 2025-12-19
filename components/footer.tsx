@@ -75,27 +75,21 @@ export function Footer() {
               </h3>
               <ul className="space-y-3">
                 <li>
-                  <Link href="/services#transfer" className="text-sm text-white/60 hover:text-[#5CD85A] transition-colors duration-300 flex items-center gap-2 group">
+                  <Link href="/reservation" className="text-sm text-white/60 hover:text-[#5CD85A] transition-colors duration-300 flex items-center gap-2 group">
                     <ArrowRight className="h-3 w-3 opacity-0 -ml-5 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
-                    Transfert Point à Point
+                    Point à Point
                   </Link>
                 </li>
                 <li>
-                  <Link href="/services#airport" className="text-sm text-white/60 hover:text-[#5CD85A] transition-colors duration-300 flex items-center gap-2 group">
-                    <ArrowRight className="h-3 w-3 opacity-0 -ml-5 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
-                    Transfert Aéroport
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/services#hourly" className="text-sm text-white/60 hover:text-[#5CD85A] transition-colors duration-300 flex items-center gap-2 group">
+                  <Link href="/reservation" className="text-sm text-white/60 hover:text-[#5CD85A] transition-colors duration-300 flex items-center gap-2 group">
                     <ArrowRight className="h-3 w-3 opacity-0 -ml-5 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
                     Mise à Disposition
                   </Link>
                 </li>
                 <li>
-                  <Link href="/services#business" className="text-sm text-white/60 hover:text-[#5CD85A] transition-colors duration-300 flex items-center gap-2 group">
+                  <Link href="/tarifs" className="text-sm text-white/60 hover:text-[#5CD85A] transition-colors duration-300 flex items-center gap-2 group">
                     <ArrowRight className="h-3 w-3 opacity-0 -ml-5 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
-                    Business & Événements
+                    Tarifs 2026
                   </Link>
                 </li>
               </ul>
@@ -150,14 +144,14 @@ export function Footer() {
               © {new Date().getFullYear()} {BRAND.name}. Tous droits réservés.
             </p>
             <div className="flex items-center gap-6">
+              <Link href="/documents" className="text-xs text-white/40 hover:text-[#5CD85A] transition-colors">
+                Documents légaux
+              </Link>
               <Link href="/mentions-legales" className="text-xs text-white/40 hover:text-[#5CD85A] transition-colors">
                 Mentions légales
               </Link>
               <Link href="/confidentialite" className="text-xs text-white/40 hover:text-[#5CD85A] transition-colors">
                 Confidentialité
-              </Link>
-              <Link href="/cgv" className="text-xs text-white/40 hover:text-[#5CD85A] transition-colors">
-                CGV
               </Link>
             </div>
           </div>

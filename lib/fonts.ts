@@ -1,24 +1,8 @@
-import localFont from 'next/font/local';
+import { DM_Sans } from 'next/font/google';
 
-export const samsungSharpSans = localFont({
-  src: [
-    {
-      path: '../public/samsungsharpsans.otf',
-      weight: '400',
-      style: 'normal',
-    },
-    {
-      path: '../public/samsungsharpsans-medium.otf',
-      weight: '500',
-      style: 'normal',
-    },
-    {
-      path: '../public/samsungsharpsans-bold.otf',
-      weight: '700',
-      style: 'normal',
-    },
-  ],
-  variable: '--font-samsung-sharp-sans',
+export const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-dm-sans',
   display: 'swap',
 });
-

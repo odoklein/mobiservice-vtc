@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { IconMapPin, IconLoader2, IconClock, IconStar } from '@tabler/icons-react';
+import { IconMapPin, IconLoader2, IconClock, IconStar, IconAlertTriangle } from '@tabler/icons-react';
 import { useRecentAddresses } from '@/hooks/use-local-storage';
 import { POPULAR_LOCATIONS } from '@/lib/constants';
 
@@ -15,17 +15,10 @@ interface AddressAutocompleteProps {
   error?: string;
 }
 
-interface MapboxFeature {
-  id: string;
-  place_name: string;
-  center: [number, number]; // [lng, lat]
-  geometry: {
-    coordinates: [number, number];
-  };
-}
-
-interface MapboxGeocodingResponse {
-  features: MapboxFeature[];
+interface GeocodingResult {
+  label: string;
+  latitude: number;
+  longitude: number;
 }
 
 export function AddressAutocomplete({
@@ -36,46 +29,56 @@ export function AddressAutocomplete({
   error,
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [suggestions, setSuggestions] = useState<MapboxFeature[]>([]);
+  const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const { recentAddresses, addAddress } = useRecentAddresses();
-
-  const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  
+  // Track if an address was just selected to prevent re-searching
+  const justSelectedRef = useRef(false);
 
   const searchAddresses = useCallback(
     async (query: string) => {
-      if (!query || query.length < 3 || !accessToken) {
+      if (!query || query.length < 3) {
         setSuggestions([]);
         setShowSuggestions(false);
+        setSearchError(null);
         return;
       }
 
       setIsLoading(true);
+      setSearchError(null);
+
       try {
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${accessToken}&country=fr&limit=5&language=fr`;
-        
-        const response = await fetch(url);
-        
+        const response = await fetch(`/api/geocoding/search?q=${encodeURIComponent(query)}`);
+
         if (!response.ok) {
-          throw new Error('Geocoding API error');
+          throw new Error('Recherche d\'adresse temporairement indisponible');
         }
 
-        const data: MapboxGeocodingResponse = await response.json();
-        setSuggestions(data.features);
-        setShowSuggestions(true);
-        setSelectedIndex(-1);
+        const data = await response.json();
+
+        if (data.error) {
+          setSearchError(data.message || 'Erreur lors de la recherche');
+          setSuggestions([]);
+        } else {
+          setSuggestions(data.results || []);
+          setShowSuggestions(true);
+          setSelectedIndex(-1);
+        }
       } catch (error) {
         console.error('Error fetching addresses:', error);
+        setSearchError('Recherche d\'adresse temporairement indisponible');
         setSuggestions([]);
         setShowSuggestions(false);
       } finally {
         setIsLoading(false);
       }
     },
-    [accessToken]
+    []
   );
 
   // Debounce function
@@ -83,29 +86,39 @@ export function AddressAutocomplete({
     if (!value) {
       setSuggestions([]);
       setShowSuggestions(false);
+      setSearchError(null);
+      return;
+    }
+
+    // Skip search if an address was just selected
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false;
       return;
     }
 
     const timer = setTimeout(() => {
       searchAddresses(value);
-    }, 300); // 300ms debounce
+    }, 400); // 400ms debounce
 
     return () => clearTimeout(timer);
   }, [value, searchAddresses]);
 
-  const handleSelect = (feature: MapboxFeature) => {
-    const [lng, lat] = feature.center;
-    const address = feature.place_name;
+  const handleSelect = (result: GeocodingResult) => {
+    const address = result.label;
+    justSelectedRef.current = true; // Prevent re-searching
     addAddress(address);
-    onChange(address, lat, lng);
+    onChange(address, result.latitude, result.longitude);
     setShowSuggestions(false);
     setSuggestions([]);
+    setSearchError(null);
   };
 
   const handleSelectRecent = (address: string) => {
+    justSelectedRef.current = true; // Prevent re-searching
     addAddress(address);
     onChange(address);
     setShowSuggestions(false);
+    setSuggestions([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -113,7 +126,7 @@ export function AddressAutocomplete({
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex((prev) => 
+      setSelectedIndex((prev) =>
         prev < suggestions.length - 1 ? prev + 1 : prev
       );
     } else if (e.key === 'ArrowUp') {
@@ -145,6 +158,7 @@ export function AddressAutocomplete({
   }, []);
 
   const handleSelectPopular = (location: typeof POPULAR_LOCATIONS[0]) => {
+    justSelectedRef.current = true; // Prevent re-searching
     addAddress(location.address);
     onChange(location.address, location.lat, location.lng);
     setShowSuggestions(false);
@@ -174,7 +188,15 @@ export function AddressAutocomplete({
           </div>
         )}
       </div>
-      
+
+      {/* Search Error Message */}
+      {searchError && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <IconAlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+          <span className="text-sm text-amber-800">{searchError}</span>
+        </div>
+      )}
+
       {showSuggestions && (suggestions.length > 0 || recentAddresses.length > 0 || (!value && POPULAR_LOCATIONS.length > 0)) && (
         <div
           ref={suggestionsRef}
@@ -208,7 +230,7 @@ export function AddressAutocomplete({
               )}
             </>
           )}
-          
+
           {/* Recent Addresses - Show when input is empty or focused */}
           {!value && recentAddresses.length > 0 && (
             <>
@@ -234,19 +256,18 @@ export function AddressAutocomplete({
               )}
             </>
           )}
-          
-          {/* Mapbox Suggestions */}
-          {suggestions.map((feature, index) => (
+
+          {/* ORS Geocoding Suggestions */}
+          {suggestions.map((result, index) => (
             <button
-              key={feature.id}
+              key={`result-${index}`}
               type="button"
-              onClick={() => handleSelect(feature)}
-              className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-start gap-2 ${
-                index === selectedIndex ? 'bg-slate-50' : ''
-              }`}
+              onClick={() => handleSelect(result)}
+              className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-start gap-2 ${index === selectedIndex ? 'bg-slate-50' : ''
+                }`}
             >
               <IconMapPin className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <span className="text-sm text-slate-900">{feature.place_name}</span>
+              <span className="text-sm text-slate-900">{result.label}</span>
             </button>
           ))}
         </div>

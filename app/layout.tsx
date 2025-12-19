@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { samsungSharpSans } from "@/lib/fonts";
+import { dmSans } from "@/lib/fonts";
 import { AddToHomeScreenPrompt } from "@/components/add-to-home-screen";
+import { headers } from "next/headers";
 
 export const metadata: Metadata = {
-  title: "MobiService VTC - Votre chauffeur premium à Lyon",
-  description: "Service de transport avec chauffeur privé premium à Lyon. Sérénité, confidentialité, écologie et expérience au service de vos déplacements.",
-  keywords: ["VTC Lyon", "chauffeur privé", "transport premium", "taxi Lyon", "transfert aéroport Lyon"],
+  title: "MobiService VTC - Votre chauffeur premium en Haute-Savoie",
+  description: "Service de transport avec chauffeur privé premium en Haute-Savoie. Sérénité, confidentialité, écologie et expérience au service de vos déplacements.",
+  keywords: ["VTC Haute-Savoie", "chauffeur privé", "transport premium", "transfert aéroport Genève", "VTC Cluses"],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -26,11 +27,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Check if current route is an admin route
+  const headersList = await headers();
+  const pathname = headersList.get('x-invoke-path') || headersList.get('x-pathname') || '';
+  const isAdminRoute = pathname.startsWith('/admin');
+
   return (
     <html lang="fr">
       <head>
@@ -38,14 +44,15 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="MobiService VTC" />
-        <meta name="theme-color" content="#00FF88" />
+        <meta name="theme-color" content="#5CD85A" />
       </head>
-      <body className={`${samsungSharpSans.variable} font-sans antialiased`}>
-        <Header />
+      <body className={`${dmSans.variable} font-sans antialiased tracking-tight`}>
+        {!isAdminRoute && <Header />}
         {children}
-        <Footer />
-        <AddToHomeScreenPrompt />
+        {!isAdminRoute && <Footer />}
+        {!isAdminRoute && <AddToHomeScreenPrompt />}
       </body>
     </html>
   );
 }
+

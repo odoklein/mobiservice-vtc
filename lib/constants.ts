@@ -5,9 +5,20 @@ export const BRAND = {
   description: 'Service de transport avec chauffeur privé premium en Haute-Savoie',
 };
 
+// VTC Depot Location - Point de départ pour tous les calculs de tarification
+export const VTC_DEPOT = {
+  address: '4 rue des artisans, 74300 Cluses',
+  lat: 46.0624, // Coordonnées approximatives - À CONFIRMER
+  lng: 6.5813,  // Coordonnées approximatives - À CONFIRMER
+  city: 'Cluses',
+  postalCode: '74300',
+  country: 'France',
+};
+
 // Driver info
 export const DRIVER = {
   name: 'Patrice',
+  email: process.env.DRIVER_EMAIL || 'patrice@mobiservice.fr',
   age: 55,
   city: 'Haute-Savoie',
   experience: '15+ ans d\'expérience',
@@ -38,56 +49,45 @@ export const VALUES = [
   },
 ];
 
-// Service types
+// Service types (only Point à Point and Mise à Disposition)
 export const SERVICES = [
   {
     id: 'transfer',
-    name: 'Transfert Point à Point',
+    name: 'Point à Point',
     description: 'Transfert direct de votre point de départ à votre destination',
     icon: '🚗',
-    priceInfo: 'À partir de 2€/km',
-  },
-  {
-    id: 'airport',
-    name: 'Transfert Aéroport',
-    description: 'Service spécialisé vers/depuis les aéroports de Genève et Lyon Saint-Exupéry',
-    icon: '✈️',
-    priceInfo: 'Forfait à partir de 80€',
+    priceInfo: 'À partir de 33€ TTC',
+    illustration: '/illustrations/transfer.png',
   },
   {
     id: 'hourly',
     name: 'Mise à Disposition',
     description: 'Chauffeur à disposition pour vos déplacements multiples',
     icon: '⏰',
-    priceInfo: '65€/heure',
-  },
-  {
-    id: 'business',
-    name: 'Business & Événements',
-    description: 'Transport professionnel pour vos rendez-vous d\'affaires et événements',
-    icon: '💼',
-    priceInfo: 'Devis personnalisé',
+    priceInfo: 'Forfaits 2H à 8H disponibles',
+    illustration: '/illustrations/hourly.png',
   },
 ];
+
 
 // Pricing - Grille Tarifaire 2025/2026
 export const PRICING = {
   // Day rate: 7h-20h (except Sun & Holidays)
   // Night rate: 20h-7h + Sundays & Holidays
-  
+
   // Base hourly rate TTC
   hourlyBase: {
     day: { ht: 30, ttc: 33 },
     night: { ht: 42, ttc: 46.20 },
   },
-  
+
   // Per km rates TTC
   perKm: {
     agglomeration: { day: 1.65, night: 2.20 }, // up to 24km
     horsAgglomeration: { day: 1.65, night: 2.20 }, // from 24km A/R
     horsAgglomerationOneWay: { day: 1.10, night: 1.65 }, // from 12km one way
   },
-  
+
   // Forfaits TTC
   forfaits: [
     { hours: 3, maxKm: 270, day: 348, night: 390, label: 'Forfait 3H / 270km' },
@@ -97,25 +97,25 @@ export const PRICING = {
     { hours: 7, maxKm: 630, day: 735, night: 812, label: 'Forfait 7H / 630km' },
     { hours: 8, maxKm: 720, day: 792, night: 880, label: 'Forfait 8H / 720km' },
   ],
-  
+
   // Extra hour beyond forfait TTC
   extraHour: { day: 116, night: 130 },
-  
+
   // MDA (Mise à disposition) - 10 min free
   mda: { dayPerMin: 1.20, nightPerMin: 1.80, freeMinutes: 10 },
-  
+
   // Airport transfers (estimated)
   airport: {
     geneva: { day: 116, night: 130 },
     lyonStExupery: { day: 232, night: 260 },
   },
-  
+
   // TVA rate
   tvaRate: 0.10,
-  
+
   // Minimum price
   minPriceTTC: 33, // 33€ minimum (forfait agglomération jour)
-  
+
   // Notes
   notes: [
     'Tarif jour: 7h00 à 20h00 (sauf Dim & JF)',
@@ -153,12 +153,11 @@ export const VEHICLE = {
   ],
 };
 
-// Navigation menu items
+// Navigation menu items - Simplified for clarity
 export const NAV_ITEMS = [
   { label: 'Accueil', href: '/' },
   { label: 'Services', href: '/services' },
   { label: 'Tarifs', href: '/tarifs' },
-  { label: 'Le Chauffeur', href: '/driver' },
   { label: 'Contact', href: '/contact' },
 ];
 

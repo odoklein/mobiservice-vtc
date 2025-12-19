@@ -1,0 +1,108 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; }
+    .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
+    .header h1 { color: #0A0A0A; margin: 0; font-size: 32px; }
+    .company-info { text-align: right; color: #666; font-size: 14px; }
+    .invoice-info { margin: 30px 0; padding: 20px; background: #f9f9f9; border-radius: 8px; }
+    .invoice-info-line { margin: 5px 0; }
+    .client-info { margin: 30px 0; }
+    .client-info h3 { margin: 0 0 10px 0; }
+    .items { margin: 30px 0; }
+    .items table { width: 100%; border-collapse: collapse; }
+    .items th { background: #0A0A0A; color: white; padding: 12px; text-align: left; }
+    .items td { padding: 12px; border-bottom: 1px solid #eee; }
+    .totals { margin: 30px 0; max-width: 400px; margin-left: auto; }
+    .total-line { display: flex; justify-content: space-between; padding: 10px; }
+    .total-final { font-size: 24px; font-weight: bold; background: #0A0A0A; color: white; padding: 15px; border-radius: 8px; }
+    .total-final .amount { color: #5CD85A; }
+    .footer { margin-top: 60px; padding-top: 20px; border-top: 2px solid #eee; text-align: center; font-size: 12px; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>FACTURE</h1>
+      <p style="font-size: 18px; color: #5CD85A; margin: 5px 0;">INV-2025-000013</p>
+    </div>
+    <div class="company-info">
+      <strong>MobiService VTC</strong><br>
+      Haute-Savoie, France<br>
+      SIRET: XXX XXX XXX XXXXX<br>
+      TVA: FRXX XXX XXX XXX
+    </div>
+  </div>
+
+  <div class="invoice-info">
+    <div class="invoice-info-line"><strong>Date d'émission:</strong> 19/12/2025</div>
+    <div class="invoice-info-line"><strong>Date de service:</strong> 29/12/2025</div>
+    <div class="invoice-info-line"><strong>Mode de paiement:</strong> Carte bancaire</div>
+    <div class="invoice-info-line"><strong>Statut:</strong> En attente</div>
+  </div>
+
+  <div class="client-info">
+    <h3>Facturation à:</h3>
+    <p>
+      <strong>odo suzali essaie</strong><br>
+      odosuzali@gmail.com<br>
+      0770977600
+    </p>
+  </div>
+
+  <div class="items">
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th style="text-align: right;">Quantité</th>
+          <th style="text-align: right;">Prix unitaire HT</th>
+          <th style="text-align: right;">Montant HT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <strong>Service VTC transfer</strong><br>
+            <small>De 12 Rue de la Part-Dieu, 69003 Lyon à 42 Rue de la République, 69002 Lyon</small><br>
+            <small>Distance: 0.90 km - 1 passager(s)</small>
+          </td>
+          <td style="text-align: right;">1</td>
+          <td style="text-align: right;">261.94€</td>
+          <td style="text-align: right;">261.94€</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="totals">
+    <div class="total-line">
+      <span>Sous-total HT</span>
+      <span>261.94€</span>
+    </div>
+    <div class="total-line">
+      <span>TVA (10%)</span>
+      <span>23.81€</span>
+    </div>
+    <div class="total-final">
+      <div style="display: flex; justify-content: space-between;">
+        <span>Total TTC</span>
+        <span class="amount">261.94€</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p><strong>MobiService VTC</strong> - Transport premium en Haute-Savoie</p>
+    <p>Merci de votre confiance</p>
+    <p style="margin-top: 20px; font-size: 10px;">
+      TVA non applicable, art. 293 B du CGI<br>
+      En cas de retard de paiement, application d'une pénalité de 3 fois le taux d'intérêt légal
+    </p>
+  </div>
+</body>
+</html>
+  
