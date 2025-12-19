@@ -144,14 +144,8 @@ export function Footer() {
               © {new Date().getFullYear()} {BRAND.name}. Tous droits réservés.
             </p>
             <div className="flex items-center gap-6">
-              <Link href="/documents" className="text-xs text-white/40 hover:text-[#5CD85A] transition-colors">
-                Documents légaux
-              </Link>
-              <Link href="/mentions-legales" className="text-xs text-white/40 hover:text-[#5CD85A] transition-colors">
-                Mentions légales
-              </Link>
-              <Link href="/confidentialite" className="text-xs text-white/40 hover:text-[#5CD85A] transition-colors">
-                Confidentialité
+              <Link href="/cgv" className="text-xs text-white/40 hover:text-[#5CD85A] transition-colors">
+                CGV
               </Link>
               <Link href="/admin/login" className="text-xs text-white/40 hover:text-[#5CD85A] transition-colors">
                 Administration
