@@ -96,7 +96,7 @@ export const bookings = pgTable('bookings', {
   specialRequests: jsonb('special_requests'),
 
   // Status
-  status: text('status').notNull().default('pending'), // 'pending', 'confirmed', 'in_progress', 'completed', 'cancelled'
+  status: text('status').notNull().default('pending'), // 'pending', 'verified', 'confirmed', 'in_progress', 'completed', 'cancelled'
   paymentStatus: text('payment_status').notNull().default('pending'), // 'pending', 'paid', 'refunded'
   paymentMethod: text('payment_method').default('stripe'), // 'stripe', 'cash', 'other'
 
@@ -104,6 +104,13 @@ export const bookings = pgTable('bookings', {
   confirmationToken: text('confirmation_token'),
   confirmedViaEmail: boolean('confirmed_via_email').notNull().default(false),
   otpVerified: boolean('otp_verified').notNull().default(false),
+
+  // Admin approval fields
+  adminConfirmedBy: integer('admin_confirmed_by').references(() => adminUsers.id),
+  adminConfirmedAt: timestamp('admin_confirmed_at'),
+  adminNotes: text('admin_notes'), // Internal admin notes (not visible to customer)
+  requiresAdminApproval: boolean('requires_admin_approval').notNull().default(true),
+  rejectionReason: text('rejection_reason'), // Reason if admin rejects booking
 
   // Documents
   documentsPdfPath: text('documents_pdf_path'), // Path to generated PDFs

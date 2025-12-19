@@ -129,9 +129,9 @@ export const PRICING = {
 
 // Contact info
 export const CONTACT = {
-  phone: '+33 6 12 34 56 78',
-  email: 'patrice@mobiservice.fr',
-  whatsapp: '+33612345678',
+  phone: '+33 (0)6 07 72 50 07',
+  email: 'contact@mobiservice-vtc.fr',
+  whatsapp: '+33607725007',
   address: 'Haute-Savoie, France',
 };
 

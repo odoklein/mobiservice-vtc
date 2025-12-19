@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutDashboard, Calendar, Settings, LogOut, Menu } from 'lucide-react';
+import { LayoutDashboard, Calendar, Settings, LogOut, Menu, Lock } from 'lucide-react';
 import { getAdminFromRequest } from '@/lib/auth/admin';
 import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -78,6 +78,13 @@ export default async function AdminLayout({
                         >
                             <Settings className="h-5 w-5 mr-3" />
                             Dépôt VTC
+                        </Link>
+                        <Link
+                            href="/admin/settings/password"
+                            className="flex items-center px-4 py-3 text-white/70 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                        >
+                            <Lock className="h-5 w-5 mr-3" />
+                            Mot de passe
                         </Link>
                     </nav>
 

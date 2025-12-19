@@ -1,24 +1,141 @@
 import { db } from '@/lib/db';
 import { bookings, workingHours } from '@/lib/db/schema';
-import { eq, gte, and, sql } from 'drizzle-orm';
+import { eq, gte, and, sql, desc } from 'drizzle-orm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Clock, Euro, AlertCircle, Settings, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
+import { Calendar, Clock, Euro, AlertCircle, Settings, ArrowRight, CheckCircle2, Sparkles, TrendingUp, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/pricing';
 
+// Status translations
+const statusLabels: Record<string, string> = {
+    pending: 'En attente',
+    confirmed: 'Confirmé',
+    in_progress: 'En cours',
+    completed: 'Terminé',
+    cancelled: 'Annulé',
+};
+
+const paymentStatusLabels: Record<string, string> = {
+    pending: 'Non payé',
+    paid: 'Payé',
+    refunded: 'Remboursé',
+};
+
+const paymentMethodLabels: Record<string, string> = {
+    stripe: 'Carte',
+    cash: 'Espèces',
+    other: 'Autre',
+};
+
 async function getStats() {
-    // TEMPORARY: Mock data while fixing Drizzle compatibility
-    return {
-        today: 0,
-        pending: 0,
-        cashPending: 0,
-        revenue: 0,
-    };
+    try {
+        // Get today's date range
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        // Get start of current month
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+        // Count today's bookings (pickupDate is today)
+        const todayBookings = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(bookings)
+            .where(
+                and(
+                    gte(bookings.pickupDate, today),
+                    sql`${bookings.pickupDate} < ${tomorrow}`
+                )
+            );
+
+        // Count pending bookings (status = 'pending')
+        const pendingBookings = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(bookings)
+            .where(eq(bookings.status, 'pending'));
+
+        // Count cash payments pending (paymentMethod = 'cash' AND paymentStatus = 'pending')
+        const cashPendingBookings = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(bookings)
+            .where(
+                and(
+                    eq(bookings.paymentMethod, 'cash'),
+                    eq(bookings.paymentStatus, 'pending')
+                )
+            );
+
+        // Calculate total revenue (paymentStatus = 'paid')
+        const revenueResult = await db
+            .select({ total: sql<string>`COALESCE(SUM(${bookings.totalPrice}), 0)` })
+            .from(bookings)
+            .where(eq(bookings.paymentStatus, 'paid'));
+
+        // Calculate monthly revenue
+        const monthlyRevenueResult = await db
+            .select({ total: sql<string>`COALESCE(SUM(${bookings.totalPrice}), 0)` })
+            .from(bookings)
+            .where(
+                and(
+                    eq(bookings.paymentStatus, 'paid'),
+                    gte(bookings.createdAt, monthStart)
+                )
+            );
+
+        // Total bookings count
+        const totalBookings = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(bookings);
+
+        return {
+            today: Number(todayBookings[0]?.count ?? 0),
+            pending: Number(pendingBookings[0]?.count ?? 0),
+            cashPending: Number(cashPendingBookings[0]?.count ?? 0),
+            revenue: parseFloat(revenueResult[0]?.total ?? '0'),
+            monthlyRevenue: parseFloat(monthlyRevenueResult[0]?.total ?? '0'),
+            totalBookings: Number(totalBookings[0]?.count ?? 0),
+        };
+    } catch (error) {
+        console.error('Error fetching stats:', error);
+        return {
+            today: 0,
+            pending: 0,
+            cashPending: 0,
+            revenue: 0,
+            monthlyRevenue: 0,
+            totalBookings: 0,
+        };
+    }
 }
 
 async function getRecentBookings() {
-    // TEMPORARY: Mock data while fixing Drizzle compatibility  
-    return [];
+    try {
+        const recentBookings = await db
+            .select({
+                id: bookings.id,
+                guestName: bookings.guestName,
+                guestEmail: bookings.guestEmail,
+                pickupAddress: bookings.pickupAddress,
+                dropoffAddress: bookings.dropoffAddress,
+                pickupDate: bookings.pickupDate,
+                pickupTime: bookings.pickupTime,
+                status: bookings.status,
+                paymentStatus: bookings.paymentStatus,
+                paymentMethod: bookings.paymentMethod,
+                totalPrice: bookings.totalPrice,
+                serviceType: bookings.serviceType,
+                createdAt: bookings.createdAt,
+            })
+            .from(bookings)
+            .orderBy(desc(bookings.createdAt))
+            .limit(5);
+
+        return recentBookings;
+    } catch (error) {
+        console.error('Error fetching recent bookings:', error);
+        return [];
+    }
 }
 
 async function getWorkingHoursStatus() {
@@ -136,7 +253,7 @@ export default async function AdminDashboard() {
                 </div>
             )}
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <Card className="border-0 shadow-lg">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium text-gray-600">Aujourd'hui</CardTitle>
@@ -172,8 +289,30 @@ export default async function AdminDashboard() {
 
                 <Card className="border-0 shadow-lg">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600">Chiffre d'affaires</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-600">Total réservations</CardTitle>
+                        <TrendingUp className="h-5 w-5 text-purple-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold text-[#0A0A0A]">{stats.totalBookings}</div>
+                        <p className="text-xs text-gray-500 mt-1">depuis le début</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-lg">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-600">CA ce mois</CardTitle>
                         <Euro className="h-5 w-5 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold text-[#0A0A0A]">{formatPrice(stats.monthlyRevenue)}</div>
+                        <p className="text-xs text-gray-500 mt-1">encaissé</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-[#5CD85A]/5 to-[#5CD85A]/10">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-600">CA total</CardTitle>
+                        <Euro className="h-5 w-5 text-[#5CD85A]" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold text-[#0A0A0A]">{formatPrice(stats.revenue)}</div>
@@ -212,12 +351,12 @@ export default async function AdminDashboard() {
                                 <Link
                                     key={booking.id}
                                     href={`/admin/bookings/${booking.id}`}
-                                    className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-[#5CD85A]/30 hover:bg-gray-50 transition-all"
+                                    className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-[#5CD85A]/30 hover:bg-gray-50 transition-all group"
                                 >
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-3 mb-2 flex-wrap">
                                             <span className="font-semibold text-[#0A0A0A]">
-                                                #{booking.id} - {booking.guestName}
+                                                #{booking.id} - {booking.guestName || 'Client'}
                                             </span>
                                             <span
                                                 className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'confirmed'
@@ -226,22 +365,38 @@ export default async function AdminDashboard() {
                                                         ? 'bg-amber-100 text-amber-700'
                                                         : booking.status === 'cancelled'
                                                             ? 'bg-red-100 text-red-700'
-                                                            : 'bg-gray-100 text-gray-700'
+                                                            : booking.status === 'completed'
+                                                                ? 'bg-blue-100 text-blue-700'
+                                                                : 'bg-gray-100 text-gray-700'
                                                     }`}
                                             >
-                                                {booking.status}
+                                                {statusLabels[booking.status] || booking.status}
+                                            </span>
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium ${booking.paymentStatus === 'paid'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : booking.paymentStatus === 'pending'
+                                                        ? 'bg-orange-100 text-orange-700'
+                                                        : 'bg-gray-100 text-gray-700'
+                                                    }`}
+                                            >
+                                                {paymentStatusLabels[booking.paymentStatus] || booking.paymentStatus}
                                             </span>
                                         </div>
-                                        <div className="text-sm text-gray-600">
-                                            {booking.pickupAddress} → {booking.dropoffAddress}
+                                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                                            <MapPin className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                            <span className="truncate">{booking.pickupAddress}</span>
+                                            <span className="text-gray-400">→</span>
+                                            <span className="truncate">{booking.dropoffAddress}</span>
                                         </div>
                                         <div className="text-xs text-gray-500 mt-1">
-                                            {new Date(booking.pickupDate).toLocaleDateString('fr-FR')} à {booking.pickupTime}
+                                            📅 {new Date(booking.pickupDate).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} à {booking.pickupTime}
                                         </div>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right flex-shrink-0 ml-4">
                                         <div className="font-bold text-[#0A0A0A]">{formatPrice(parseFloat(booking.totalPrice))}</div>
-                                        <div className="text-xs text-gray-500 mt-1">{booking.paymentMethod}</div>
+                                        <div className="text-xs text-gray-500 mt-1">{paymentMethodLabels[booking.paymentMethod || 'stripe'] || booking.paymentMethod}</div>
+                                        <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-[#5CD85A] transition-colors mt-1 ml-auto" />
                                     </div>
                                 </Link>
                             ))

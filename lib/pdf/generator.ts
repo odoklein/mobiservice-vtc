@@ -89,7 +89,9 @@ export async function generateBonDeCommande(booking: Booking): Promise<string> {
 
   <div class="footer">
     <p>MobiService VTC - Haute-Savoie</p>
-    <p>SIRET: XXX XXX XXX XXXXX | TVA: FRXX XXX XXX XXX</p>
+    <p>SIRET: 902 726 900 00027 | RCS ANNECY 902 726 900 | APE: 4932Z</p>
+    <p>TVA Intracommunautaire: FR90272690000027</p>
+    <p>IBAN: FR76 1810 6000 2196 7959 9950 470</p>
     <p>Document généré le ${new Date().toLocaleDateString('fr-FR')}</p>
   </div>
 </body>
@@ -136,8 +138,9 @@ export async function generateFacture(booking: Booking): Promise<string> {
     <div class="company-info">
       <strong>MobiService VTC</strong><br>
       Haute-Savoie, France<br>
-      SIRET: XXX XXX XXX XXXXX<br>
-      TVA: FRXX XXX XXX XXX
+      SIRET: 902 726 900 00027<br>
+      RCS ANNECY 902 726 900 | APE: 4932Z<br>
+      TVA Intracom.: FR90272690000027
     </div>
   </div>
 
@@ -384,7 +387,9 @@ export async function generateDevis(booking: Booking): Promise<string> {
 
     <div class="footer">
       <p><strong>MobiService VTC</strong> - Transport premium en Haute-Savoie</p>
-      <p>SIRET: XXX XXX XXX XXXXX | TVA: FRXX XXX XXX XXX</p>
+      <p>SIRET: 902 726 900 00027 | RCS ANNECY 902 726 900 | APE: 4932Z</p>
+      <p>TVA Intracommunautaire: FR90272690000027</p>
+      <p>IBAN: FR76 1810 6000 2196 7959 9950 470</p>
       <p>Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
     </div>
   </div>
@@ -600,7 +605,9 @@ export async function generateBonDeReservation(booking: Booking): Promise<string
 
     <div class="footer">
       <p><strong>MobiService VTC</strong> - Transport premium en Haute-Savoie</p>
-      <p>SIRET: XXX XXX XXX XXXXX | TVA: FRXX XXX XXX XXX</p>
+      <p>SIRET: 902 726 900 00027 | RCS ANNECY 902 726 900 | APE: 4932Z</p>
+      <p>TVA Intracommunautaire: FR90272690000027</p>
+      <p>IBAN: FR76 1810 6000 2196 7959 9950 470</p>
       <p>Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
       <p style="margin-top: 15px; color: #666;">Ce document confirme votre réservation. Conservez-le pour référence.</p>
     </div>
