@@ -1,6 +1,5 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { renderToStaticMarkup } from 'react-dom/server';
 import type { Booking } from '@/lib/db/schema';
 
 // For now, we'll generate simple HTML that can be converted to PDF
