@@ -72,10 +72,9 @@ NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_nextauth_secret_here
 
 # Application
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-DRIVER_EMAIL=patrice@mobiservice.fr
-DRIVER_PHONE=+33612345678
-```postgresql://neondb_owner:npg_zTh32CfSRuBN@ep-still-resonance-adqs2wzo-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+NEXT_PUBLIC_APP_URL=
+DRIVER_EMAIL=
+DRIVER_PHONE=
 
 4. **Set up the database**
 
