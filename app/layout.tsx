@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -51,6 +52,7 @@ export default async function RootLayout({
         {children}
         {!isAdminRoute && <Footer />}
         {!isAdminRoute && <AddToHomeScreenPrompt />}
+        <Analytics />
       </body>
     </html>
   );
