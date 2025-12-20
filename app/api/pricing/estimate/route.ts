@@ -40,14 +40,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Construire la date complète
-    const pickupDateTime = new Date(`${pickupDate}T${pickupTime}:00`);
+    // Construire la date complète en heure locale (pas UTC)
+    // Utiliser les composants de date pour garantir l'heure locale
+    const [year, month, day] = pickupDate.split('-').map(Number);
+    const [hours, minutes] = pickupTime.split(':').map(Number);
+    
+    // Créer la date en heure locale explicite
+    const pickupDateTime = new Date(year, month - 1, day, hours, minutes, 0);
+    
     if (isNaN(pickupDateTime.getTime())) {
       return NextResponse.json(
         { success: false, error: 'Date/heure invalide' },
         { status: 400 }
       );
     }
+
+    // Debug: Vérifier la date construite
+    console.log('[PRICING] Date construite:', {
+      pickupDate,
+      pickupTime,
+      constructed: pickupDateTime.toISOString(),
+      localHours: pickupDateTime.getHours(),
+      localDay: pickupDateTime.getDay(),
+      dayName: ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][pickupDateTime.getDay()],
+      isSunday: pickupDateTime.getDay() === 0,
+    });
 
     // Calculer les distances CA/TP/retour
     const depot = { lat: VTC_DEPOT_COORDS.lat, lng: VTC_DEPOT_COORDS.lng };
@@ -63,7 +80,9 @@ export async function POST(request: NextRequest) {
       const segments = await getRouteMatrix(depot, pickup, dropoff);
       distanceCA_out = segments.distanceCA;
       distanceTP = segments.distanceTP;
-      distanceCA_return = tripType === 'round-trip' ? segments.distanceReturn : 0;
+      // RÈGLE N°1: Le retour au dépôt est TOUJOURS inclus dans le calcul
+      // Même pour un aller simple, le retour du véhicule est facturé
+      distanceCA_return = segments.distanceReturn;
       totalDuration = segments.totalDuration;
     } catch (error) {
       console.error('Distance calculation error:', error);
@@ -95,7 +114,7 @@ export async function POST(request: NextRequest) {
         distances: {
           ca_out: distanceCA_out,
           tp: distanceTP,
-          ca_return: distanceCA_return,
+          ca_return: distanceCA_return, // TOUJOURS inclus (règle n°1)
           total: distanceCA_out + distanceTP + distanceCA_return,
         },
         // Durée (minutes)
@@ -112,8 +131,8 @@ export async function POST(request: NextRequest) {
           breakdown: {
             // Breakdown masqué côté client mais disponible pour admin
             costCA_out: pricing.breakdown.costCA_out,
-            costTP: pricing.breakdown.costTP,
-            costCA_return: pricing.breakdown.costCA_return,
+            costTP: pricing.breakdown.costTP, // Doublé pour A/R client
+            costCA_return: pricing.breakdown.costCA_return, // TOUJOURS inclus (règle n°1)
             tollCost: pricing.breakdown.tollCost,
             isForfaitAgglomeration: pricing.breakdown.isForfaitAgglomeration,
             bracket: pricing.breakdown.bracket,

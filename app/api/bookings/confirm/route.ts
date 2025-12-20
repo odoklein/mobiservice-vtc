@@ -64,14 +64,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Update booking as confirmed
+        // Update booking as verified (awaiting admin approval)
         const [updatedBooking] = await db
             .update(bookings)
             .set({
                 confirmedViaEmail: true,
                 otpVerified: true,
-                status: 'confirmed',
-                confirmedAt: new Date(),
+                status: 'verified', // Changed from 'confirmed' - now requires admin approval
                 updatedAt: new Date(),
             })
             .where(eq(bookings.id, bookingIdNum))
@@ -79,7 +78,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: 'Réservation confirmée avec succès',
+            message: 'Réservation vérifiée - En attente de confirmation par l\'administrateur',
             booking: updatedBooking,
         });
     } catch (error) {

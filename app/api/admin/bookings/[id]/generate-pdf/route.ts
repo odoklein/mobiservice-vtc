@@ -1,9 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings } from '@/lib/db/schema';
+import { bookings, companySettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
 import { generateBonDeCommande, generateFacture, generateDevis, generateBonDeReservation, savePDF } from '@/lib/pdf/generator';
+
+async function loadCompanySettings() {
+  try {
+    const settings = await db.select().from(companySettings);
+    const company: any = {};
+    const invoice: any = {};
+
+    for (const s of settings) {
+      let value: any = s.settingValue;
+      if (s.settingType === 'json' && value) {
+        try {
+          value = JSON.parse(value);
+        } catch {}
+      } else if (s.settingType === 'number' && value) {
+        value = parseFloat(value);
+      } else if (s.settingType === 'boolean') {
+        value = value === 'true';
+      }
+
+      if (s.category === 'company') {
+        company[s.settingKey] = value;
+      } else if (s.category === 'invoice' || s.category === 'quote') {
+        invoice[s.settingKey] = value;
+      }
+    }
+
+    return { company, invoice };
+  } catch (error) {
+    console.error('Error loading company settings:', error);
+    return { company: {}, invoice: {} };
+  }
+}
 
 export async function POST(
     request: NextRequest,
@@ -34,6 +66,9 @@ export async function POST(
             );
         }
 
+        // Load company and invoice settings
+        const { company, invoice } = await loadCompanySettings();
+
         let htmlContent: string;
         let filename: string;
 
@@ -41,10 +76,10 @@ export async function POST(
             htmlContent = await generateBonDeCommande(booking);
             filename = `bon-commande-${bookingId}`;
         } else if (type === 'facture') {
-            htmlContent = await generateFacture(booking);
+            htmlContent = await generateFacture(booking, company, invoice);
             filename = `facture-${bookingId}`;
         } else if (type === 'devis') {
-            htmlContent = await generateDevis(booking);
+            htmlContent = await generateDevis(booking, company, invoice);
             filename = `devis-${bookingId}`;
         } else if (type === 'bdr') {
             htmlContent = await generateBonDeReservation(booking);

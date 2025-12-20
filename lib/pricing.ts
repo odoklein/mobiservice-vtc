@@ -34,6 +34,9 @@ export interface PricingInput {
 
   // MDA
   waitingMinutes?: number;
+
+  // Péages
+  tollCost?: number; // Coût des péages (€ TTC) - x1 pour A/S, x2 pour A/R
 }
 
 export interface PricingResult {
@@ -66,41 +69,16 @@ export interface PricingResult {
 
 // ============================================================================
 // PRICING CONSTANTS - 2025/2026 TARIFF GRID
+// Now loaded dynamically from database with fallback to hardcoded values
 // ============================================================================
+
+import { getPricingConfig, getPricingConfigSync } from './services/pricing-service';
 
 const TVA_RATE = 0.10; // 10% TVA
 
-// Agglomeration forfait
-const FORFAIT_AGGLOMERATION_THRESHOLD_KM = 25; // ≤ 25km A/R
-const FORFAIT_AGGLOMERATION_DAY = 33.00; // 33€ TTC jour
-const FORFAIT_AGGLOMERATION_NIGHT = 47.50; // 47,50€ TTC nuit
-
-// Tarifs JOUR (7h-20h sauf dimanche/jours fériés)
-const DAY_RATES = {
-  TP_RATE: 1.32, // Prix au km pour TP (constant)
-  CA_RATES: {
-    '0-25': 1.32,    // Forfait agglomération
-    '25-50': 1.32,   // > 25km jusqu'à 50km
-    '50-75': 1.10,   // > 50km jusqu'à 75km
-    '75-100': 0.90,  // > 75km jusqu'à 100km
-    '100+': 0.70,    // > 100km
-  },
-};
-
-// Tarifs NUIT (20h-7h + dimanche/jours fériés)
-const NIGHT_RATES = {
-  TP_RATE: 1.90, // Prix au km pour TP (constant)
-  CA_RATES: {
-    '0-25': 1.90,    // Forfait agglomération
-    '25-50': 1.70,   // > 25km jusqu'à 50km
-    '50-75': 1.40,   // > 50km jusqu'à 75km
-    '75-100': 1.10,  // > 75km jusqu'à 100km
-    '100+': 0.70,    // > 100km
-  },
-};
-
-// Forfaits (hourly packages) TTC - Grille 2026
-const FORFAITS = [
+// Export FORFAITS for display (loaded from dynamic config with fallback)
+// Initialize with fallback values for immediate use
+export let FORFAITS: Array<{ hours: number; maxKm: number; day: number; night: number }> = [
   { hours: 2, maxKm: 180, day: 232, night: 280 },
   { hours: 2.5, maxKm: 225, day: 290, night: 337.50 },
   { hours: 3, maxKm: 270, day: 348, night: 390 },
@@ -116,11 +94,12 @@ const FORFAITS = [
   { hours: 8, maxKm: 720, day: 840, night: 960 },
 ];
 
-// Export for display
-export { FORFAITS };
-
-// MDA (Mise à disposition) - per minute after 10 free minutes
-const MDA_RATES = { day: 1.20, night: 1.80, freeMinutes: 10 };
+// Update FORFAITS from config when available (async, non-blocking)
+getPricingConfig().then((config) => {
+  FORFAITS = config.forfaits;
+}).catch(() => {
+  // Keep fallback values if config fails to load
+});
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -162,8 +141,8 @@ function getDistanceBracket(totalDistanceRoundTrip: number): string {
 /**
  * Find best forfait for hourly services
  */
-function findBestForfait(hours: number, km: number, isNight: boolean) {
-  for (const forfait of FORFAITS) {
+function findBestForfait(forfaits: Array<{ hours: number; maxKm: number; day: number; night: number }>, hours: number, km: number, isNight: boolean) {
+  for (const forfait of forfaits) {
     if (hours <= forfait.hours && km <= forfait.maxKm) {
       return {
         ...forfait,
@@ -172,7 +151,7 @@ function findBestForfait(hours: number, km: number, isNight: boolean) {
     }
   }
   // Return largest if exceeded
-  const largest = FORFAITS[FORFAITS.length - 1];
+  const largest = forfaits[forfaits.length - 1];
   return {
     ...largest,
     price: isNight ? largest.night : largest.day,
@@ -183,7 +162,20 @@ function findBestForfait(hours: number, km: number, isNight: boolean) {
 // MAIN PRICING CALCULATION
 // ============================================================================
 
-export function calculatePrice(input: PricingInput): PricingResult {
+export async function calculatePrice(input: PricingInput): Promise<PricingResult> {
+  const config = await getPricingConfig();
+  return calculatePriceWithConfig(input, config);
+}
+
+/**
+ * Synchronous version using cached or fallback config
+ */
+export function calculatePriceSync(input: PricingInput): PricingResult {
+  const config = getPricingConfigSync();
+  return calculatePriceWithConfig(input, config);
+}
+
+function calculatePriceWithConfig(input: PricingInput, config: any): PricingResult {
   const night = isNightRate(input.pickupTime);
   const breakdown: PricingResult['breakdown'] = {};
 
@@ -194,40 +186,49 @@ export function calculatePrice(input: PricingInput): PricingResult {
   if (input.serviceType === 'transfer' && input.distanceCA !== undefined && input.distanceTP !== undefined && input.distanceReturn !== undefined) {
     const distanceCA = input.distanceCA;
     const distanceTP = input.distanceTP;
+    // RÈGLE N°1: Le retour au dépôt est TOUJOURS inclus (même en A/S)
     const distanceReturn = input.distanceReturn;
     const totalDistanceRoundTrip = distanceCA + distanceTP + distanceReturn;
+    const tripType = input.tripType || 'one-way';
 
     // Check for agglomeration forfait
-    if (totalDistanceRoundTrip <= FORFAIT_AGGLOMERATION_THRESHOLD_KM) {
-      totalPrice = night ? FORFAIT_AGGLOMERATION_NIGHT : FORFAIT_AGGLOMERATION_DAY;
+    if (totalDistanceRoundTrip <= config.forfaitAgglomeration.thresholdKm) {
+      totalPrice = night ? config.forfaitAgglomeration.night : config.forfaitAgglomeration.day;
       breakdown.forfaitApplied = true;
       breakdown.forfaitName = 'Forfait agglomération';
       rateType += ' (≤25km A/R)';
     } else {
       // Tiered pricing
-      const rates = night ? NIGHT_RATES : DAY_RATES;
+      const rates = night ? config.nightRates : config.dayRates;
       const bracket = getDistanceBracket(totalDistanceRoundTrip);
-      const pricePerKmCA = rates.CA_RATES[bracket as keyof typeof rates.CA_RATES];
-      const pricePerKmTP = rates.TP_RATE;
+      const pricePerKmCA = rates.caRates[bracket as keyof typeof rates.caRates];
+      const pricePerKmTP = rates.tpRate;
 
       const costCA = distanceCA * pricePerKmCA;
-      const costTP = distanceTP * pricePerKmTP;
+      // RÈGLE: En A/R client, le TP est doublé
+      const costTP = tripType === 'round-trip' ? distanceTP * pricePerKmTP * 2 : distanceTP * pricePerKmTP;
+      // RÈGLE N°1: CA_retour est TOUJOURS inclus
       const costReturn = distanceReturn * pricePerKmCA;
 
       totalPrice = costCA + costTP + costReturn;
       breakdown.distanceCharge = totalPrice;
       rateType += ` (${bracket}km)`;
     }
+
+    // Ajouter les péages (x1 pour A/S, x2 pour A/R)
+    const tollCost = input.tollCost || 0;
+    const finalTollCost = tripType === 'round-trip' ? tollCost * 2 : tollCost;
+    totalPrice += finalTollCost;
   }
 
   // ===== AIRPORT SERVICE =====
   else if (input.serviceType === 'airport') {
     if (input.airportType === 'geneva') {
-      totalPrice = night ? 130 : 116;
+      totalPrice = night ? config.airportRates.geneva.night : config.airportRates.geneva.day;
     } else if (input.airportType === 'lyon') {
-      totalPrice = night ? 260 : 232;
+      totalPrice = night ? config.airportRates.lyon.night : config.airportRates.lyon.day;
     } else {
-      totalPrice = night ? 130 : 116;
+      totalPrice = night ? config.airportRates.geneva.night : config.airportRates.geneva.day;
     }
     rateType = 'Forfait aéroport';
   }
@@ -238,7 +239,7 @@ export function calculatePrice(input: PricingInput): PricingResult {
     
     // Find the matching forfait from the grid
     // Forfaits start at 2H, so always use the forfait system
-    const forfait = findBestForfait(requestedHours, requestedHours * 90, night);
+    const forfait = findBestForfait(config.forfaits, requestedHours, requestedHours * 90, night);
     totalPrice = forfait.price;
     breakdown.forfaitApplied = true;
     breakdown.forfaitName = `Forfait ${forfait.hours}H`;
@@ -248,7 +249,7 @@ export function calculatePrice(input: PricingInput): PricingResult {
   // ===== BUSINESS SERVICE =====
   else if (input.serviceType === 'business') {
     const estHours = input.hours || 4;
-    const forfait = findBestForfait(estHours, estHours * 90, night);
+    const forfait = findBestForfait(config.forfaits, estHours, estHours * 90, night);
     totalPrice = forfait.price;
     breakdown.forfaitApplied = true;
     breakdown.forfaitName = `Forfait ${forfait.hours}H`;
@@ -258,8 +259,8 @@ export function calculatePrice(input: PricingInput): PricingResult {
   // ===== MDA (Mise à Disposition) =====
   else if (input.serviceType === 'mda') {
     const waitingMinutes = input.waitingMinutes || 0;
-    const chargeableMinutes = Math.max(0, waitingMinutes - MDA_RATES.freeMinutes);
-    const minuteRate = night ? MDA_RATES.night : MDA_RATES.day;
+    const chargeableMinutes = Math.max(0, waitingMinutes - config.mdaRates.freeMinutes);
+    const minuteRate = night ? config.mdaRates.night : config.mdaRates.day;
     breakdown.waitingCharge = chargeableMinutes * minuteRate;
     totalPrice = breakdown.waitingCharge;
     rateType = 'Mise à disposition';
@@ -269,14 +270,14 @@ export function calculatePrice(input: PricingInput): PricingResult {
   else if (input.distance) {
     // Use simple calculation for backward compatibility
     const distance = input.distance;
-    const rate = night ? 1.90 : 1.32;
+    const rate = night ? config.nightRates.tpRate : config.dayRates.tpRate;
     breakdown.distanceCharge = distance * rate;
-    breakdown.baseFare = night ? 46.20 : 33;
+    breakdown.baseFare = night ? config.forfaitAgglomeration.night : config.forfaitAgglomeration.day;
     totalPrice = (breakdown.baseFare || 0) + (breakdown.distanceCharge || 0);
   }
 
   // Apply minimum price
-  totalPrice = Math.max(totalPrice, FORFAIT_AGGLOMERATION_DAY);
+  totalPrice = Math.max(totalPrice, config.minPrice);
 
   // Calculate HT and TVA
   const totalPriceHT = Math.round((totalPrice / (1 + TVA_RATE)) * 100) / 100;
@@ -295,6 +296,7 @@ export function calculatePrice(input: PricingInput): PricingResult {
     duration: input.duration,
   };
 }
+
 
 export function formatPrice(price: number, currency: string = 'EUR'): string {
   return new Intl.NumberFormat('fr-FR', {

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { completeBookingSchema } from '@/lib/validations/booking';
 import { Resend } from 'resend';
 import { DRIVER } from '@/lib/constants';
+import { calculatePrice } from '@/lib/pricing';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,10 +14,54 @@ export async function POST(request: NextRequest) {
     // Validate the booking data
     const validatedData = completeBookingSchema.parse(body);
 
-    // Calculate TVA if not provided
-    const totalPriceTTC = validatedData.totalPrice;
-    const totalPriceHT = validatedData.totalPriceHT || Math.round((totalPriceTTC / 1.10) * 100) / 100;
-    const tvaAmount = validatedData.tvaAmount || Math.round((totalPriceTTC - totalPriceHT) * 100) / 100;
+    // RÈGLE N°1: Le retour au dépôt est TOUJOURS inclus dans le calcul
+    // Même pour un aller simple, le retour du véhicule est facturé
+    // Ne pas modifier distanceReturn - il doit toujours être > 0
+
+    // Recalculate price server-side using database pricing rules for security
+    let serverCalculatedPrice;
+    try {
+      // Build pickup datetime for price calculation
+      let pickupDateTime: Date | undefined;
+      if (validatedData.pickupDate && validatedData.pickupTime) {
+        pickupDateTime = new Date(validatedData.pickupDate);
+        const [hours, minutes] = validatedData.pickupTime.split(':').map(Number);
+        pickupDateTime.setHours(hours, minutes, 0, 0);
+      }
+
+      serverCalculatedPrice = await calculatePrice({
+        serviceType: validatedData.serviceType,
+        tripType: validatedData.tripType || 'one-way',
+        distanceCA: validatedData.distanceCA ? parseFloat(validatedData.distanceCA.toString()) : undefined,
+        distanceTP: validatedData.distanceTP ? parseFloat(validatedData.distanceTP.toString()) : undefined,
+        distanceReturn: validatedData.distanceReturn ? parseFloat(validatedData.distanceReturn.toString()) : undefined,
+        distance: validatedData.distance ? parseFloat(validatedData.distance.toString()) : undefined,
+        duration: validatedData.duration,
+        hours: validatedData.hours,
+        airportType: validatedData.serviceType === 'airport' ? (validatedData.dropoffAddress?.toLowerCase().includes('lyon') ? 'lyon' : 'geneva') : undefined,
+        pickupTime: pickupDateTime,
+        waitingMinutes: validatedData.waitingMinutes,
+        tollCost: validatedData.tollCost,
+      });
+    } catch (priceError) {
+      console.error('[BOOKING] Error recalculating price:', priceError);
+      // Fallback to client-provided price if server calculation fails
+      serverCalculatedPrice = {
+        totalPrice: validatedData.totalPrice,
+        totalPriceHT: validatedData.totalPriceHT || Math.round((validatedData.totalPrice / 1.10) * 100) / 100,
+        tva: validatedData.tvaAmount || Math.round((validatedData.totalPrice - (validatedData.totalPriceHT || Math.round((validatedData.totalPrice / 1.10) * 100) / 100)) * 100) / 100,
+        currency: 'EUR',
+        isNightRate: validatedData.isNightRate || false,
+        rateType: validatedData.rateType || '',
+        isForfait: validatedData.isForfait || false,
+        breakdown: validatedData.breakdown || {},
+      };
+    }
+
+    // Use server-calculated price (more secure - prevents price manipulation)
+    const totalPriceTTC = serverCalculatedPrice.totalPrice;
+    const totalPriceHT = serverCalculatedPrice.totalPriceHT;
+    const tvaAmount = serverCalculatedPrice.tva;
 
     // Create booking in database with pending status
     const [booking] = await db
@@ -48,20 +93,20 @@ export async function POST(request: NextRequest) {
         distanceTP: validatedData.distanceTP?.toString(),
         distanceReturn: validatedData.distanceReturn?.toString(),
 
-        // Pricing - 2025/2026 Tariff Grid
-        isNightRate: validatedData.isNightRate || false,
-        rateType: validatedData.rateType,
+        // Pricing - 2025/2026 Tariff Grid (from server calculation)
+        isNightRate: serverCalculatedPrice.isNightRate,
+        rateType: serverCalculatedPrice.rateType,
 
-        // Forfait info
-        isForfait: validatedData.isForfait || false,
-        forfaitName: validatedData.forfaitName || validatedData.breakdown?.forfaitName,
+        // Forfait info (from server calculation)
+        isForfait: serverCalculatedPrice.isForfait || false,
+        forfaitName: serverCalculatedPrice.breakdown?.forfaitName || validatedData.forfaitName,
 
-        // Price breakdown
-        baseFare: validatedData.baseFare?.toString() || validatedData.breakdown?.baseFare?.toString(),
-        distanceCharge: validatedData.distanceCharge?.toString() || validatedData.breakdown?.distanceCharge?.toString(),
-        hourlyCharge: validatedData.hourlyCharge?.toString() || validatedData.breakdown?.hourlyCharge?.toString(),
-        waitingCharge: validatedData.waitingCharge?.toString() || validatedData.breakdown?.waitingCharge?.toString(),
-        forfaitDiscount: validatedData.forfaitDiscount?.toString() || validatedData.breakdown?.forfaitDiscount?.toString(),
+        // Price breakdown (from server calculation)
+        baseFare: serverCalculatedPrice.breakdown?.baseFare?.toString() || validatedData.baseFare?.toString(),
+        distanceCharge: serverCalculatedPrice.breakdown?.distanceCharge?.toString() || validatedData.distanceCharge?.toString(),
+        hourlyCharge: serverCalculatedPrice.breakdown?.hourlyCharge?.toString() || validatedData.hourlyCharge?.toString(),
+        waitingCharge: serverCalculatedPrice.breakdown?.waitingCharge?.toString() || validatedData.waitingCharge?.toString(),
+        forfaitDiscount: serverCalculatedPrice.breakdown?.forfaitDiscount?.toString() || validatedData.forfaitDiscount?.toString(),
 
         // Final prices (HT/TTC)
         totalPriceHT: totalPriceHT.toString(),
@@ -69,15 +114,15 @@ export async function POST(request: NextRequest) {
         tvaAmount: tvaAmount.toString(),
         tvaRate: '10.00',
 
-        // Legacy fields
-        basePrice: validatedData.basePrice.toString(),
-        totalPrice: validatedData.totalPrice.toString(),
+        // Legacy fields (use server-calculated price)
+        basePrice: totalPriceTTC.toString(),
+        totalPrice: totalPriceTTC.toString(),
 
-        // Full breakdown as JSON
-        priceBreakdown: validatedData.breakdown,
+        // Full breakdown as JSON (from server calculation)
+        priceBreakdown: serverCalculatedPrice.breakdown,
 
         notes: validatedData.notes,
-        status: 'pending',
+        status: 'pending', // Will be 'verified' after email OTP confirmation, then 'confirmed' after admin approval
         paymentStatus: 'pending',
       })
       .returning();

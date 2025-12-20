@@ -58,16 +58,17 @@ export default function AdminBookingsPage() {
     };
 
     const getStatusBadge = (status: string) => {
-        const variants: Record<string, { className: string }> = {
-            pending: { className: 'bg-amber-100 text-amber-700' },
-            confirmed: { className: 'bg-green-100 text-green-700' },
-            in_progress: { className: 'bg-blue-100 text-blue-700' },
-            completed: { className: 'bg-gray-100 text-gray-700' },
-            cancelled: { className: 'bg-red-100 text-red-700' },
+        const variants: Record<string, { className: string; label: string }> = {
+            pending: { className: 'bg-amber-100 text-amber-700', label: 'En attente' },
+            verified: { className: 'bg-blue-100 text-blue-700', label: 'À approuver' },
+            confirmed: { className: 'bg-green-100 text-green-700', label: 'Confirmé' },
+            in_progress: { className: 'bg-purple-100 text-purple-700', label: 'En cours' },
+            completed: { className: 'bg-gray-100 text-gray-700', label: 'Terminé' },
+            cancelled: { className: 'bg-red-100 text-red-700', label: 'Annulé' },
         };
 
         const variant = variants[status] || variants.pending;
-        return <Badge className={variant.className}>{status}</Badge>;
+        return <Badge className={variant.className}>{variant.label}</Badge>;
     };
 
     return (
@@ -103,7 +104,7 @@ export default function AdminBookingsPage() {
                                 className="pl-10"
                             />
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                             <Button
                                 variant={statusFilter === 'all' ? 'default' : 'outline'}
                                 onClick={() => setStatusFilter('all')}
@@ -111,6 +112,14 @@ export default function AdminBookingsPage() {
                                 className={statusFilter === 'all' ? 'bg-[#0A0A0A] text-white' : ''}
                             >
                                 Tout
+                            </Button>
+                            <Button
+                                variant={statusFilter === 'verified' ? 'default' : 'outline'}
+                                onClick={() => setStatusFilter('verified')}
+                                size="sm"
+                                className={statusFilter === 'verified' ? 'bg-blue-600 text-white border-blue-600' : ''}
+                            >
+                                À approuver
                             </Button>
                             <Button
                                 variant={statusFilter === 'pending' ? 'default' : 'outline'}
@@ -127,6 +136,14 @@ export default function AdminBookingsPage() {
                                 className={statusFilter === 'confirmed' ? 'bg-green-500 text-white' : ''}
                             >
                                 Confirmé
+                            </Button>
+                            <Button
+                                variant={statusFilter === 'completed' ? 'default' : 'outline'}
+                                onClick={() => setStatusFilter('completed')}
+                                size="sm"
+                                className={statusFilter === 'completed' ? 'bg-gray-600 text-white' : ''}
+                            >
+                                Terminé
                             </Button>
                         </div>
                     </div>
@@ -146,13 +163,22 @@ export default function AdminBookingsPage() {
                                 <Link
                                     key={booking.id}
                                     href={`/admin/bookings/${booking.id}`}
-                                    className="block p-4 rounded-xl border border-gray-100 hover:border-[#5CD85A]/30 hover:bg-gray-50 transition-all"
+                                    className={`block p-4 rounded-xl border transition-all ${
+                                        booking.status === 'verified'
+                                            ? 'border-blue-300 bg-blue-50/50 hover:border-blue-400 hover:bg-blue-50'
+                                            : 'border-gray-100 hover:border-[#5CD85A]/30 hover:bg-gray-50'
+                                    }`}
                                 >
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
+                                            <div className="flex items-center gap-3 mb-2 flex-wrap">
                                                 <span className="font-bold text-[#0A0A0A]">#{booking.id}</span>
                                                 {getStatusBadge(booking.status)}
+                                                {booking.status === 'verified' && (
+                                                    <Badge className="bg-blue-200 text-blue-800 border border-blue-300">
+                                                        ⚠️ Action requise
+                                                    </Badge>
+                                                )}
                                                 {booking.paymentStatus === 'paid' && (
                                                     <Badge className="bg-green-100 text-green-700">Payé</Badge>
                                                 )}

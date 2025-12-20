@@ -81,11 +81,12 @@ export const PRICING = {
     night: { ht: 42, ttc: 46.20 },
   },
 
-  // Per km rates TTC
+  // Per km rates TTC (Grille 2026)
+  // Note: Ces tarifs sont indicatifs. Le calcul réel utilise CA/TP avec paliers progressifs
   perKm: {
-    agglomeration: { day: 1.65, night: 2.20 }, // up to 24km
-    horsAgglomeration: { day: 1.65, night: 2.20 }, // from 24km A/R
-    horsAgglomerationOneWay: { day: 1.10, night: 1.65 }, // from 12km one way
+    agglomeration: { day: 1.32, night: 1.90 }, // Forfait agglomération ≤ 25km A/R
+    tpRate: { day: 1.32, night: 1.90 }, // Tarif TP constant (tous paliers)
+    // CA rates varient selon paliers: 1.32→1.10→0.90→0.70 (jour) / 1.70→1.40→1.10→0.70 (nuit)
   },
 
   // Forfaits TTC
@@ -120,8 +121,9 @@ export const PRICING = {
   notes: [
     'Tarif jour: 7h00 à 20h00 (sauf Dim & JF)',
     'Tarif nuit: 20h00 à 7h00 + Dim & JF',
-    'Forfait agglomération: jusqu\'à 24 km max (A/R)',
+    'Forfait agglomération: jusqu\'à 25 km A/R (33€ jour / 47,50€ nuit)',
     'Minimum de réservation: 33€ TTC',
+    'Tous les trajets incluent le retour au dépôt (règle n°1)',
     'Hors frais de péage et mise à disposition',
     'Devis valable 5 jours',
   ],

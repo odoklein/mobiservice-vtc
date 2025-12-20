@@ -71,7 +71,21 @@ export function isNightRate(date?: Date): boolean {
   // Jour férié français
   const isHoliday = isFrenchHoliday(date);
 
-  return isNightHours || isSunday || isHoliday;
+  // Debug logging
+  const result = isNightHours || isSunday || isHoliday;
+  if (result) {
+    console.log('[PRICING] Tarif nuit détecté:', {
+      date: date.toISOString(),
+      localHours: hours,
+      localDay: day,
+      dayName: ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][day],
+      isNightHours,
+      isSunday,
+      isHoliday,
+    });
+  }
+
+  return result;
 }
 
 /**
@@ -88,10 +102,13 @@ export function getDistanceBracket(totalDistanceRoundTrip: number): keyof typeof
 
 /**
  * Calcule le prix selon la logique détaillée
+ * RÈGLE N°1 (NON NÉGOCIABLE): Toutes les estimations sont calculées en ALLER et RETOUR
+ * par rapport au point de départ du chauffeur VTC (point de dépôt).
+ * 
  * @param distanceCA_out Distance dépôt → pickup (km)
  * @param distanceTP Distance pickup → dropoff (km)
- * @param distanceCA_return Distance dropoff → dépôt (km) (0 si A/S)
- * @param tripType 'one-way' ou 'round-trip'
+ * @param distanceCA_return Distance dropoff → dépôt (km) - TOUJOURS inclus
+ * @param tripType 'one-way' ou 'round-trip' (affecte TP x2 et péages x2 pour A/R)
  * @param pickupTime Date/heure de prise en charge
  * @param tollCost Coût des péages (€ TTC) - x1 pour A/S, x2 pour A/R
  */
@@ -119,6 +136,9 @@ export function calculateTransferPrice(
   const night = isNightRate(pickupTime);
   const rates = night ? NIGHT_RATES : DAY_RATES;
 
+  // RÈGLE N°1: Le retour au dépôt est TOUJOURS inclus dans le calcul
+  // distanceCA_return doit toujours être > 0 (calculé par l'API de routing)
+
   // Total distance A/R (toujours calculé en A/R pour déterminer le bracket)
   const totalDistanceRoundTrip = distanceCA_out + distanceTP + distanceCA_return;
 
@@ -136,23 +156,26 @@ export function calculateTransferPrice(
   let totalTTC = 0;
 
   if (isForfaitAgglomeration) {
-    // Forfait agglomération: prix fixe
+    // Forfait agglomération: prix fixe (≤ 25km A/R)
     totalTTC = night ? FORFAIT_AGGLOMERATION.night.ttc : FORFAIT_AGGLOMERATION.day.ttc;
     // Breakdown masqué mais conservé pour admin
     costCA_out = distanceCA_out * pricePerKmCA;
-    costTP = distanceTP * pricePerKmTP;
+    // RÈGLE: En A/R client, le TP est doublé
+    costTP = tripType === 'round-trip' ? distanceTP * pricePerKmTP * 2 : distanceTP * pricePerKmTP;
     costCA_return = distanceCA_return * pricePerKmCA;
   } else {
     // Tarification au km selon les brackets
     costCA_out = distanceCA_out * pricePerKmCA;
-    costTP = distanceTP * pricePerKmTP;
-    costCA_return = tripType === 'round-trip' ? distanceCA_return * pricePerKmCA : 0;
+    // RÈGLE: En A/R client, le TP est doublé
+    costTP = tripType === 'round-trip' ? distanceTP * pricePerKmTP * 2 : distanceTP * pricePerKmTP;
+    // RÈGLE N°1: CA_retour est TOUJOURS inclus (même en A/S)
+    costCA_return = distanceCA_return * pricePerKmCA;
 
     totalTTC = costCA_out + costTP + costCA_return;
   }
 
   // Ajouter les péages
-  // Péages: x1 pour A/S, x2 pour A/R
+  // RÈGLE: Péages x1 pour A/S, x2 pour A/R
   const finalTollCost = tripType === 'round-trip' ? tollCost * 2 : tollCost;
   totalTTC += finalTollCost;
 
@@ -175,4 +198,6 @@ export function calculateTransferPrice(
     isNightRate: night,
   };
 }
+
+
 

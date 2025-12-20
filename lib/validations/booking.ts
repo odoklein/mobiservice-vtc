@@ -26,7 +26,7 @@ export const bookingStepTwoSchema = z.object({
   // Distance segments (CA/TP system)
   distanceCA: z.number().optional(), // Depot → Pickup
   distanceTP: z.number().optional(), // Pickup → Dropoff
-  distanceReturn: z.number().optional(), // Dropoff → Depot
+  distanceReturn: z.number().optional(), // Dropoff → Depot (TOUJOURS inclus - règle n°1)
 
   // Legacy distance (for backward compatibility)
   distance: z.number().optional(),

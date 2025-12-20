@@ -33,15 +33,18 @@ import {
   IconClock,
   IconLuggage,
   IconCar,
-  IconPlane,
   IconClockHour4,
-  IconBuilding,
   IconCreditCard,
   IconShieldCheck,
   IconPhone,
   IconStar,
   IconCash,
   IconLock,
+  IconRoute,
+  IconSparkles,
+  IconCircleDot,
+  IconMapPinFilled,
+  IconArrowsExchange,
 } from '@tabler/icons-react';
 
 type BookingStep = 1 | 2 | 3;
@@ -68,6 +71,10 @@ export default function ReservationPage() {
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { bookingData: savedBookingData, saveBookingDraft, clearBookingDraft, addToHistory } = useBookingStorage();
 
+  // Animation states
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // Step 1 form
   const {
     register: registerStep1,
@@ -81,6 +88,7 @@ export default function ReservationPage() {
       passengers: 1,
       luggage: 1,
       serviceType: 'transfer',
+      tripType: 'one-way',
       ...(savedBookingData && {
         pickupAddress: savedBookingData.pickupAddress,
         dropoffAddress: savedBookingData.dropoffAddress,
@@ -119,7 +127,6 @@ export default function ReservationPage() {
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Save form data to localStorage as user types (debounced)
@@ -155,10 +162,8 @@ export default function ReservationPage() {
   const onStep1Submit = async (data: BookingStepOneData) => {
     setIsCalculating(true);
     try {
-      // Pour les services transfer, utiliser le nouvel endpoint d'estimation
       if (data.serviceType === 'transfer' && data.pickupLat && data.pickupLng && data.dropoffLat && data.dropoffLng) {
         try {
-          // Construire la date complète
           const pickupDateStr = data.pickupDate instanceof Date 
             ? data.pickupDate.toISOString().split('T')[0]
             : typeof data.pickupDate === 'string'
@@ -178,7 +183,7 @@ export default function ReservationPage() {
               pickupDate: pickupDateStr,
               pickupTime: data.pickupTime,
               tripType: data.tripType || 'one-way',
-              tollCost: 0, // TODO: Intégrer calcul péages si disponible
+              tollCost: 0,
             }),
           });
 
@@ -208,8 +213,8 @@ export default function ReservationPage() {
             basePrice: est.pricing.totalHT,
             isNightRate: est.pricing.isNightRate,
             rateType: est.pricing.rateType,
-            breakdown: est.pricing.breakdown, // For validation schema
-            priceBreakdown: est.pricing.breakdown, // For database
+            breakdown: est.pricing.breakdown,
+            priceBreakdown: est.pricing.breakdown,
             step: 2,
             pickupDate: data.pickupDate,
           };
@@ -227,7 +232,7 @@ export default function ReservationPage() {
         }
       }
 
-      // Pour les autres services (airport, hourly, etc.), utiliser l'ancienne logique
+      // For hourly services
       let distanceCA = 0;
       let distanceTP = 0;
       let distanceReturn = 0;
@@ -268,7 +273,7 @@ export default function ReservationPage() {
         pickupDateTime.setHours(hours, minutes, 0, 0);
       }
 
-      const pricing = calculatePrice({
+      const pricing = await calculatePrice({
         serviceType: data.serviceType,
         tripType: data.tripType,
         distanceCA,
@@ -314,14 +319,13 @@ export default function ReservationPage() {
     }
   };
 
-  // Format card number with spaces
+  // Card formatting helpers
   const formatCardNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
     const groups = cleaned.match(/.{1,4}/g);
     return groups ? groups.join(' ').substring(0, 19) : cleaned;
   };
 
-  // Format expiry date
   const formatExpiry = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
     if (cleaned.length >= 2) {
@@ -330,7 +334,6 @@ export default function ReservationPage() {
     return cleaned;
   };
 
-  // Get card type icon
   const getCardType = (number: string) => {
     const cleaned = number.replace(/\s/g, '');
     if (cleaned.startsWith('4')) return 'VISA';
@@ -339,7 +342,6 @@ export default function ReservationPage() {
     return '';
   };
 
-  // Validate card details
   const validateCardDetails = (): boolean => {
     try {
       cardDetailsSchema.parse(cardData);
@@ -357,7 +359,7 @@ export default function ReservationPage() {
     }
   };
 
-  // Create booking in database
+  // Create booking
   const createBooking = async (guestData: BookingStepThreeData): Promise<number | null> => {
     try {
       const completeData = {
@@ -373,7 +375,6 @@ export default function ReservationPage() {
       });
 
       const result = await response.json();
-
       if (result.success && result.bookingId) {
         return result.bookingId;
       }
@@ -384,29 +385,24 @@ export default function ReservationPage() {
     }
   };
 
-  // Handle OTP input change
+  // OTP handlers
   const handleOtpChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
-
     const newOtp = [...otpCode];
     newOtp[index] = value.slice(-1);
     setOtpCode(newOtp);
     setOtpError('');
-
-    // Move to next input
     if (value && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
   };
 
-  // Handle OTP key down
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
       otpInputRefs.current[index - 1]?.focus();
     }
   };
 
-  // Handle OTP paste
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
@@ -417,7 +413,6 @@ export default function ReservationPage() {
     setOtpCode(newOtp);
   };
 
-  // Send OTP for cash payment
   const sendOtp = async (bookingId: number) => {
     try {
       const response = await fetch('/api/bookings/send-otp', {
@@ -426,78 +421,17 @@ export default function ReservationPage() {
         body: JSON.stringify({ bookingId }),
       });
 
-      const contentType = response.headers.get('content-type') || '';
-      let result: any;
-      if (contentType.includes('application/json')) {
-        result = await response.json();
-      } else {
-        // If Next.js crashes (dev overlay) the API can return HTML; avoid blowing up on `.json()`.
-        const text = await response.text();
-        const excerpt = text.slice(0, 300).replace(/\s+/g, ' ').trim();
-        throw new Error(`Réponse serveur non-JSON (HTTP ${response.status}): ${excerpt}`);
-      }
-
+      const result = await response.json();
       if (!result.success) {
-        // Display detailed error message with debug info
-        let errorMessage = result.error || 'Erreur lors de l\'envoi du code';
-
-        if (result.debug) {
-          console.error('[OTP-CLIENT-ERROR]', result.debug);
-
-          // Add user-friendly context based on error type
-          switch (result.debug.errorType) {
-            case 'MISSING_EMAIL':
-              errorMessage = 'Email manquant dans la réservation. Veuillez contacter le support.';
-              break;
-            case 'BOOKING_NOT_FOUND':
-              errorMessage = 'Réservation introuvable. Veuillez réessayer.';
-              break;
-            case 'DB_QUERY_ERROR':
-            case 'DB_INSERT_ERROR':
-              errorMessage = `Erreur de base de données: ${result.debug.details || 'Impossible de sauvegarder le code'}`;
-              break;
-            case 'RESEND_API_ERROR':
-              errorMessage = `Erreur d'envoi d'email: ${JSON.stringify(result.debug.details) || 'Le service d\'email a retourné une erreur'}`;
-              console.error('[RESEND-ERROR]', result.debug.details);
-              break;
-            case 'EMAIL_EXCEPTION':
-              errorMessage = `Exception lors de l'envoi: ${result.debug.details || 'Erreur de connexion au service d\'email'}`;
-              break;
-            case 'INVALID_JSON':
-              errorMessage = 'Données invalides. Veuillez recharger la page.';
-              break;
-            default:
-              errorMessage = `${result.error} (Type: ${result.debug.errorType})`;
-          }
-
-          // Display technical details in development
-          if (process.env.NODE_ENV !== 'production') {
-            console.log('[OTP-DEBUG-INFO]', {
-              step: result.debug.step,
-              errorType: result.debug.errorType,
-              bookingId: result.debug.bookingId,
-              hasResendKey: result.debug.hasResendKey,
-              details: result.debug.details,
-            });
-          }
-        }
-
-        throw new Error(errorMessage);
+        throw new Error(result.error || 'Erreur lors de l\'envoi du code');
       }
-
       return true;
     } catch (error) {
       console.error('Error sending OTP:', error);
-
-      // Show detailed error to user
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue lors de l\'envoi du code';
-      alert(`Erreur d'envoi du code de vérification:\n\n${errorMessage}`);
-
       return false;
     }
   };
 
-  // Verify OTP
   const verifyOtp = async () => {
     if (!createdBookingId) return;
 
@@ -526,13 +460,7 @@ export default function ReservationPage() {
         clearBookingDraft();
         window.location.href = result.redirectUrl;
       } else {
-        const errorMsg = result.error || 'Code invalide';
-        setOtpError(errorMsg);
-
-        // Log debug info if available
-        if (result.debug) {
-          console.error('[VERIFY-OTP-ERROR]', result.debug);
-        }
+        setOtpError(result.error || 'Code invalide');
       }
     } catch (error) {
       console.error('OTP verification error:', error);
@@ -542,22 +470,16 @@ export default function ReservationPage() {
     }
   };
 
-  // Resend OTP
   const resendOtp = async () => {
     if (!createdBookingId) return;
     setOtpCode(['', '', '', '', '', '']);
     setOtpError('');
-
     const success = await sendOtp(createdBookingId);
     if (success) {
-      alert('✅ Un nouveau code a été envoyé à votre email');
-    } else {
-      // Error already shown by sendOtp
-      setOtpError('Impossible d\'envoyer le code. Voir les détails ci-dessus.');
+      alert('Un nouveau code a été envoyé à votre email');
     }
   };
 
-  // Handle card payment
   const handleCardPayment = async (bookingId: number) => {
     if (!validateCardDetails()) return false;
 
@@ -600,7 +522,6 @@ export default function ReservationPage() {
     setIsProcessingPayment(true);
 
     try {
-      // Create booking first
       const bookingId = await createBooking(data);
 
       if (!bookingId) {
@@ -614,7 +535,6 @@ export default function ReservationPage() {
       if (paymentMethod === 'card') {
         await handleCardPayment(bookingId);
       } else {
-        // Cash payment - send OTP
         const otpSent = await sendOtp(bookingId);
         if (otpSent) {
           setShowOtpInput(true);
@@ -630,153 +550,220 @@ export default function ReservationPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Minimal Header */}
-      <div className="bg-[#0A0A0A] py-12 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/3 w-[400px] h-[400px] bg-[#5CD85A]/10 rounded-full blur-[120px]"></div>
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-              Réservation
-            </h1>
-            <p className="text-white/70">
-              Estimez et réservez votre trajet en quelques clics
-            </p>
+  // Step indicator component
+  const StepIndicator = () => (
+    <div className="relative">
+      <div className="flex items-center justify-center gap-2 md:gap-4">
+        {[
+          { num: 1, label: 'Trajet', icon: IconRoute },
+          { num: 2, label: 'Estimation', icon: IconSparkles },
+          { num: 3, label: 'Réservation', icon: IconCheck },
+        ].map((s, i) => (
+          <div key={s.num} className="flex items-center">
+            <div className="flex flex-col items-center">
+              <div
+                className={`
+                  relative w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center
+                  font-semibold text-sm transition-all duration-500 ease-out
+                  ${step >= s.num
+                    ? 'bg-gradient-to-br from-[#5CD85A] to-[#4BC449] text-[#0A0A0A] shadow-lg shadow-[#5CD85A]/25'
+                    : 'bg-white/5 text-white/40 border border-white/10'
+                  }
+                `}
+              >
+                {step > s.num ? (
+                  <IconCheck className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2.5} />
+                ) : (
+                  <s.icon className="h-5 w-5 md:h-6 md:w-6" />
+                )}
+                {step === s.num && (
+                  <div className="absolute inset-0 rounded-2xl bg-[#5CD85A] animate-ping opacity-20" />
+                )}
+              </div>
+              <span className={`
+                text-xs md:text-sm mt-2 font-medium transition-colors duration-300
+                ${step >= s.num ? 'text-white' : 'text-white/40'}
+              `}>
+                {s.label}
+              </span>
+            </div>
+            {i < 2 && (
+              <div className={`
+                w-8 md:w-16 h-0.5 mx-2 md:mx-3 rounded-full transition-all duration-500
+                ${step > s.num ? 'bg-[#5CD85A]' : 'bg-white/10'}
+              `} />
+            )}
           </div>
-        </div>
+        ))}
       </div>
+    </div>
+  );
 
-      {/* Progress Steps */}
-      <div className="bg-white border-b sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-center justify-between">
-              {[
-                { num: 1, label: 'Trajet' },
-                { num: 2, label: 'Récapitulatif' },
-                { num: 3, label: 'Paiement' },
-              ].map((s, i) => (
-                <div key={s.num} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${step >= s.num
-                        ? 'bg-[#5CD85A] text-[#0A0A0A]'
-                        : 'bg-gray-100 text-gray-400'
-                        }`}
-                    >
-                      {step > s.num ? <IconCheck className="h-5 w-5" /> : s.num}
-                    </div>
-                    <span className={`text-xs mt-2 font-medium ${step >= s.num ? 'text-[#0A0A0A]' : 'text-gray-400'}`}>
-                      {s.label}
-                    </span>
-                  </div>
-                  {i < 2 && (
-                    <div className={`flex-1 h-0.5 mx-4 ${step > s.num ? 'bg-[#5CD85A]' : 'bg-gray-200'}`}></div>
-                  )}
-                </div>
-              ))}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
+      {/* Premium Hero Header */}
+      <div className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+        {/* Animated background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#5CD85A]/15 rounded-full blur-[150px] animate-pulse-slow" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-400/10 rounded-full blur-[120px]" />
+          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
+        </div>
+
+        <div className="relative z-10 pt-8 pb-16 md:pt-12 md:pb-20">
+          <div className="container mx-auto px-4">
+            {/* Header */}
+            <div className="text-center mb-10 md:mb-14">
+              <div className={`
+                inline-flex items-center gap-2 px-4 py-2 rounded-full 
+                bg-white/10 border border-white/20 backdrop-blur-sm mb-6
+                transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+              `}>
+                <IconSparkles className="h-4 w-4 text-[#5CD85A]" />
+                <span className="text-sm text-white/80">Réservation instantanée</span>
+              </div>
+              <h1 className={`
+                text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4
+                transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+              `}>
+                Réservez votre
+                <span className="text-[#5CD85A]"> VTC</span>
+              </h1>
+              <p className={`
+                text-lg text-white/70 max-w-xl mx-auto
+                transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+              `}>
+                Service premium en Haute-Savoie • Devis instantané
+              </p>
+            </div>
+
+            {/* Step Indicator */}
+            <div className={`
+              transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+            `}>
+              <StepIndicator />
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Form */}
-            <div className="lg:col-span-2">
-              {/* Step 1: Trip Details */}
-              {step === 1 && (
-                <div className="space-y-6">
-                  {/* Service Type */}
-                  <Card className="border-0 shadow-lg">
-                    <CardContent className="p-6">
-                      <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <IconCar className="h-5 w-5 text-[#5CD85A]" />
-                        Type de service
-                      </h2>
-                      <div className="grid grid-cols-2 gap-3">
+      <div className="relative -mt-8 z-20">
+        <div className="container mx-auto px-4 pb-16">
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+              {/* Main Form Area */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Step 1: Trip Details */}
+                {step === 1 && (
+                  <div className="space-y-6 animate-fade-in-up">
+                    {/* Service Type Selection */}
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/60 border border-slate-100">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
+                          <IconCar className="h-5 w-5 text-[#5CD85A]" />
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-bold text-[#0A0A0A]">Type de service</h2>
+                          <p className="text-sm text-gray-500">Choisissez votre formule</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
                         {SERVICES.map((service) => {
-                          const IconComponent =
-                            service.id === 'transfer' ? IconCar :
-                              service.id === 'airport' ? IconPlane :
-                                service.id === 'hourly' ? IconClockHour4 : IconBuilding;
+                          const isSelected = step1Data.serviceType === service.id;
+                          const IconComponent = service.id === 'transfer' ? IconCar : IconClockHour4;
 
                           return (
                             <button
                               key={service.id}
                               type="button"
                               onClick={() => setValueStep1('serviceType', service.id as any)}
-                              className={`p-4 rounded-xl text-left transition-all border-2 ${step1Data.serviceType === service.id
-                                ? 'border-[#5CD85A] bg-[#5CD85A]/5'
-                                : 'border-gray-100 hover:border-gray-200 bg-white'
-                                }`}
+                              className={`
+                                relative p-5 rounded-2xl text-left transition-all duration-300
+                                ${isSelected
+                                  ? 'bg-gradient-to-br from-[#5CD85A] to-[#4BC449] shadow-lg shadow-[#5CD85A]/20'
+                                  : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent hover:border-gray-200'
+                                }
+                              `}
                             >
-                              <div className={`w-10 h-10 rounded-lg mb-3 flex items-center justify-center ${step1Data.serviceType === service.id
-                                ? 'bg-[#5CD85A] text-white'
-                                : 'bg-gray-100 text-gray-500'
-                                }`}>
-                                <IconComponent className="h-5 w-5" />
+                              <div className={`
+                                w-12 h-12 rounded-xl mb-4 flex items-center justify-center transition-colors
+                                ${isSelected ? 'bg-white/20 text-[#0A0A0A]' : 'bg-gray-200 text-gray-500'}
+                              `}>
+                                <IconComponent className="h-6 w-6" />
                               </div>
-                              <div className="font-medium text-sm">{service.name}</div>
-                              <div className="text-xs text-gray-500 mt-1">{service.priceInfo}</div>
+                              <div className={`font-semibold ${isSelected ? 'text-[#0A0A0A]' : 'text-gray-900'}`}>
+                                {service.name}
+                              </div>
+                              <div className={`text-sm mt-1 ${isSelected ? 'text-[#0A0A0A]/70' : 'text-gray-500'}`}>
+                                {service.priceInfo}
+                              </div>
+                              {isSelected && (
+                                <div className="absolute top-3 right-3">
+                                  <IconCheck className="h-5 w-5 text-[#0A0A0A]" />
+                                </div>
+                              )}
                             </button>
                           );
                         })}
                       </div>
-                      {/* Trip Type (A/S vs A/R) - Only for transfer service */}
+
+                      {/* Trip Type for Transfer */}
                       {step1Data.serviceType === 'transfer' && (
-                        <div className="mt-4 pt-4 border-t">
-                          <Label className="text-sm font-medium mb-3 block">Type de trajet</Label>
-                          <div className="grid grid-cols-2 gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setValueStep1('tripType', 'one-way')}
-                              className={`p-3 rounded-xl text-left transition-all border-2 ${
-                                (step1Data.tripType || 'one-way') === 'one-way'
-                                  ? 'border-[#5CD85A] bg-[#5CD85A]/5'
-                                  : 'border-gray-100 hover:border-gray-200 bg-white'
-                              }`}
-                            >
-                              <div className="font-medium text-sm">Aller Simple (A/S)</div>
-                              <div className="text-xs text-gray-500 mt-1">Trajet unique</div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setValueStep1('tripType', 'round-trip')}
-                              className={`p-3 rounded-xl text-left transition-all border-2 ${
-                                step1Data.tripType === 'round-trip'
-                                  ? 'border-[#5CD85A] bg-[#5CD85A]/5'
-                                  : 'border-gray-100 hover:border-gray-200 bg-white'
-                              }`}
-                            >
-                              <div className="font-medium text-sm">Aller-Retour (A/R)</div>
-                              <div className="text-xs text-gray-500 mt-1">Même jour</div>
-                            </button>
+                        <div className="mt-6 pt-6 border-t border-gray-100">
+                          <Label className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <IconArrowsExchange className="h-4 w-4 text-[#5CD85A]" />
+                            Type de trajet
+                          </Label>
+                          <div className="grid grid-cols-2 gap-3 mt-3">
+                            {[
+                              { value: 'one-way', label: 'Aller Simple', sub: 'Trajet unique' },
+                              { value: 'round-trip', label: 'Aller-Retour', sub: 'Même jour' },
+                            ].map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => setValueStep1('tripType', option.value as any)}
+                                className={`
+                                  p-4 rounded-xl text-left transition-all duration-200 border-2
+                                  ${(step1Data.tripType || 'one-way') === option.value
+                                    ? 'border-[#5CD85A] bg-[#5CD85A]/5'
+                                    : 'border-gray-100 hover:border-gray-200'
+                                  }
+                                `}
+                              >
+                                <div className="font-medium text-sm text-gray-900">{option.label}</div>
+                                <div className="text-xs text-gray-500 mt-0.5">{option.sub}</div>
+                              </button>
+                            ))}
                           </div>
                         </div>
                       )}
-                      {/* Hour Selection - Only for hourly (MDA) service */}
+
+                      {/* Hours selection for Hourly service */}
                       {step1Data.serviceType === 'hourly' && (
-                        <div className="mt-4 pt-4 border-t">
-                          <Label className="text-sm font-medium mb-3 block">Durée de mise à disposition</Label>
-                          <div className="grid grid-cols-4 gap-2">
-                            {[2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8].map((h) => {
+                        <div className="mt-6 pt-6 border-t border-gray-100">
+                          <Label className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <IconClock className="h-4 w-4 text-[#5CD85A]" />
+                            Durée de mise à disposition
+                          </Label>
+                          <div className="grid grid-cols-4 md:grid-cols-6 gap-2 mt-3">
+                            {[2, 3, 4, 5, 6, 7, 8].map((h) => {
                               const forfait = FORFAITS.find(f => f.hours === h);
+                              const isSelected = (step1Data.hours || 2) === h;
                               return (
                                 <button
                                   key={h}
                                   type="button"
                                   onClick={() => setValueStep1('hours', h)}
-                                  className={`p-2 rounded-xl text-center transition-all border-2 ${
-                                    (step1Data.hours || 2) === h
-                                      ? 'border-[#5CD85A] bg-[#5CD85A]/5'
-                                      : 'border-gray-100 hover:border-gray-200 bg-white'
-                                  }`}
+                                  className={`
+                                    p-3 rounded-xl text-center transition-all duration-200 border-2
+                                    ${isSelected
+                                      ? 'border-[#5CD85A] bg-[#5CD85A]/10'
+                                      : 'border-gray-100 hover:border-gray-200'
+                                    }
+                                  `}
                                 >
                                   <div className="font-bold text-sm">{h}H</div>
                                   {forfait && (
@@ -786,73 +773,94 @@ export default function ReservationPage() {
                               );
                             })}
                           </div>
-                          <div className="mt-4 p-3 bg-blue-50 rounded-xl text-sm text-blue-800">
-                            {(() => {
-                              const selectedHours = step1Data.hours || 2;
-                              const forfait = FORFAITS.find(f => f.hours === selectedHours) || FORFAITS[0];
-                              return (
-                                <>
-                                  <strong>Forfait {selectedHours}H :</strong> {forfait.day}€ TTC jour / {forfait.night}€ TTC nuit.
-                                  <br />
-                                  <span className="text-blue-600">Inclut jusqu'à {forfait.maxKm} km et péages. Heure supplémentaire : 116€ TTC jour / 140€ TTC nuit.</span>
-                                </>
-                              );
-                            })()}
-                          </div>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
+                    </div>
 
-                  {/* Addresses */}
-                  <Card className="border-0 shadow-lg">
-                    <CardContent className="p-6">
-                      <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <IconMapPin className="h-5 w-5 text-[#5CD85A]" />
-                        Itinéraire
-                      </h2>
-                      <div className="space-y-4">
-                        <AddressAutocomplete
-                          label="Adresse de départ"
-                          placeholder="Entrez l'adresse de départ"
-                          value={step1Data.pickupAddress || ''}
-                          onChange={(address, lat, lng) => {
-                            setValueStep1('pickupAddress', address);
-                            if (lat && lng) {
-                              setValueStep1('pickupLat', lat);
-                              setValueStep1('pickupLng', lng);
-                            }
-                          }}
-                          error={errorsStep1.pickupAddress?.message}
-                        />
-                        <AddressAutocomplete
-                          label="Adresse d'arrivée"
-                          placeholder="Entrez l'adresse d'arrivée"
-                          value={step1Data.dropoffAddress || ''}
-                          onChange={(address, lat, lng) => {
-                            setValueStep1('dropoffAddress', address);
-                            if (lat && lng) {
-                              setValueStep1('dropoffLat', lat);
-                              setValueStep1('dropoffLng', lng);
-                            }
-                          }}
-                          error={errorsStep1.dropoffAddress?.message}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Date & Time */}
-                  <Card className="border-0 shadow-lg">
-                    <CardContent className="p-6">
-                      <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <IconCalendar className="h-5 w-5 text-[#5CD85A]" />
-                        Date et heure
-                      </h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Route Input */}
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/60 border border-slate-100">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
+                          <IconRoute className="h-5 w-5 text-[#5CD85A]" />
+                        </div>
                         <div>
-                          <Label className="text-sm font-medium mb-2 block">Date</Label>
-                          <div className="border rounded-xl p-3 bg-white">
+                          <h2 className="text-lg font-bold text-[#0A0A0A]">Votre itinéraire</h2>
+                          <p className="text-sm text-gray-500">Définissez votre trajet</p>
+                        </div>
+                      </div>
+
+                      <div className="relative">
+                        {/* Visual route line */}
+                        <div className="absolute left-[22px] top-[48px] bottom-[48px] w-0.5 bg-gradient-to-b from-[#5CD85A] via-gray-200 to-red-400" />
+
+                        <div className="space-y-4">
+                          {/* Pickup */}
+                          <div className="relative">
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
+                              <div className="w-11 h-11 rounded-full bg-[#5CD85A] flex items-center justify-center shadow-lg shadow-[#5CD85A]/30">
+                                <IconCircleDot className="h-5 w-5 text-white" />
+                              </div>
+                            </div>
+                            <div className="pl-16">
+                              <AddressAutocomplete
+                                label="Adresse de départ"
+                                placeholder="D'où partez-vous ?"
+                                value={step1Data.pickupAddress || ''}
+                                onChange={(address, lat, lng) => {
+                                  setValueStep1('pickupAddress', address);
+                                  if (lat && lng) {
+                                    setValueStep1('pickupLat', lat);
+                                    setValueStep1('pickupLng', lng);
+                                  }
+                                }}
+                                error={errorsStep1.pickupAddress?.message}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Dropoff */}
+                          <div className="relative">
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
+                              <div className="w-11 h-11 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/30">
+                                <IconMapPinFilled className="h-5 w-5 text-white" />
+                              </div>
+                            </div>
+                            <div className="pl-16">
+                              <AddressAutocomplete
+                                label="Adresse d'arrivée"
+                                placeholder="Où allez-vous ?"
+                                value={step1Data.dropoffAddress || ''}
+                                onChange={(address, lat, lng) => {
+                                  setValueStep1('dropoffAddress', address);
+                                  if (lat && lng) {
+                                    setValueStep1('dropoffLat', lat);
+                                    setValueStep1('dropoffLng', lng);
+                                  }
+                                }}
+                                error={errorsStep1.dropoffAddress?.message}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Date & Time */}
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/60 border border-slate-100">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
+                          <IconCalendar className="h-5 w-5 text-[#5CD85A]" />
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-bold text-[#0A0A0A]">Date et heure</h2>
+                          <p className="text-sm text-gray-500">Planifiez votre trajet</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Calendar */}
+                        <div>
+                          <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50">
                             <Calendar
                               mode="single"
                               selected={selectedDate}
@@ -861,291 +869,327 @@ export default function ReservationPage() {
                                 if (date) setValueStep1('pickupDate', date);
                               }}
                               disabled={(date) => date < new Date()}
-                              className="rounded-md"
+                              className="rounded-xl"
                             />
                           </div>
                           {errorsStep1.pickupDate && (
                             <p className="text-sm text-red-500 mt-2">{errorsStep1.pickupDate.message}</p>
                           )}
                         </div>
-                        <div className="space-y-4">
+
+                        {/* Time and passengers */}
+                        <div className="space-y-5">
                           <div>
-                            <Label className="text-sm font-medium mb-2 block">Heure de prise en charge</Label>
+                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">
+                              Heure de prise en charge
+                            </Label>
                             <Input
                               type="time"
-                              className="h-12"
+                              className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg font-medium"
                               {...registerStep1('pickupTime')}
                             />
                             {errorsStep1.pickupTime && (
                               <p className="text-sm text-red-500 mt-1">{errorsStep1.pickupTime.message}</p>
                             )}
                           </div>
-                          <div>
-                            <Label className="text-sm font-medium mb-2 block">
-                              Heure maximale d'arrivée <span className="text-gray-400 font-normal">(optionnel)</span>
-                            </Label>
-                            <Input
-                              type="time"
-                              className="h-12"
-                              {...registerStep1('maxArrivalTime')}
-                              placeholder="HH:mm"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                              Pour correspondance train/avion ou contrainte horaire
-                            </p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
+
+                          <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <Label className="text-sm font-medium mb-2 block">Passagers</Label>
+                              <Label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <IconUsers className="h-4 w-4" />
+                                Passagers
+                              </Label>
                               <Input
                                 type="number"
                                 min="1"
                                 max="4"
-                                className="h-12"
+                                className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg font-medium text-center"
                                 {...registerStep1('passengers', { valueAsNumber: true })}
                               />
                             </div>
                             <div>
-                              <Label className="text-sm font-medium mb-2 block">Bagages</Label>
+                              <Label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <IconLuggage className="h-4 w-4" />
+                                Bagages
+                              </Label>
                               <Input
                                 type="number"
                                 min="0"
                                 max="5"
-                                className="h-12"
+                                className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg font-medium text-center"
                                 {...registerStep1('luggage', { valueAsNumber: true })}
                               />
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
 
-                  {/* Submit Button */}
-                  <Button
-                    onClick={handleSubmitStep1(onStep1Submit)}
-                    className="w-full h-14 text-base font-semibold bg-[#5CD85A] hover:bg-[#4BC449] text-[#0A0A0A] rounded-xl"
-                    disabled={isCalculating}
-                  >
-                    {isCalculating ? (
-                      <>
-                        <IconLoader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Calcul en cours...
-                      </>
-                    ) : (
-                      <>
-                        Voir l'estimation
-                        <IconArrowRight className="ml-2 h-5 w-5" />
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {/* Step 2: Summary & Price */}
-              {step === 2 && (
-                <div className="space-y-6">
-                  <Card className="border-0 shadow-lg overflow-hidden">
-                    <div className="bg-[#0A0A0A] p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-white/60 text-sm mb-1">Prix total</div>
-                          <div className="text-4xl font-bold text-[#5CD85A]">
-                            {formatPrice(bookingData.totalPrice)}
+                          <div>
+                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">
+                              Heure d'arrivée max <span className="text-gray-400 font-normal">(optionnel)</span>
+                            </Label>
+                            <Input
+                              type="time"
+                              className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A]"
+                              {...registerStep1('maxArrivalTime')}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Pour correspondance train/avion</p>
                           </div>
                         </div>
-                        <Badge className={`${bookingData.isNightRate ? 'bg-indigo-500' : 'bg-amber-500'} text-white`}>
-                          {bookingData.isNightRate ? '🌙 Nuit' : '☀️ Jour'}
-                        </Badge>
                       </div>
                     </div>
-                    <CardContent className="p-6 space-y-4">
-                      {/* Trip Details */}
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <div className="w-2 h-2 rounded-full bg-[#5CD85A] mt-2"></div>
-                          <div className="flex-1">
-                            <div className="text-xs text-gray-500">Départ</div>
-                            <div className="text-sm font-medium">{bookingData.pickupAddress}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <div className="w-2 h-2 rounded-full bg-red-500 mt-2"></div>
-                          <div className="flex-1">
-                            <div className="text-xs text-gray-500">Arrivée</div>
-                            <div className="text-sm font-medium">{bookingData.dropoffAddress}</div>
-                          </div>
-                        </div>
-                      </div>
 
-                      <div className="border-t pt-4 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Distance</span>
-                          <span>{Math.round(bookingData.distance)} km</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Durée estimée</span>
-                          <span>~{Math.round(bookingData.duration)} min</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Date</span>
-                          <span>{bookingData.pickupDate?.toLocaleDateString('fr-FR')}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Heure</span>
-                          <span>{bookingData.pickupTime}</span>
-                        </div>
-                      </div>
-
-                      <div className="border-t pt-4 space-y-2">
-                        {bookingData.breakdown?.baseFare && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Prise en charge</span>
-                            <span>{formatPrice(bookingData.breakdown.baseFare)}</span>
-                          </div>
-                        )}
-                        {bookingData.breakdown?.distanceCharge && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Distance</span>
-                            <span>{formatPrice(bookingData.breakdown.distanceCharge)}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">TVA (10%)</span>
-                          <span>{formatPrice(bookingData.tvaAmount || 0)}</span>
-                        </div>
-                        <div className="flex justify-between font-semibold pt-2 border-t">
-                          <span>Total TTC</span>
-                          <span className="text-[#5CD85A]">{formatPrice(bookingData.totalPrice)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <div className="flex gap-3">
+                    {/* Submit Button */}
                     <Button
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      className="flex-1 h-12"
+                      onClick={handleSubmitStep1(onStep1Submit)}
+                      className="w-full h-16 text-lg font-bold bg-gradient-to-r from-[#5CD85A] to-[#4BC449] hover:from-[#4BC449] hover:to-[#3AB338] text-[#0A0A0A] rounded-2xl shadow-lg shadow-[#5CD85A]/25 transition-all duration-300 hover:shadow-xl hover:shadow-[#5CD85A]/30 hover:-translate-y-0.5"
+                      disabled={isCalculating}
                     >
-                      <IconArrowLeft className="mr-2 h-4 w-4" />
-                      Modifier
-                    </Button>
-                    <Button
-                      onClick={() => setStep(3)}
-                      className="flex-1 h-12 bg-[#5CD85A] hover:bg-[#4BC449] text-[#0A0A0A]"
-                    >
-                      Continuer
-                      <IconArrowRight className="ml-2 h-4 w-4" />
+                      {isCalculating ? (
+                        <>
+                          <IconLoader2 className="mr-3 h-6 w-6 animate-spin" />
+                          Calcul en cours...
+                        </>
+                      ) : (
+                        <>
+                          Calculer mon estimation
+                          <IconArrowRight className="ml-3 h-6 w-6" />
+                        </>
+                      )}
                     </Button>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Step 3: Customer Info & Payment */}
-              {step === 3 && !showOtpInput && (
-                <div className="space-y-6">
-                  <Card className="border-0 shadow-lg">
-                    <CardContent className="p-6">
-                      <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <IconUsers className="h-5 w-5 text-[#5CD85A]" />
-                        Vos coordonnées
-                      </h2>
-                      <form onSubmit={handleSubmitStep3(onStep3Submit)} className="space-y-4">
-                        <div>
-                          <Label className="text-sm font-medium mb-2 block">Nom complet</Label>
-                          <Input
-                            placeholder="Jean Dupont"
-                            className="h-12"
-                            {...registerStep3('guestName')}
-                          />
-                          {errorsStep3.guestName && (
-                            <p className="text-sm text-red-500 mt-1">{errorsStep3.guestName.message}</p>
-                          )}
+                {/* Step 2: Price Summary */}
+                {step === 2 && (
+                  <div className="space-y-6 animate-fade-in-up">
+                    {/* Price Card */}
+                    <div className="bg-white rounded-3xl overflow-hidden shadow-xl shadow-slate-200/60 border border-slate-100">
+                      {/* Price Header */}
+                      <div className="relative bg-gradient-to-br from-[#0A0A0A] to-[#1A1A1A] p-8 overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#5CD85A]/10 rounded-full blur-[80px]" />
+                        <div className="relative z-10">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-white/50 text-sm font-medium mb-2">Prix estimé</p>
+                              <div className="text-5xl md:text-6xl font-bold text-[#5CD85A]">
+                                {formatPrice(bookingData.totalPrice)}
+                              </div>
+                              <p className="text-white/40 text-sm mt-2">TTC • TVA incluse</p>
+                            </div>
+                            <Badge className={`
+                              px-4 py-2 text-sm font-semibold rounded-full
+                              ${bookingData.isNightRate 
+                                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/30' 
+                                : 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                              }
+                            `}>
+                              {bookingData.isNightRate ? '🌙 Tarif nuit' : '☀️ Tarif jour'}
+                            </Badge>
+                          </div>
                         </div>
-                        <div>
-                          <Label className="text-sm font-medium mb-2 block">Email</Label>
-                          <Input
-                            type="email"
-                            placeholder="jean@example.com"
-                            className="h-12"
-                            {...registerStep3('guestEmail')}
-                          />
-                          {errorsStep3.guestEmail && (
-                            <p className="text-sm text-red-500 mt-1">{errorsStep3.guestEmail.message}</p>
-                          )}
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium mb-2 block">Téléphone</Label>
-                          <Input
-                            type="tel"
-                            placeholder="+33 6 00 00 00 00"
-                            className="h-12"
-                            {...registerStep3('guestPhone')}
-                          />
-                          {errorsStep3.guestPhone && (
-                            <p className="text-sm text-red-500 mt-1">{errorsStep3.guestPhone.message}</p>
-                          )}
-                        </div>
+                      </div>
 
-                        {/* Payment Method Selection */}
-                        <div className="pt-6 border-t">
-                          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <IconCreditCard className="h-5 w-5 text-[#5CD85A]" />
-                            Mode de paiement
-                          </h3>
-                          <div className="grid grid-cols-2 gap-4">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPaymentMethod('card');
-                                setValueStep3('paymentMethod', 'card');
-                              }}
-                              className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === 'card'
-                                ? 'border-[#5CD85A] bg-[#5CD85A]/5'
-                                : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                            >
-                              <div className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center ${paymentMethod === 'card' ? 'bg-[#5CD85A] text-white' : 'bg-gray-100 text-gray-500'
-                                }`}>
-                                <IconCreditCard className="h-6 w-6" />
+                      {/* Trip Details */}
+                      <div className="p-8">
+                        {/* Route visualization */}
+                        <div className="relative mb-8">
+                          <div className="absolute left-[22px] top-[20px] bottom-[20px] w-0.5 bg-gradient-to-b from-[#5CD85A] to-red-400" />
+                          <div className="space-y-6">
+                            <div className="flex items-start gap-4">
+                              <div className="w-11 h-11 rounded-full bg-[#5CD85A] flex items-center justify-center flex-shrink-0">
+                                <IconCircleDot className="h-5 w-5 text-white" />
                               </div>
-                              <div className="font-medium text-sm">Carte bancaire</div>
-                              <div className="text-xs text-gray-500 mt-1">Paiement immédiat sécurisé</div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPaymentMethod('cash');
-                                setValueStep3('paymentMethod', 'cash');
-                              }}
-                              className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === 'cash'
-                                ? 'border-[#5CD85A] bg-[#5CD85A]/5'
-                                : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                            >
-                              <div className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center ${paymentMethod === 'cash' ? 'bg-[#5CD85A] text-white' : 'bg-gray-100 text-gray-500'
-                                }`}>
-                                <IconCash className="h-6 w-6" />
+                              <div className="flex-1 pt-2">
+                                <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Départ</p>
+                                <p className="text-gray-900 font-medium mt-1">{bookingData.pickupAddress}</p>
                               </div>
-                              <div className="font-medium text-sm">Espèces</div>
-                              <div className="text-xs text-gray-500 mt-1">Paiement au chauffeur</div>
-                            </button>
+                            </div>
+                            <div className="flex items-start gap-4">
+                              <div className="w-11 h-11 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                                <IconMapPinFilled className="h-5 w-5 text-white" />
+                              </div>
+                              <div className="flex-1 pt-2">
+                                <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Arrivée</p>
+                                <p className="text-gray-900 font-medium mt-1">{bookingData.dropoffAddress}</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Card Details (shown only when card is selected) */}
-                        {paymentMethod === 'card' && (
-                          <div className="space-y-4 p-4 bg-gray-50 rounded-xl mt-4">
-                            <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                              <IconLock className="h-4 w-4" />
-                              Paiement sécurisé - Vos données sont protégées
+                        {/* Info grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                          {[
+                            { label: 'Distance', value: `${Math.round(bookingData.distance)} km`, icon: IconRoute },
+                            { label: 'Durée', value: `~${Math.round(bookingData.duration)} min`, icon: IconClock },
+                            { label: 'Date', value: bookingData.pickupDate?.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }), icon: IconCalendar },
+                            { label: 'Heure', value: bookingData.pickupTime, icon: IconClock },
+                          ].map((item) => (
+                            <div key={item.label} className="bg-gray-50 rounded-2xl p-4 text-center">
+                              <item.icon className="h-5 w-5 text-[#5CD85A] mx-auto mb-2" />
+                              <p className="text-xs text-gray-500 mb-1">{item.label}</p>
+                              <p className="font-bold text-gray-900">{item.value}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Price breakdown */}
+                        <div className="border-t border-gray-100 pt-6">
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-500">Sous-total HT</span>
+                              <span className="font-medium">{formatPrice(bookingData.totalPriceHT || bookingData.totalPrice / 1.10)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-500">TVA (10%)</span>
+                              <span className="font-medium">{formatPrice(bookingData.tvaAmount || 0)}</span>
+                            </div>
+                            <div className="flex justify-between text-lg font-bold pt-3 border-t border-gray-100">
+                              <span>Total TTC</span>
+                              <span className="text-[#5CD85A]">{formatPrice(bookingData.totalPrice)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setStep(1)}
+                        className="flex-1 h-14 rounded-2xl border-2 border-gray-200 hover:border-gray-300 font-semibold"
+                      >
+                        <IconArrowLeft className="mr-2 h-5 w-5" />
+                        Modifier
+                      </Button>
+                      <Button
+                        onClick={() => setStep(3)}
+                        className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-[#5CD85A] to-[#4BC449] hover:from-[#4BC449] hover:to-[#3AB338] text-[#0A0A0A] font-bold shadow-lg shadow-[#5CD85A]/25"
+                      >
+                        Estimer votre course
+                        <IconArrowRight className="ml-2 h-5 w-5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Payment */}
+                {step === 3 && !showOtpInput && (
+                  <div className="space-y-6 animate-fade-in-up">
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/60 border border-slate-100">
+                      {/* Contact Info */}
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
+                          <IconUsers className="h-5 w-5 text-[#5CD85A]" />
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-bold text-[#0A0A0A]">Vos coordonnées</h2>
+                          <p className="text-sm text-gray-500">Pour vous contacter</p>
+                        </div>
+                      </div>
+
+                      <form onSubmit={handleSubmitStep3(onStep3Submit)} className="space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="md:col-span-2">
+                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Nom complet</Label>
+                            <Input
+                              placeholder="Jean Dupont"
+                              className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg"
+                              {...registerStep3('guestName')}
+                            />
+                            {errorsStep3.guestName && (
+                              <p className="text-sm text-red-500 mt-1">{errorsStep3.guestName.message}</p>
+                            )}
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Email</Label>
+                            <Input
+                              type="email"
+                              placeholder="jean@exemple.com"
+                              className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A]"
+                              {...registerStep3('guestEmail')}
+                            />
+                            {errorsStep3.guestEmail && (
+                              <p className="text-sm text-red-500 mt-1">{errorsStep3.guestEmail.message}</p>
+                            )}
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Téléphone</Label>
+                            <Input
+                              type="tel"
+                              placeholder="+33 6 00 00 00 00"
+                              className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A]"
+                              {...registerStep3('guestPhone')}
+                            />
+                            {errorsStep3.guestPhone && (
+                              <p className="text-sm text-red-500 mt-1">{errorsStep3.guestPhone.message}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Payment Method */}
+                        <div className="pt-6 border-t border-gray-100">
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
+                              <IconCreditCard className="h-5 w-5 text-[#5CD85A]" />
                             </div>
                             <div>
-                              <Label className="text-sm font-medium mb-2 block">Titulaire de la carte</Label>
+                              <h2 className="text-lg font-bold text-[#0A0A0A]">Paiement</h2>
+                              <p className="text-sm text-gray-500">Choisissez votre mode de paiement</p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            {[
+                              { value: 'card', label: 'Carte bancaire', desc: 'Paiement sécurisé', icon: IconCreditCard },
+                              { value: 'cash', label: 'Espèces', desc: 'Au chauffeur', icon: IconCash },
+                            ].map((method) => (
+                              <button
+                                key={method.value}
+                                type="button"
+                                onClick={() => {
+                                  setPaymentMethod(method.value as PaymentMethod);
+                                  setValueStep3('paymentMethod', method.value as any);
+                                }}
+                                className={`
+                                  relative p-5 rounded-2xl text-left transition-all duration-300 border-2
+                                  ${paymentMethod === method.value
+                                    ? 'border-[#5CD85A] bg-[#5CD85A]/5'
+                                    : 'border-gray-100 hover:border-gray-200'
+                                  }
+                                `}
+                              >
+                                <div className={`
+                                  w-12 h-12 rounded-xl mb-4 flex items-center justify-center
+                                  ${paymentMethod === method.value ? 'bg-[#5CD85A] text-white' : 'bg-gray-100 text-gray-500'}
+                                `}>
+                                  <method.icon className="h-6 w-6" />
+                                </div>
+                                <div className="font-semibold text-gray-900">{method.label}</div>
+                                <div className="text-sm text-gray-500 mt-1">{method.desc}</div>
+                                {paymentMethod === method.value && (
+                                  <div className="absolute top-3 right-3">
+                                    <IconCheck className="h-5 w-5 text-[#5CD85A]" />
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Card Details */}
+                        {paymentMethod === 'card' && (
+                          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 space-y-4">
+                            <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                              <IconLock className="h-4 w-4 text-[#5CD85A]" />
+                              <span className="font-medium">Paiement sécurisé SSL</span>
+                            </div>
+
+                            <div>
+                              <Label className="text-sm font-semibold text-gray-700 mb-2 block">Titulaire</Label>
                               <Input
                                 placeholder="JEAN DUPONT"
-                                className="h-12 uppercase"
+                                className="h-14 rounded-xl border-2 border-gray-200 focus:border-[#5CD85A] uppercase bg-white"
                                 value={cardData.cardHolder}
                                 onChange={(e) => setCardData({ ...cardData, cardHolder: e.target.value.toUpperCase() })}
                               />
@@ -1153,18 +1197,19 @@ export default function ReservationPage() {
                                 <p className="text-sm text-red-500 mt-1">{cardErrors.cardHolder}</p>
                               )}
                             </div>
+
                             <div>
-                              <Label className="text-sm font-medium mb-2 block">Numéro de carte</Label>
+                              <Label className="text-sm font-semibold text-gray-700 mb-2 block">Numéro de carte</Label>
                               <div className="relative">
                                 <Input
                                   placeholder="1234 5678 9012 3456"
-                                  className="h-12 pr-16"
+                                  className="h-14 rounded-xl border-2 border-gray-200 focus:border-[#5CD85A] pr-20 text-lg tracking-wider bg-white"
                                   value={cardData.cardNumber}
                                   onChange={(e) => setCardData({ ...cardData, cardNumber: formatCardNumber(e.target.value) })}
                                   maxLength={19}
                                 />
                                 {getCardType(cardData.cardNumber) && (
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500">
+                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#5CD85A]">
                                     {getCardType(cardData.cardNumber)}
                                   </span>
                                 )}
@@ -1173,12 +1218,13 @@ export default function ReservationPage() {
                                 <p className="text-sm text-red-500 mt-1">{cardErrors.cardNumber}</p>
                               )}
                             </div>
+
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <Label className="text-sm font-medium mb-2 block">Date d'expiration</Label>
+                                <Label className="text-sm font-semibold text-gray-700 mb-2 block">Expiration</Label>
                                 <Input
-                                  placeholder="MM/YY"
-                                  className="h-12"
+                                  placeholder="MM/AA"
+                                  className="h-14 rounded-xl border-2 border-gray-200 focus:border-[#5CD85A] text-center text-lg bg-white"
                                   value={cardData.expiry}
                                   onChange={(e) => setCardData({ ...cardData, expiry: formatExpiry(e.target.value) })}
                                   maxLength={5}
@@ -1188,11 +1234,11 @@ export default function ReservationPage() {
                                 )}
                               </div>
                               <div>
-                                <Label className="text-sm font-medium mb-2 block">CVV</Label>
+                                <Label className="text-sm font-semibold text-gray-700 mb-2 block">CVV</Label>
                                 <Input
                                   type="password"
-                                  placeholder="123"
-                                  className="h-12"
+                                  placeholder="•••"
+                                  className="h-14 rounded-xl border-2 border-gray-200 focus:border-[#5CD85A] text-center text-lg bg-white"
                                   value={cardData.cvv}
                                   onChange={(e) => setCardData({ ...cardData, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) })}
                                   maxLength={4}
@@ -1205,119 +1251,109 @@ export default function ReservationPage() {
                           </div>
                         )}
 
-                        {/* Cash info message */}
+                        {/* Cash info */}
                         {paymentMethod === 'cash' && (
-                          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mt-4">
+                          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
                             <div className="flex items-start gap-3">
-                              <IconCash className="h-5 w-5 text-amber-600 mt-0.5" />
+                              <IconCash className="h-6 w-6 text-amber-600 mt-0.5" />
                               <div>
-                                <div className="font-medium text-amber-800">Paiement en espèces</div>
+                                <div className="font-semibold text-amber-800">Paiement en espèces</div>
                                 <p className="text-sm text-amber-700 mt-1">
-                                  Vous recevrez un code de vérification par email. Entrez ce code pour confirmer votre réservation.
-                                  Le paiement sera effectué directement au chauffeur.
+                                  Un code de vérification sera envoyé par email. Le paiement sera effectué au chauffeur.
                                 </p>
                               </div>
                             </div>
                           </div>
                         )}
 
+                        {/* Terms */}
                         <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
                           <input
                             id="cgvAccepted"
                             type="checkbox"
-                            className="mt-1 w-5 h-5 rounded border-gray-300 text-[#5CD85A] focus:ring-[#5CD85A]"
+                            className="mt-1 w-5 h-5 rounded-md border-2 border-gray-300 text-[#5CD85A] focus:ring-[#5CD85A]"
                             {...registerStep3('cgvAccepted')}
                           />
                           <Label htmlFor="cgvAccepted" className="text-sm text-gray-600 cursor-pointer">
-                            J'accepte les <Link href="/cgv" className="text-[#5CD85A] underline">conditions générales</Link> et la politique de confidentialité
+                            J'accepte les <Link href="/cgv" className="text-[#5CD85A] font-medium hover:underline">conditions générales</Link> et la grille tarifaire
                           </Label>
                         </div>
                         {errorsStep3.cgvAccepted && (
                           <p className="text-sm text-red-500">{errorsStep3.cgvAccepted.message}</p>
                         )}
 
-                        {/* Total to Pay */}
-                        <div className="bg-[#0A0A0A] p-6 rounded-xl mt-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="text-white/60">Montant à payer</span>
-                            <span className="text-3xl font-bold text-[#5CD85A]">
-                              {formatPrice(bookingData.totalPrice)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-white/40 text-sm">
-                            {paymentMethod === 'card' ? (
-                              <>
-                                <IconCreditCard className="h-4 w-4" />
-                                Paiement par carte bancaire
-                              </>
-                            ) : (
-                              <>
-                                <IconCash className="h-4 w-4" />
-                                Paiement en espèces au chauffeur
-                              </>
-                            )}
+                        {/* Total */}
+                        <div className="bg-gradient-to-br from-[#0A0A0A] to-[#1A1A1A] rounded-2xl p-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-white/50 text-sm">Montant total</p>
+                              <p className="text-3xl font-bold text-[#5CD85A] mt-1">
+                                {formatPrice(bookingData.totalPrice)}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-white/50 text-sm">{bookingData.isNightRate ? 'Tarif nuit' : 'Tarif jour'}</p>
+                              <p className="text-white/70 text-sm mt-1">
+                                {paymentMethod === 'card' ? 'Par carte' : 'En espèces'}
+                              </p>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="flex gap-3 pt-4">
+                        {/* Action buttons */}
+                        <div className="flex gap-4 pt-2">
                           <Button
                             type="button"
                             variant="outline"
                             onClick={() => setStep(2)}
-                            className="flex-1 h-12"
+                            className="flex-1 h-14 rounded-2xl border-2 border-gray-200 font-semibold"
                             disabled={isProcessingPayment}
                           >
-                            <IconArrowLeft className="mr-2 h-4 w-4" />
+                            <IconArrowLeft className="mr-2 h-5 w-5" />
                             Retour
                           </Button>
                           <Button
                             type="submit"
-                            className="flex-1 h-12 bg-[#5CD85A] hover:bg-[#4BC449] text-[#0A0A0A]"
+                            className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-[#5CD85A] to-[#4BC449] hover:from-[#4BC449] hover:to-[#3AB338] text-[#0A0A0A] font-bold shadow-lg shadow-[#5CD85A]/25"
                             disabled={isProcessingPayment}
                           >
                             {isProcessingPayment ? (
                               <>
-                                <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <IconLoader2 className="mr-2 h-5 w-5 animate-spin" />
                                 Traitement...
                               </>
                             ) : paymentMethod === 'card' ? (
                               <>
-                                Payer et réserver
-                                <IconArrowRight className="ml-2 h-4 w-4" />
+                                Payer {formatPrice(bookingData.totalPrice)}
+                                <IconLock className="ml-2 h-5 w-5" />
                               </>
                             ) : (
                               <>
-                                Recevoir le code
-                                <IconArrowRight className="ml-2 h-4 w-4" />
+                                Confirmer
+                                <IconArrowRight className="ml-2 h-5 w-5" />
                               </>
                             )}
                           </Button>
                         </div>
                       </form>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+                    </div>
+                  </div>
+                )}
 
-              {/* OTP Verification Step */}
-              {step === 3 && showOtpInput && (
-                <div className="space-y-6">
-                  <Card className="border-0 shadow-lg">
-                    <CardContent className="p-6">
-                      <div className="text-center mb-6">
-                        <div className="w-16 h-16 rounded-full bg-[#5CD85A]/10 flex items-center justify-center mx-auto mb-4">
-                          <IconLock className="h-8 w-8 text-[#5CD85A]" />
-                        </div>
-                        <h2 className="text-xl font-semibold mb-2">Vérification par email</h2>
-                        <p className="text-gray-600">
-                          Un code à 6 chiffres a été envoyé à votre adresse email.
-                          <br />
-                          Entrez-le ci-dessous pour confirmer votre réservation.
-                        </p>
+                {/* OTP Verification */}
+                {step === 3 && showOtpInput && (
+                  <div className="animate-fade-in-up">
+                    <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/60 border border-slate-100 text-center">
+                      <div className="w-20 h-20 rounded-2xl bg-[#5CD85A]/10 flex items-center justify-center mx-auto mb-6">
+                        <IconLock className="h-10 w-10 text-[#5CD85A]" />
                       </div>
+                      <h2 className="text-2xl font-bold mb-2">Vérification par email</h2>
+                      <p className="text-gray-500 mb-8">
+                        Un code à 6 chiffres a été envoyé à votre adresse email
+                      </p>
 
                       {/* OTP Input */}
-                      <div className="flex justify-center gap-2 mb-6">
+                      <div className="flex justify-center gap-3 mb-6">
                         {otpCode.map((digit, index) => (
                           <input
                             key={index}
@@ -1329,52 +1365,64 @@ export default function ReservationPage() {
                             onChange={(e) => handleOtpChange(index, e.target.value)}
                             onKeyDown={(e) => handleOtpKeyDown(index, e)}
                             onPaste={handleOtpPaste}
-                            className={`w-12 h-14 text-center text-2xl font-bold border-2 rounded-xl focus:outline-none focus:border-[#5CD85A] transition-colors ${otpError ? 'border-red-300' : 'border-gray-200'
-                              }`}
+                            className={`
+                              w-14 h-16 text-center text-2xl font-bold rounded-xl border-2 transition-all
+                              focus:outline-none focus:border-[#5CD85A] focus:ring-4 focus:ring-[#5CD85A]/10
+                              ${otpError ? 'border-red-300 bg-red-50' : 'border-gray-200'}
+                            `}
                           />
                         ))}
                       </div>
 
                       {otpError && (
-                        <p className="text-center text-red-500 text-sm mb-4">{otpError}</p>
+                        <p className="text-red-500 text-sm mb-4">{otpError}</p>
                       )}
 
                       <Button
                         onClick={verifyOtp}
-                        className="w-full h-12 bg-[#5CD85A] hover:bg-[#4BC449] text-[#0A0A0A] mb-4"
+                        className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#5CD85A] to-[#4BC449] text-[#0A0A0A] font-bold mb-4"
                         disabled={isProcessingPayment || otpCode.some(d => !d)}
                       >
                         {isProcessingPayment ? (
                           <>
-                            <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <IconLoader2 className="mr-2 h-5 w-5 animate-spin" />
                             Vérification...
                           </>
                         ) : (
                           <>
                             Confirmer ma réservation
-                            <IconCheck className="ml-2 h-4 w-4" />
+                            <IconCheck className="ml-2 h-5 w-5" />
                           </>
                         )}
                       </Button>
 
-                      <div className="text-center">
-                        <button
-                          type="button"
-                          onClick={resendOtp}
-                          className="text-[#5CD85A] text-sm hover:underline"
-                        >
-                          Renvoyer le code
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={resendOtp}
+                        className="text-[#5CD85A] text-sm font-medium hover:underline"
+                      >
+                        Renvoyer le code
+                      </button>
 
-                      <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-                        <div className="text-sm text-gray-600">
-                          <strong>Récapitulatif :</strong>
-                          <div className="mt-2 space-y-1">
-                            <div>📍 {bookingData.pickupAddress}</div>
-                            <div>🏁 {bookingData.dropoffAddress}</div>
-                            <div>📅 {bookingData.pickupDate?.toLocaleDateString('fr-FR')} à {bookingData.pickupTime}</div>
-                            <div className="font-semibold text-[#5CD85A]">💰 {formatPrice(bookingData.totalPrice)} (espèces)</div>
+                      {/* Summary */}
+                      <div className="mt-8 p-5 bg-gray-50 rounded-2xl text-left">
+                        <p className="font-semibold text-gray-900 mb-3">Récapitulatif</p>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <IconCircleDot className="h-4 w-4 text-[#5CD85A]" />
+                            {bookingData.pickupAddress}
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <IconMapPinFilled className="h-4 w-4 text-red-500" />
+                            {bookingData.dropoffAddress}
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <IconCalendar className="h-4 w-4" />
+                            {bookingData.pickupDate?.toLocaleDateString('fr-FR')} à {bookingData.pickupTime}
+                          </div>
+                          <div className="flex items-center gap-2 text-[#5CD85A] font-bold pt-2 border-t border-gray-200 mt-3">
+                            <IconCash className="h-4 w-4" />
+                            {formatPrice(bookingData.totalPrice)} (espèces)
                           </div>
                         </div>
                       </div>
@@ -1386,71 +1434,62 @@ export default function ReservationPage() {
                           setOtpCode(['', '', '', '', '', '']);
                           setOtpError('');
                         }}
-                        className="w-full h-12 mt-4"
+                        className="w-full h-12 rounded-xl mt-6"
                       >
                         <IconArrowLeft className="mr-2 h-4 w-4" />
                         Modifier mes informations
                       </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-            </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24 space-y-4">
-                {/* Trust Badges */}
-                <Card className="border-0 shadow-lg">
-                  <CardContent className="p-5 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
-                        <IconShieldCheck className="h-5 w-5 text-[#5CD85A]" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">Paiement sécurisé</div>
-                        <div className="text-xs text-gray-500">SSL 256-bit</div>
-                      </div>
+              {/* Sidebar */}
+              <div className="lg:col-span-1">
+                <div className="sticky top-8 space-y-6">
+                  {/* Trust badges */}
+                  <div className="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100">
+                    <h3 className="font-bold text-gray-900 mb-5">Pourquoi nous choisir</h3>
+                    <div className="space-y-5">
+                      {[
+                        { icon: IconShieldCheck, title: 'Paiement sécurisé', desc: 'SSL 256-bit' },
+                        { icon: IconClock, title: 'Confirmation instantanée', desc: 'Par email' },
+                        { icon: IconStar, title: 'Service 5 étoiles', desc: '100% satisfaction' },
+                      ].map((item) => (
+                        <div key={item.title} className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center flex-shrink-0">
+                            <item.icon className="h-6 w-6 text-[#5CD85A]" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">{item.title}</div>
+                            <div className="text-sm text-gray-500">{item.desc}</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
-                        <IconClock className="h-5 w-5 text-[#5CD85A]" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">Confirmation immédiate</div>
-                        <div className="text-xs text-gray-500">Par email et SMS</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
-                        <IconStar className="h-5 w-5 text-[#5CD85A]" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">Note 5/5</div>
-                        <div className="text-xs text-gray-500">100% satisfaction</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
 
-                {/* Need Help */}
-                <Card className="border-0 shadow-lg bg-[#0A0A0A]">
-                  <CardContent className="p-5">
-                    <div className="text-white">
-                      <div className="font-medium mb-2">Besoin d'aide ?</div>
-                      <p className="text-sm text-white/70 mb-4">
-                        Notre équipe est disponible pour vous accompagner
+                  {/* Help card */}
+                  <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-3xl p-6 relative overflow-hidden shadow-xl shadow-emerald-200/50">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[40px]" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-emerald-400/20 rounded-full blur-[30px]" />
+                    <div className="relative z-10">
+                      <h3 className="font-bold text-white mb-2">Besoin d'aide ?</h3>
+                      <p className="text-white/80 text-sm mb-5">
+                        Notre équipe est à votre disposition
                       </p>
                       <a
                         href={`tel:${CONTACT.phone}`}
-                        className="inline-flex items-center gap-2 text-[#5CD85A] text-sm font-medium"
+                        className="flex items-center gap-3 text-white font-semibold hover:text-emerald-100 transition-colors"
                       >
-                        <IconPhone className="h-4 w-4" />
+                        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                          <IconPhone className="h-5 w-5" />
+                        </div>
                         {CONTACT.phone}
                       </a>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

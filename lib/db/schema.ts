@@ -253,3 +253,18 @@ export type NewAvailability = typeof availability.$inferInsert;
 export type PricingRule = typeof pricingRules.$inferSelect;
 export type NewPricingRule = typeof pricingRules.$inferInsert;
 
+// Company and invoice settings
+export const companySettings = pgTable('company_settings', {
+  id: serial('id').primaryKey(),
+  settingKey: text('setting_key').notNull().unique(),
+  settingValue: text('setting_value'),
+  settingType: text('setting_type').notNull().default('text'), // 'text', 'json', 'number', 'boolean'
+  category: text('category').notNull().default('general'), // 'company', 'invoice', 'quote', 'general'
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type CompanySetting = typeof companySettings.$inferSelect;
+export type NewCompanySetting = typeof companySettings.$inferInsert;
+

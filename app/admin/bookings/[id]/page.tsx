@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, Check, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, FileText, Check, Trash2, Save, X, AlertCircle, MessageSquare, Edit, Calendar as CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/pricing';
 import type { Booking } from '@/lib/db/schema';
@@ -16,6 +16,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function BookingDetailPage() {
     const params = useParams();
@@ -29,6 +33,22 @@ export default function BookingDetailPage() {
     const [status, setStatus] = useState<string>('');
     const [paymentStatus, setPaymentStatus] = useState<string>('');
     const [paymentMethod, setPaymentMethod] = useState<string>('');
+    const [approving, setApproving] = useState(false);
+    const [rejecting, setRejecting] = useState(false);
+    const [showRejectDialog, setShowRejectDialog] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [adminNotes, setAdminNotes] = useState('');
+    const [showNotesDialog, setShowNotesDialog] = useState(false);
+    const [showEditDialog, setShowEditDialog] = useState(false);
+    const [editingBooking, setEditingBooking] = useState({
+        pickupAddress: '',
+        dropoffAddress: '',
+        pickupDate: '',
+        pickupTime: '',
+        passengers: 1,
+        luggage: 0,
+        notes: '',
+    });
 
     // Extract breakdown for display
     const breakdown = booking?.priceBreakdown as any;
@@ -45,6 +65,19 @@ export default function BookingDetailPage() {
             setStatus(data.booking?.status || '');
             setPaymentStatus(data.booking?.paymentStatus || '');
             setPaymentMethod(data.booking?.paymentMethod || '');
+            setAdminNotes(data.booking?.adminNotes || '');
+            // Initialize edit form
+            if (data.booking) {
+                setEditingBooking({
+                    pickupAddress: data.booking.pickupAddress || '',
+                    dropoffAddress: data.booking.dropoffAddress || '',
+                    pickupDate: data.booking.pickupDate ? new Date(data.booking.pickupDate).toISOString().split('T')[0] : '',
+                    pickupTime: data.booking.pickupTime || '',
+                    passengers: data.booking.passengers || 1,
+                    luggage: data.booking.luggage || 0,
+                    notes: data.booking.notes || '',
+                });
+            }
         } catch (error) {
             console.error('Error fetching booking:', error);
         } finally {
@@ -142,6 +175,130 @@ export default function BookingDetailPage() {
         }
     };
 
+    const approveBooking = async () => {
+        if (!confirm('Approuver cette réservation ? Un email de confirmation sera envoyé au client.')) return;
+        
+        setApproving(true);
+        try {
+            const response = await fetch(`/api/admin/bookings/${bookingId}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    notes: adminNotes || undefined,
+                }),
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data?.success) {
+                throw new Error(data?.message || 'Erreur lors de l\'approbation');
+            }
+
+            alert('Réservation approuvée avec succès !');
+            fetchBooking();
+        } catch (error) {
+            console.error('Error approving booking:', error);
+            alert(error instanceof Error ? error.message : 'Erreur lors de l\'approbation');
+        } finally {
+            setApproving(false);
+        }
+    };
+
+    const rejectBooking = async () => {
+        if (!rejectionReason || rejectionReason.length < 10) {
+            alert('Veuillez fournir une raison de refus (minimum 10 caractères)');
+            return;
+        }
+
+        setRejecting(true);
+        try {
+            const response = await fetch(`/api/admin/bookings/${bookingId}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reason: rejectionReason,
+                    notes: adminNotes || undefined,
+                }),
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data?.success) {
+                throw new Error(data?.message || 'Erreur lors du refus');
+            }
+
+            alert('Réservation refusée. Un email a été envoyé au client.');
+            setShowRejectDialog(false);
+            setRejectionReason('');
+            fetchBooking();
+        } catch (error) {
+            console.error('Error rejecting booking:', error);
+            alert(error instanceof Error ? error.message : 'Erreur lors du refus');
+        } finally {
+            setRejecting(false);
+        }
+    };
+
+    const saveAdminNotes = async () => {
+        if (!booking) return;
+        setSaving(true);
+        try {
+            const response = await fetch(`/api/admin/bookings/${bookingId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    adminNotes,
+                }),
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data?.success) {
+                throw new Error(data?.message || 'Erreur lors de la sauvegarde');
+            }
+
+            setBooking(data.booking);
+            setShowNotesDialog(false);
+            alert('Notes enregistrées');
+        } catch (error) {
+            console.error('Error saving notes:', error);
+            alert('Erreur lors de la sauvegarde');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const saveBookingEdits = async () => {
+        if (!booking) return;
+        setSaving(true);
+        try {
+            const response = await fetch(`/api/admin/bookings/${bookingId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pickupAddress: editingBooking.pickupAddress,
+                    dropoffAddress: editingBooking.dropoffAddress,
+                    pickupDate: editingBooking.pickupDate ? new Date(editingBooking.pickupDate) : booking.pickupDate,
+                    pickupTime: editingBooking.pickupTime,
+                    passengers: editingBooking.passengers,
+                    luggage: editingBooking.luggage,
+                    notes: editingBooking.notes,
+                }),
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data?.success) {
+                throw new Error(data?.message || 'Erreur lors de la mise à jour');
+            }
+
+            setBooking(data.booking);
+            setShowEditDialog(false);
+            alert('Réservation mise à jour avec succès');
+        } catch (error) {
+            console.error('Error updating booking:', error);
+            alert('Erreur lors de la mise à jour');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center min-h-screen">
@@ -179,14 +336,25 @@ export default function BookingDetailPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center justify-between">
                                 <span>Informations du trajet</span>
-                                <Badge className={
-                                    booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                                        booking.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                                            booking.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                                                'bg-gray-100 text-gray-700'
-                                }>
-                                    {booking.status}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setShowEditDialog(true)}
+                                    >
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Modifier
+                                    </Button>
+                                    <Badge className={
+                                        booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                                            booking.status === 'verified' ? 'bg-blue-100 text-blue-700' :
+                                                booking.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                                                    booking.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                        'bg-gray-100 text-gray-700'
+                                    }>
+                                        {booking.status === 'verified' ? 'En attente d\'approbation' : booking.status}
+                                    </Badge>
+                                </div>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -335,6 +503,86 @@ export default function BookingDetailPage() {
                         </CardContent>
                     </Card>
 
+                    {/* Approval/Rejection Card for verified bookings */}
+                    {booking.status === 'verified' && (
+                        <Card className="border-0 shadow-lg border-blue-200 bg-blue-50/50">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <AlertCircle className="h-5 w-5 text-blue-600" />
+                                    Action requise
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                                    <p className="text-sm text-gray-700 mb-4">
+                                        Cette réservation a été vérifiée par OTP et attend votre approbation.
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={approveBooking}
+                                            disabled={approving}
+                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                        >
+                                            <Check className="h-4 w-4 mr-2" />
+                                            {approving ? 'Approbation...' : 'Approuver'}
+                                        </Button>
+                                        <Button
+                                            onClick={() => setShowRejectDialog(true)}
+                                            disabled={rejecting}
+                                            variant="destructive"
+                                            className="flex-1"
+                                        >
+                                            <X className="h-4 w-4 mr-2" />
+                                            Refuser
+                                        </Button>
+                                    </div>
+                                </div>
+                                {booking.otpVerified && (
+                                    <div className="text-xs text-gray-600 bg-white p-2 rounded border border-gray-200">
+                                        ✓ OTP vérifié le {booking.updatedAt ? new Date(booking.updatedAt).toLocaleString('fr-FR') : ''}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Admin Notes Card */}
+                    <Card className="border-0 shadow-lg">
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center justify-between">
+                                <span className="flex items-center gap-2">
+                                    <MessageSquare className="h-5 w-5" />
+                                    Notes internes
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowNotesDialog(true)}
+                                >
+                                    {booking.adminNotes ? 'Modifier' : 'Ajouter'}
+                                </Button>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {booking.adminNotes ? (
+                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{booking.adminNotes}</p>
+                            ) : (
+                                <p className="text-sm text-gray-400 italic">Aucune note interne</p>
+                            )}
+                            {booking.adminConfirmedAt && (
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Confirmé le {new Date(booking.adminConfirmedAt).toLocaleString('fr-FR')}
+                                </p>
+                            )}
+                            {booking.rejectionReason && (
+                                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                                    <p className="text-xs font-semibold text-red-700">Raison du refus :</p>
+                                    <p className="text-xs text-red-600">{booking.rejectionReason}</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     <Card className="border-0 shadow-lg">
                         <CardHeader>
                             <CardTitle className="text-lg">Actions</CardTitle>
@@ -351,6 +599,7 @@ export default function BookingDetailPage() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="pending">pending</SelectItem>
+                                                <SelectItem value="verified">verified</SelectItem>
                                                 <SelectItem value="confirmed">confirmed</SelectItem>
                                                 <SelectItem value="in_progress">in_progress</SelectItem>
                                                 <SelectItem value="completed">completed</SelectItem>
@@ -436,6 +685,197 @@ export default function BookingDetailPage() {
                     </Card>
                 </div>
             </div>
+
+            {/* Rejection Dialog */}
+            <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Refuser la réservation</DialogTitle>
+                        <DialogDescription>
+                            Veuillez fournir une raison de refus. Cette raison sera envoyée au client par email.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                Raison du refus <span className="text-red-500">*</span>
+                            </label>
+                            <Textarea
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                placeholder="Ex: Pas de disponibilité à cette date, distance trop importante, etc. (minimum 10 caractères)"
+                                className="min-h-[100px]"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                {rejectionReason.length}/10 caractères minimum
+                            </p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                Notes internes (optionnel)
+                            </label>
+                            <Textarea
+                                value={adminNotes}
+                                onChange={(e) => setAdminNotes(e.target.value)}
+                                placeholder="Notes internes non visibles par le client"
+                                className="min-h-[80px]"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowRejectDialog(false);
+                                setRejectionReason('');
+                            }}
+                        >
+                            Annuler
+                        </Button>
+                        <Button
+                            onClick={rejectBooking}
+                            disabled={rejecting || rejectionReason.length < 10}
+                            variant="destructive"
+                        >
+                            {rejecting ? 'Refus en cours...' : 'Refuser la réservation'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Admin Notes Dialog */}
+            <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Notes internes</DialogTitle>
+                        <DialogDescription>
+                            Ces notes sont uniquement visibles par les administrateurs et ne seront pas envoyées au client.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <Textarea
+                            value={adminNotes}
+                            onChange={(e) => setAdminNotes(e.target.value)}
+                            placeholder="Ajoutez des notes internes sur cette réservation..."
+                            className="min-h-[150px]"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowNotesDialog(false)}
+                        >
+                            Annuler
+                        </Button>
+                        <Button
+                            onClick={saveAdminNotes}
+                            disabled={saving}
+                            className="bg-[#00FF88] hover:bg-[#00FF88]/90 text-black"
+                        >
+                            {saving ? 'Enregistrement...' : 'Enregistrer'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Booking Dialog */}
+            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Modifier la réservation</DialogTitle>
+                        <DialogDescription>
+                            Modifiez les détails de la réservation. Les modifications seront enregistrées immédiatement.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2">
+                                <Label htmlFor="pickupAddress">Adresse de départ *</Label>
+                                <Input
+                                    id="pickupAddress"
+                                    value={editingBooking.pickupAddress}
+                                    onChange={(e) => setEditingBooking({ ...editingBooking, pickupAddress: e.target.value })}
+                                    placeholder="Adresse de départ"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <Label htmlFor="dropoffAddress">Adresse d'arrivée *</Label>
+                                <Input
+                                    id="dropoffAddress"
+                                    value={editingBooking.dropoffAddress}
+                                    onChange={(e) => setEditingBooking({ ...editingBooking, dropoffAddress: e.target.value })}
+                                    placeholder="Adresse d'arrivée"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="pickupDate">Date *</Label>
+                                <Input
+                                    id="pickupDate"
+                                    type="date"
+                                    value={editingBooking.pickupDate}
+                                    onChange={(e) => setEditingBooking({ ...editingBooking, pickupDate: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="pickupTime">Heure *</Label>
+                                <Input
+                                    id="pickupTime"
+                                    type="time"
+                                    value={editingBooking.pickupTime}
+                                    onChange={(e) => setEditingBooking({ ...editingBooking, pickupTime: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="passengers">Passagers</Label>
+                                <Input
+                                    id="passengers"
+                                    type="number"
+                                    min="1"
+                                    max="4"
+                                    value={editingBooking.passengers}
+                                    onChange={(e) => setEditingBooking({ ...editingBooking, passengers: parseInt(e.target.value) || 1 })}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="luggage">Bagages</Label>
+                                <Input
+                                    id="luggage"
+                                    type="number"
+                                    min="0"
+                                    max="5"
+                                    value={editingBooking.luggage}
+                                    onChange={(e) => setEditingBooking({ ...editingBooking, luggage: parseInt(e.target.value) || 0 })}
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <Label htmlFor="notes">Notes (visibles par le client)</Label>
+                                <Textarea
+                                    id="notes"
+                                    value={editingBooking.notes}
+                                    onChange={(e) => setEditingBooking({ ...editingBooking, notes: e.target.value })}
+                                    placeholder="Notes spéciales, instructions, etc."
+                                    className="min-h-[100px]"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowEditDialog(false)}
+                        >
+                            Annuler
+                        </Button>
+                        <Button
+                            onClick={saveBookingEdits}
+                            disabled={saving || !editingBooking.pickupAddress || !editingBooking.dropoffAddress || !editingBooking.pickupDate || !editingBooking.pickupTime}
+                            className="bg-[#00FF88] hover:bg-[#00FF88]/90 text-black"
+                        >
+                            {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

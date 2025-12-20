@@ -1,5 +1,9 @@
 // Pricing calculation utilities - Grille Tarifaire 2025/2026
 // Système de tarification complexe avec CA (Coût Additionnel) et TP (Trajet Principal)
+//
+// ⚠️ OBSOLÈTE: Ce fichier n'est plus utilisé dans le codebase.
+// La logique de tarification active se trouve dans lib/pricing/tariffs-2026.ts
+// Conservé uniquement pour référence historique.
 
 export interface PricingInput2025 {
   // Point de dépôt VTC (par défaut: 4 rue des artisans, 74300 Cluses)

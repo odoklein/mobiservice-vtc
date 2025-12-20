@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { bookings, workingHours } from '@/lib/db/schema';
 import { eq, gte, and, sql, desc } from 'drizzle-orm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Clock, Euro, AlertCircle, Settings, ArrowRight, CheckCircle2, Sparkles, TrendingUp, MapPin } from 'lucide-react';
+import { Calendar, Clock, Euro, AlertCircle, Settings, ArrowRight, CheckCircle2, Sparkles, TrendingUp, MapPin, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/pricing';
 
@@ -55,6 +55,12 @@ async function getStats() {
             .from(bookings)
             .where(eq(bookings.status, 'pending'));
 
+        // Count verified bookings awaiting approval (status = 'verified')
+        const verifiedBookings = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(bookings)
+            .where(eq(bookings.status, 'verified'));
+
         // Count cash payments pending (paymentMethod = 'cash' AND paymentStatus = 'pending')
         const cashPendingBookings = await db
             .select({ count: sql<number>`count(*)` })
@@ -91,6 +97,7 @@ async function getStats() {
         return {
             today: Number(todayBookings[0]?.count ?? 0),
             pending: Number(pendingBookings[0]?.count ?? 0),
+            verified: Number(verifiedBookings[0]?.count ?? 0),
             cashPending: Number(cashPendingBookings[0]?.count ?? 0),
             revenue: parseFloat(revenueResult[0]?.total ?? '0'),
             monthlyRevenue: parseFloat(monthlyRevenueResult[0]?.total ?? '0'),
@@ -101,6 +108,7 @@ async function getStats() {
         return {
             today: 0,
             pending: 0,
+            verified: 0,
             cashPending: 0,
             revenue: 0,
             monthlyRevenue: 0,
@@ -253,7 +261,33 @@ export default async function AdminDashboard() {
                 </div>
             )}
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            {/* Pending Approvals Alert */}
+            {stats.verified > 0 && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 shadow-lg">
+                    <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-full bg-blue-100">
+                            <AlertCircle className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-blue-900 mb-1">
+                                {stats.verified} réservation{stats.verified > 1 ? 's' : ''} en attente d'approbation
+                            </h3>
+                            <p className="text-sm text-blue-700 mb-4">
+                                Ces réservations ont été vérifiées par OTP et nécessitent votre confirmation avant d'être validées.
+                            </p>
+                            <Link
+                                href="/admin/bookings?status=verified"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                            >
+                                <CheckCircle className="h-4 w-4" />
+                                Voir les réservations à approuver
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
                 <Card className="border-0 shadow-lg">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium text-gray-600">Aujourd'hui</CardTitle>
@@ -272,7 +306,20 @@ export default async function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold text-[#0A0A0A]">{stats.pending}</div>
-                        <p className="text-xs text-gray-500 mt-1">confirmation requise</p>
+                        <p className="text-xs text-gray-500 mt-1">création initiale</p>
+                    </CardContent>
+                </Card>
+
+                <Card className={`border-0 shadow-lg ${stats.verified > 0 ? 'border-2 border-blue-300 bg-blue-50/50' : ''}`}>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-600">À approuver</CardTitle>
+                        <CheckCircle className={`h-5 w-5 ${stats.verified > 0 ? 'text-blue-600' : 'text-gray-400'}`} />
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`text-3xl font-bold ${stats.verified > 0 ? 'text-blue-600' : 'text-[#0A0A0A]'}`}>
+                            {stats.verified}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">vérifiées (OTP OK)</p>
                     </CardContent>
                 </Card>
 

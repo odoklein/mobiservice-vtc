@@ -70,7 +70,7 @@ export const adminBookingCreateSchema = z.object({
   specialRequests: z.any().optional(),
 
   // Status
-  status: z.enum(['pending', 'confirmed', 'in_progress', 'completed', 'cancelled']).optional(),
+  status: z.enum(['pending', 'verified', 'confirmed', 'in_progress', 'completed', 'cancelled']).optional(),
   paymentStatus: z.enum(['pending', 'paid', 'refunded']).optional(),
   paymentMethod: z.enum(['stripe', 'cash', 'other']).optional(),
 
@@ -96,6 +96,19 @@ export const adminBookingUpdateSchema = adminBookingCreateSchema
 
 export type AdminBookingCreateInput = z.infer<typeof adminBookingCreateSchema>;
 export type AdminBookingUpdateInput = z.infer<typeof adminBookingUpdateSchema>;
+
+// Approval/Rejection schemas
+export const adminBookingApproveSchema = z.object({
+  notes: z.string().optional(), // Optional admin notes when approving
+});
+
+export const adminBookingRejectSchema = z.object({
+  reason: z.string().min(10, 'Veuillez fournir une raison de refus (minimum 10 caractères)'),
+  notes: z.string().optional(), // Optional internal notes
+});
+
+export type AdminBookingApproveInput = z.infer<typeof adminBookingApproveSchema>;
+export type AdminBookingRejectInput = z.infer<typeof adminBookingRejectSchema>;
 
 
 

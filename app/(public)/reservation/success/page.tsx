@@ -21,6 +21,7 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('booking_id');
   const paymentMethod = searchParams.get('payment_method') as 'card' | 'cash' | null;
+  const status = searchParams.get('status') as 'verified' | 'confirmed' | null;
   const sessionId = searchParams.get('session_id');
   const [loading, setLoading] = useState(true);
 
@@ -51,10 +52,12 @@ function SuccessContent() {
             </div>
           </div>
           <h2 className="text-3xl font-bold text-[#0A0A0A] mb-3">
-            Réservation confirmée !
+            {status === 'verified' ? 'Réservation reçue !' : 'Réservation confirmée !'}
           </h2>
           <p className="text-lg text-gray-600 font-medium">
-            {paymentMethod === 'card' ? (
+            {status === 'verified' ? (
+              <>Votre réservation a été reçue et sera confirmée par notre équipe sous peu.</>
+            ) : paymentMethod === 'card' ? (
               <>Votre paiement a été effectué avec succès</>
             ) : (
               <>Votre réservation est confirmée. Paiement en espèces au chauffeur.</>
@@ -69,34 +72,50 @@ function SuccessContent() {
         </CardContent>
       </Card>
 
-      {/* Payment Method Indicator */}
-      <Card className={`border-2 ${paymentMethod === 'card' ? 'border-blue-200 bg-blue-50' : 'border-amber-200 bg-amber-50'}`}>
-        <CardContent className="py-4">
-          <div className="flex items-center gap-3">
-            {paymentMethod === 'card' ? (
-              <>
-                <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-                  <IconCreditCard className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <div className="font-semibold text-blue-900">Paiement par carte effectué</div>
-                  <div className="text-sm text-blue-700">Transaction sécurisée • Confirmation envoyée par email</div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center">
-                  <IconCash className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <div className="font-semibold text-amber-900">Paiement en espèces</div>
-                  <div className="text-sm text-amber-700">Préparez le montant exact • Remis au chauffeur</div>
-                </div>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Status Indicator */}
+      {status === 'verified' ? (
+        <Card className="border-2 border-blue-200 bg-blue-50">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                <IconCalendar className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <div className="font-semibold text-blue-900">En attente de confirmation</div>
+                <div className="text-sm text-blue-700">Notre équipe examine votre réservation • Vous recevrez un email de confirmation sous peu</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className={`border-2 ${paymentMethod === 'card' ? 'border-blue-200 bg-blue-50' : 'border-amber-200 bg-amber-50'}`}>
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              {paymentMethod === 'card' ? (
+                <>
+                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                    <IconCreditCard className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-blue-900">Paiement par carte effectué</div>
+                    <div className="text-sm text-blue-700">Transaction sécurisée • Confirmation envoyée par email</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center">
+                    <IconCash className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-amber-900">Paiement en espèces</div>
+                    <div className="text-sm text-amber-700">Préparez le montant exact • Remis au chauffeur</div>
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Next Steps */}
       <Card className="border-0 shadow-lg">
@@ -114,10 +133,13 @@ function SuccessContent() {
             <div>
               <h3 className="font-semibold mb-1 flex items-center gap-2">
                 <IconMail className="h-4 w-4 text-[#5CD85A]" />
-                Confirmation par email
+                {status === 'verified' ? 'Email de réception' : 'Confirmation par email'}
               </h3>
               <p className="text-sm text-gray-600">
-                Vous allez recevoir un email de confirmation avec tous les détails de votre réservation
+                {status === 'verified' 
+                  ? 'Vous avez reçu un email confirmant la réception de votre réservation. Un email de confirmation finale vous sera envoyé une fois approuvée.'
+                  : 'Vous allez recevoir un email de confirmation avec tous les détails de votre réservation'
+                }
               </p>
             </div>
           </div>
@@ -129,10 +151,13 @@ function SuccessContent() {
             <div>
               <h3 className="font-semibold mb-1 flex items-center gap-2">
                 <IconPhone className="h-4 w-4 text-[#5CD85A]" />
-                Notification au chauffeur
+                {status === 'verified' ? 'Examen de la réservation' : 'Notification au chauffeur'}
               </h3>
               <p className="text-sm text-gray-600">
-                Votre chauffeur a été notifié de votre réservation et la confirmera sous peu
+                {status === 'verified'
+                  ? 'Notre équipe examine votre réservation et vous confirmera sous peu. Le chauffeur sera notifié une fois la réservation approuvée.'
+                  : 'Votre chauffeur a été notifié de votre réservation et la confirmera sous peu'
+                }
               </p>
             </div>
           </div>
