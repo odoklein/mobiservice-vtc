@@ -1,6 +1,5 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { renderToStaticMarkup } from 'react-dom/server';
 import type { Booking } from '@/lib/db/schema';
 import { generateFactureEnhanced, generateDevisEnhanced } from './generator-enhanced';
 
