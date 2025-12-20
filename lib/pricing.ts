@@ -95,11 +95,14 @@ export let FORFAITS: Array<{ hours: number; maxKm: number; day: number; night: n
 ];
 
 // Update FORFAITS from config when available (async, non-blocking)
-getPricingConfig().then((config) => {
-  FORFAITS = config.forfaits;
-}).catch(() => {
-  // Keep fallback values if config fails to load
-});
+// Only on server-side to avoid client-side database errors
+if (typeof window === 'undefined') {
+  getPricingConfig().then((config) => {
+    FORFAITS = config.forfaits;
+  }).catch(() => {
+    // Keep fallback values if config fails to load
+  });
+}
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -163,8 +166,20 @@ function findBestForfait(forfaits: Array<{ hours: number; maxKm: number; day: nu
 // ============================================================================
 
 export async function calculatePrice(input: PricingInput): Promise<PricingResult> {
-  const config = await getPricingConfig();
-  return calculatePriceWithConfig(input, config);
+  // Check if we're on client-side
+  if (typeof window !== 'undefined') {
+    // Client-side: use sync version with fallback
+    return calculatePriceSync(input);
+  }
+  // Server-side: try to load from database
+  try {
+    const config = await getPricingConfig();
+    return calculatePriceWithConfig(input, config);
+  } catch (error) {
+    // Fallback to sync version if database fails
+    console.warn('[PRICING] Database load failed, using fallback:', error);
+    return calculatePriceSync(input);
+  }
 }
 
 /**

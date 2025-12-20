@@ -1,11 +1,39 @@
 /**
  * Dynamic Pricing Service
  * Loads pricing from database with caching and fallback to hardcoded values
+ * Client-safe: database imports only happen server-side
  */
 
-import { db } from '@/lib/db';
-import { pricingRules } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+// Conditional database imports (server-side only)
+const isServer = typeof window === 'undefined';
+
+let db: any = null;
+let pricingRules: any = null;
+let eq: any = null;
+
+// Lazy load database to avoid client-side errors
+async function getDb() {
+  if (!isServer) {
+    return null;
+  }
+  if (!db) {
+    try {
+      // Dynamic imports to avoid client-side execution
+      const [dbModule, schema, drizzle] = await Promise.all([
+        import('@/lib/db'),
+        import('@/lib/db/schema'),
+        import('drizzle-orm'),
+      ]);
+      db = dbModule.db;
+      pricingRules = schema.pricingRules;
+      eq = drizzle.eq;
+    } catch (error) {
+      console.warn('[PRICING] Database not available:', error);
+      return null;
+    }
+  }
+  return db;
+}
 
 const TVA_RATE = 0.10;
 
@@ -66,8 +94,19 @@ export interface PricingConfig {
  * Load pricing rules from database
  */
 async function loadPricingFromDatabase(): Promise<PricingConfig | null> {
+  // Skip on client-side
+  if (!isServer) {
+    return null;
+  }
+
+  const database = await getDb();
+  
+  if (!database || !pricingRules || !eq) {
+    return null;
+  }
+
   try {
-    const rules = await db
+    const rules = await database
       .select()
       .from(pricingRules)
       .where(eq(pricingRules.isActive, true));
