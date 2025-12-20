@@ -5,6 +5,7 @@ import { Footer } from "@/components/footer";
 import { dmSans } from "@/lib/fonts";
 import { AddToHomeScreenPrompt } from "@/components/add-to-home-screen";
 import { headers } from "next/headers";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "MobiService VTC - Votre chauffeur premium en Haute-Savoie",
@@ -51,6 +52,7 @@ export default async function RootLayout({
         {children}
         {!isAdminRoute && <Footer />}
         {!isAdminRoute && <AddToHomeScreenPrompt />}
+        <Analytics />
       </body>
     </html>
   );
