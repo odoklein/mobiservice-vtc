@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  HelpCircle, 
-  BookOpen, 
-  Settings, 
-  DollarSign, 
-  Calendar, 
-  FileText, 
-  Users, 
+import {
+  HelpCircle,
+  BookOpen,
+  Settings,
+  DollarSign,
+  Calendar,
+  FileText,
+  Users,
   ChevronDown,
   Search,
   Code,
@@ -34,7 +34,7 @@ export default function HelpPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('faq');
 
-  const filteredSections = searchQuery 
+  const filteredSections = searchQuery
     ? searchHelpContent(searchQuery)
     : helpSections;
 
@@ -48,7 +48,7 @@ export default function HelpPage() {
     {
       icon: Calendar,
       title: 'Gestion des réservations',
-      items: faqSections.filter(s => 
+      items: faqSections.filter(s =>
         s.keywords.includes('réservation') || s.keywords.includes('workflow')
       ),
     },
@@ -60,14 +60,14 @@ export default function HelpPage() {
     {
       icon: FileText,
       title: 'Factures et Devis',
-      items: faqSections.filter(s => 
+      items: faqSections.filter(s =>
         s.keywords.includes('facture') || s.keywords.includes('devis')
       ),
     },
     {
       icon: Settings,
       title: 'Paramètres généraux',
-      items: faqSections.filter(s => 
+      items: faqSections.filter(s =>
         s.keywords.includes('horaires') || s.keywords.includes('dépôt') || s.keywords.includes('mot de passe')
       ),
     },
@@ -85,7 +85,7 @@ export default function HelpPage() {
           <p className="text-white/70 text-lg mb-6">
             Documentation complète et support pour l'administration MobiService VTC
           </p>
-          
+
           {/* Search Bar */}
           <div className="relative max-w-2xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -128,7 +128,7 @@ export default function HelpPage() {
                 </CardContent>
               </Card>
             </Link>
-            <Link href="/admin/documents" className="no-underline">
+            <Link href="/admin/settings/invoices" className="no-underline">
               <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
                 <CardContent className="p-4 text-center">
                   <BookOpen className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
@@ -153,7 +153,7 @@ export default function HelpPage() {
             <h2 className="text-xl font-bold mb-4">
               Résultats de recherche ({filteredSections.length})
             </h2>
-            
+
             {filteredSections.length === 0 ? (
               <Card className="border-0 shadow-lg p-12 text-center">
                 <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -187,28 +187,28 @@ export default function HelpPage() {
         {!searchQuery && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="bg-white shadow-sm border w-full justify-start">
-              <TabsTrigger 
+              <TabsTrigger
                 value="faq"
                 className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
               >
                 <HelpCircle className="h-4 w-4 mr-2" />
                 FAQ
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="documentation"
                 className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 Documentation
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="guide"
                 className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
               >
                 <Zap className="h-4 w-4 mr-2" />
                 Guide PDF
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="configuration"
                 className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
               >
@@ -232,8 +232,8 @@ export default function HelpPage() {
                     <CardContent className="p-6">
                       <Accordion type="single" collapsible className="space-y-2">
                         {group.items.map((item) => (
-                          <AccordionItem 
-                            key={item.id} 
+                          <AccordionItem
+                            key={item.id}
                             value={item.id}
                             className="border rounded-lg px-4 hover:border-[#00FF88]/50 transition-colors"
                           >
