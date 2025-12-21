@@ -6,6 +6,13 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+    AdminPageHeader,
+    AdminPageContainer,
+    AdminCard,
+    AdminEmptyState,
+    AdminFilterButton
+} from '@/components/admin/admin-components';
 import { Search, Download, Plus, Loader2, Calendar } from 'lucide-react';
 import { formatPrice } from '@/lib/pricing';
 import type { Booking } from '@/lib/db/schema';
@@ -81,29 +88,26 @@ export default function AdminBookingsPage() {
 
     return (
         <div className="min-h-screen bg-slate-50">
-            {/* Header */}
-            <div className="bg-slate-900 text-white px-6 py-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold">Réservations</h1>
-                        <p className="text-slate-400 mt-1">Gérez toutes les réservations</p>
-                    </div>
-                    <div className="flex items-center gap-2">
+            <AdminPageHeader
+                title="Réservations"
+                description="Gérez toutes les réservations"
+                actions={
+                    <>
                         <Link href="/admin/bookings/new">
-                            <Button className="gap-2 bg-sky-500 hover:bg-sky-600 text-white">
+                            <Button variant="admin-primary" size="admin">
                                 <Plus className="h-4 w-4" />
                                 Nouvelle réservation
                             </Button>
                         </Link>
-                        <Button variant="outline" className="gap-2 bg-transparent border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <Button variant="admin-outline" size="admin">
                             <Download className="h-4 w-4" />
                             Exporter CSV
                         </Button>
-                    </div>
-                </div>
-            </div>
+                    </>
+                }
+            />
 
-            <div className="p-6 space-y-6">
+            <AdminPageContainer>
                 <Card className="border-0 shadow-md bg-white">
                     <CardHeader className="border-b border-slate-100 pb-4">
                         <div className="flex flex-col md:flex-row gap-4">
@@ -137,10 +141,11 @@ export default function AdminBookingsPage() {
                                 <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
                             </div>
                         ) : filteredBookings.length === 0 ? (
-                            <div className="text-center py-12">
-                                <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                                <p className="text-slate-500 font-medium">Aucune réservation trouvée</p>
-                            </div>
+                            <AdminEmptyState
+                                icon={Calendar}
+                                title="Aucune réservation trouvée"
+                                description="Ajustez vos filtres ou créez une nouvelle réservation"
+                            />
                         ) : (
                             <div className="divide-y divide-slate-100">
                                 {filteredBookings.map((booking) => (
@@ -148,8 +153,8 @@ export default function AdminBookingsPage() {
                                         key={booking.id}
                                         href={`/admin/bookings/${booking.id}`}
                                         className={`block p-4 transition-colors ${booking.status === 'verified'
-                                                ? 'bg-blue-50/50 hover:bg-blue-50'
-                                                : 'hover:bg-slate-50'
+                                            ? 'bg-blue-50/50 hover:bg-blue-50'
+                                            : 'hover:bg-slate-50'
                                             }`}
                                     >
                                         <div className="flex items-start justify-between gap-4">
@@ -190,7 +195,7 @@ export default function AdminBookingsPage() {
                         )}
                     </CardContent>
                 </Card>
-            </div>
+            </AdminPageContainer>
         </div>
     );
 }

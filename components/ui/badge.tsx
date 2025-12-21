@@ -17,6 +17,16 @@ const badgeVariants = cva(
           "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+        // Admin status variants
+        "admin-pending": "bg-amber-100 text-amber-800 border-amber-300",
+        "admin-verified": "bg-blue-100 text-blue-800 border-blue-300",
+        "admin-confirmed": "bg-emerald-100 text-emerald-800 border-emerald-300",
+        "admin-completed": "bg-slate-100 text-slate-700 border-slate-300",
+        "admin-cancelled": "bg-red-100 text-red-800 border-red-300",
+        "admin-paid": "bg-emerald-100 text-emerald-700 border-emerald-200",
+        "admin-unpaid": "bg-orange-100 text-orange-700 border-orange-200",
+        "admin-info": "bg-sky-100 text-sky-800 border-sky-300",
+        "admin-warning": "bg-amber-50 text-amber-800 border-amber-200",
       },
     },
     defaultVariants: {

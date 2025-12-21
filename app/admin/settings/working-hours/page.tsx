@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { AdminPageHeader, AdminPageContainer, AdminCard } from '@/components/admin/admin-components';
 import { Save, Clock, Loader2, Info } from 'lucide-react';
 
 interface WorkingHours {
@@ -105,29 +106,27 @@ export default function WorkingHoursPage() {
 
     return (
         <div className="min-h-screen bg-slate-50">
-            {/* Header */}
-            <div className="bg-slate-900 text-white px-6 py-6">
-                <div className="flex items-center justify-between max-w-4xl mx-auto">
-                    <div>
-                        <h1 className="text-2xl font-bold">Horaires de travail</h1>
-                        <p className="text-slate-400 mt-1">Configurez vos horaires d'ouverture</p>
-                    </div>
+            <AdminPageHeader
+                title="Horaires de travail"
+                description="Configurez vos horaires d'ouverture"
+                actions={
                     <Button
                         onClick={saveWorkingHours}
                         disabled={saving}
-                        className="bg-sky-500 hover:bg-sky-600 text-white font-medium"
+                        variant="admin-primary"
+                        size="admin"
                     >
                         {saving ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                            <Save className="h-4 w-4 mr-2" />
+                            <Save className="h-4 w-4" />
                         )}
                         {saving ? 'Enregistrement...' : 'Enregistrer'}
                     </Button>
-                </div>
-            </div>
+                }
+            />
 
-            <div className="px-6 py-6 max-w-4xl mx-auto space-y-6">
+            <AdminPageContainer className="max-w-4xl mx-auto">
                 <Card className="border-0 shadow-md bg-white">
                     <CardHeader className="border-b border-slate-100">
                         <CardTitle className="flex items-center gap-2 text-lg">
@@ -199,7 +198,7 @@ export default function WorkingHoursPage() {
                         </p>
                     </CardContent>
                 </Card>
-            </div>
+            </AdminPageContainer>
         </div>
     );
 }

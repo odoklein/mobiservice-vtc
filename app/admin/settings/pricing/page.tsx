@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PricingTable } from '@/components/admin/pricing-table';
+import { AdminPageHeader, AdminPageContainer } from '@/components/admin/admin-components';
 import { DollarSign, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 
 interface PricingRule {
@@ -414,42 +415,39 @@ export default function PricingSettingsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-slate-900 text-white px-6 py-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Gestion de la tarification</h1>
-            <p className="text-slate-400 mt-1">Configurez tous les tarifs et forfaits</p>
-          </div>
-          <div className="flex items-center gap-3">
+      <AdminPageHeader
+        title="Gestion de la tarification"
+        description="Configurez tous les tarifs et forfaits"
+        actions={
+          <>
             <Button
               onClick={loadPricingRules}
               disabled={loading}
-              variant="outline"
-              className="bg-transparent border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white"
+              variant="admin-outline"
+              size="admin"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Actualiser
             </Button>
             <Button
               onClick={handleReset}
               disabled={saving}
-              variant="outline"
-              className="bg-transparent border-red-400 text-red-300 hover:bg-red-500/20 hover:text-red-200"
+              variant="admin-danger"
+              size="admin"
             >
-              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertCircle className="h-4 w-4" />
               Réinitialiser
             </Button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="p-6 space-y-6">
+      <AdminPageContainer>
         {message && (
           <div
             className={`p-4 rounded-lg flex items-start gap-3 ${message.type === 'success'
-                ? 'bg-emerald-50 border border-emerald-200'
-                : 'bg-red-50 border border-red-200'
+              ? 'bg-emerald-50 border border-emerald-200'
+              : 'bg-red-50 border border-red-200'
               }`}
           >
             <AlertCircle
@@ -483,8 +481,8 @@ export default function PricingSettingsPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
-                        ? 'border-slate-800 text-slate-900'
-                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                      ? 'border-slate-800 text-slate-900'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                       }`}
                   >
                     {tab.label}
@@ -497,8 +495,7 @@ export default function PricingSettingsPage() {
             <div className="min-h-[400px]">{renderTabContent()}</div>
           </CardContent>
         </Card>
-      </div>
+      </AdminPageContainer>
     </div>
   );
 }
-

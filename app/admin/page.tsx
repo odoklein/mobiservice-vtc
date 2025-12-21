@@ -2,6 +2,15 @@ import { db } from '@/lib/db';
 import { bookings, workingHours, type WorkingHours } from '@/lib/db/schema';
 import { eq, gte, and, sql, desc } from 'drizzle-orm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    AdminPageHeader,
+    AdminPageContainer,
+    AdminCard,
+    AdminEmptyState,
+    AdminAlertBanner
+} from '@/components/admin/admin-components';
 import { Calendar, Clock, Euro, AlertCircle, Settings, ArrowRight, CheckCircle2, Sparkles, TrendingUp, MapPin, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/pricing';
@@ -168,13 +177,12 @@ export default async function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-slate-50">
-            {/* Header */}
-            <div className="bg-slate-900 text-white px-6 py-6">
-                <h1 className="text-2xl font-bold">Dashboard</h1>
-                <p className="text-slate-400 mt-1">Vue d'ensemble de votre activité</p>
-            </div>
+            <AdminPageHeader
+                title="Dashboard"
+                description="Vue d'ensemble de votre activité"
+            />
 
-            <div className="p-6 space-y-6">
+            <AdminPageContainer>
                 {/* Onboarding Card - Show when no working hours configured */}
                 {!hoursStatus.hasHours && (
                     <Card className="border-2 border-sky-500 shadow-lg bg-gradient-to-br from-sky-50 to-sky-100">
@@ -500,7 +508,7 @@ export default async function AdminDashboard() {
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+            </AdminPageContainer>
         </div>
     );
 }

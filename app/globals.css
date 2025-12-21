@@ -98,6 +98,72 @@
   --sidebar-accent-foreground: var(--black);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--brand-green);
+
+  /* ======================================== */
+  /* ADMIN DASHBOARD DESIGN TOKENS           */
+  /* ======================================== */
+  
+  /* Admin Color Palette */
+  --admin-header-bg: var(--black);
+  --admin-sidebar-bg: var(--black);
+  --admin-page-bg: #f8fafc;
+  --admin-card-bg: var(--white);
+  --admin-border: #e2e8f0;
+  --admin-border-light: #f1f5f9;
+  
+  /* Admin Primary Actions */
+  --admin-primary: #0ea5e9;
+  --admin-primary-hover: #0284c7;
+  --admin-secondary: #1e293b;
+  --admin-secondary-hover: #0f172a;
+  
+  /* Admin Status Colors */
+  --admin-status-pending-bg: #fef3c7;
+  --admin-status-pending-text: #92400e;
+  --admin-status-pending-border: #fcd34d;
+  --admin-status-verified-bg: #dbeafe;
+  --admin-status-verified-text: #1e40af;
+  --admin-status-verified-border: #93c5fd;
+  --admin-status-confirmed-bg: #d1fae5;
+  --admin-status-confirmed-text: #065f46;
+  --admin-status-confirmed-border: #6ee7b7;
+  --admin-status-completed-bg: #f1f5f9;
+  --admin-status-completed-text: #475569;
+  --admin-status-completed-border: #cbd5e1;
+  --admin-status-cancelled-bg: #fee2e2;
+  --admin-status-cancelled-text: #991b1b;
+  --admin-status-cancelled-border: #fca5a5;
+  
+  /* Admin Spacing Scale */
+  --admin-page-padding: 1.5rem;
+  --admin-header-padding-y: 1.5rem;
+  --admin-card-padding: 1.5rem;
+  --admin-section-gap: 1.5rem;
+  --admin-content-gap: 1rem;
+  
+  /* Admin Typography */
+  --admin-heading-xl: 1.875rem;
+  --admin-heading-lg: 1.5rem;
+  --admin-heading-md: 1.125rem;
+  --admin-heading-sm: 1rem;
+  --admin-text-base: 0.875rem;
+  --admin-text-sm: 0.8125rem;
+  --admin-text-xs: 0.75rem;
+  
+  /* Admin Component Sizes */
+  --admin-input-height: 2.75rem;
+  --admin-button-height: 2.5rem;
+  --admin-button-height-sm: 2rem;
+  --admin-button-height-lg: 2.75rem;
+  --admin-icon-size: 1.25rem;
+  --admin-icon-size-sm: 1rem;
+  --admin-icon-size-lg: 1.5rem;
+  
+  /* Admin Border Radius */
+  --admin-radius-sm: 0.5rem;
+  --admin-radius-md: 0.75rem;
+  --admin-radius-lg: 1rem;
+  --admin-radius-xl: 1.25rem;
 }
 
 .dark {
