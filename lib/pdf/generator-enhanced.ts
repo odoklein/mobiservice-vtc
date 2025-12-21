@@ -1,5 +1,3 @@
-import fs from 'fs/promises';
-import path from 'path';
 import type { Booking } from '@/lib/db/schema';
 
 // Enhanced invoice/quote generator with detailed breakdowns

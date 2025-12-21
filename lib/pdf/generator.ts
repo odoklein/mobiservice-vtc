@@ -1,5 +1,3 @@
-import fs from 'fs/promises';
-import path from 'path';
 import type { Booking } from '@/lib/db/schema';
 import { generateFactureEnhanced, generateDevisEnhanced } from './generator-enhanced';
 
@@ -366,17 +364,13 @@ export async function generateDevisLegacy(booking: Booking): Promise<string> {
     return html;
 }
 
-export async function savePDF(htmlContent: string, filename: string): Promise<string> {
-    const documentPath = path.join(process.cwd(), 'public', 'documents', 'bookings');
-
-    // Ensure directory exists
-    await fs.mkdir(documentPath, { recursive: true });
-
-    const filepath = path.join(documentPath, `${filename}.html`);
-
-    // For now, save as HTML
-    // In production, you'd convert to PDF using Puppeteer or similar
-    await fs.writeFile(filepath, htmlContent, 'utf-8');
-
-    return `/documents/bookings/${filename}.html`;
+// Save PDF/HTML content - now returns the HTML content directly instead of saving to disk
+// This approach works better for serverless environments like Vercel
+export async function savePDF(htmlContent: string, filename: string): Promise<{ html: string; filename: string }> {
+    // Return the HTML content directly
+    // The calling function will handle storage (database, blob storage, etc.)
+    return {
+        html: htmlContent,
+        filename: filename
+    };
 }

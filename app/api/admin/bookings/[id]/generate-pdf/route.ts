@@ -91,20 +91,25 @@ export async function POST(
             );
         }
 
-        const pdfPath = await savePDF(htmlContent, filename);
+        const pdfResult = await savePDF(htmlContent, filename);
 
-        // Update booking with PDF path
+        // Store HTML content as a data URL that can be opened directly in browser
+        // This works in both local and serverless environments
+        const htmlDataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(pdfResult.html)}`;
+
+        // Update booking with document info
         await db
             .update(bookings)
             .set({
-                documentsPdfPath: pdfPath,
+                documentsPdfPath: htmlDataUrl,
                 updatedAt: new Date(),
             })
             .where(eq(bookings.id, bookingId));
 
         return NextResponse.json({
             success: true,
-            url: pdfPath,
+            url: htmlDataUrl,
+            filename: pdfResult.filename,
             message: 'Document généré avec succès',
         });
     } catch (error) {
