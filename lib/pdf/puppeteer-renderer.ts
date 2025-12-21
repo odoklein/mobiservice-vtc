@@ -50,7 +50,7 @@ export async function renderHTMLToPDF(
             '--disable-gpu',
           ],
       executablePath,
-      headless: chromium.headless || true,
+      headless: true,
       defaultViewport: {
         width: 1280,
         height: 720,
@@ -138,7 +138,7 @@ export async function renderURLToPDF(
         ? chromium.args
         : ['--no-sandbox', '--disable-setuid-sandbox'],
       executablePath,
-      headless: chromium.headless || true,
+      headless: true,
     });
 
     const page = await browser.newPage();

@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { otpVerifications } from '@/lib/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import crypto from 'crypto';
-import { sendEmail } from './resend';
+import { resend, FROM_EMAIL } from './resend';
 
 /**
  * Interface pour les paramètres d'envoi d'email OTP
@@ -178,11 +178,19 @@ MobiService VTC - Transport premium en Haute-Savoie
 www.mobiservice-vtc.fr
     `;
 
-    await sendEmail({
-        to,
-        subject,
-        html,
-        text,
-    });
+    // Envoyer l'email via Resend
+    try {
+        await resend.emails.send({
+            from: FROM_EMAIL,
+            to,
+            subject,
+            html,
+            text,
+        });
+        console.log(`[Email] OTP envoyé à ${to}`);
+    } catch (error) {
+        console.error('[Email] Erreur envoi Resend:', error);
+        throw error;
+    }
 }
 
