@@ -45,20 +45,25 @@ export async function POST(
 
         let filename: string;
         let pdfType: 'facture' | 'devis' | 'bon' | 'bdr';
+        let dbField: 'facturePdfUrl' | 'devisPdfUrl' | 'bonCommandePdfUrl' | 'bonReservationPdfUrl';
 
         // Déterminer le type et le nom de fichier
         if (type === 'bon') {
             pdfType = 'bon';
-            filename = `bon-commande-${bookingId}.pdf`;
+            filename = `bon-commande-${bookingId}-${Date.now()}.pdf`;
+            dbField = 'bonCommandePdfUrl';
         } else if (type === 'facture') {
             pdfType = 'facture';
-            filename = `facture-${bookingId}.pdf`;
+            filename = generateFactureFilename(bookingId);
+            dbField = 'facturePdfUrl';
         } else if (type === 'devis') {
             pdfType = 'devis';
-            filename = `devis-${bookingId}.pdf`;
+            filename = generateDevisFilename(bookingId);
+            dbField = 'devisPdfUrl';
         } else if (type === 'bdr') {
             pdfType = 'bdr';
-            filename = `bdr-${bookingId}.pdf`;
+            filename = `bdr-${bookingId}-${Date.now()}.pdf`;
+            dbField = 'bonReservationPdfUrl';
         } else {
             return NextResponse.json(
                 { message: 'Type invalide (bon, facture, devis ou bdr)' },
@@ -80,48 +85,67 @@ export async function POST(
 
         console.log(`[Generate PDF] PDF généré (${pdfBuffer.length} bytes)`);
 
-        // Upload vers Vercel Blob Storage (optionnel)
+        let pdfUrl = '';
+
+        // Upload vers Vercel Blob Storage
         if (process.env.BLOB_READ_WRITE_TOKEN) {
             try {
-                const blobFilename = type === 'facture' 
-                    ? generateFactureFilename(bookingId)
-                    : type === 'devis'
-                    ? generateDevisFilename(bookingId)
-                    : `${type}-${bookingId}-${Date.now()}.pdf`;
-
-                const blobUrl = await uploadPDF(pdfBuffer, blobFilename);
+                pdfUrl = await uploadPDF(pdfBuffer, filename);
                 
-                // Mettre à jour la DB avec l'URL du PDF
+                // Mettre à jour la DB avec l'URL du PDF dans le bon champ
+                const updateData: any = {
+                    [dbField]: pdfUrl,
+                    lastPdfGeneratedAt: new Date(),
+                    updatedAt: new Date(),
+                };
+
                 await db
                     .update(bookings)
-                    .set({
-                        documentsPdfPath: blobUrl,
-                        updatedAt: new Date(),
-                    })
+                    .set(updateData)
                     .where(eq(bookings.id, bookingId));
 
-                console.log(`[Generate PDF] PDF uploadé: ${blobUrl}`);
+                console.log(`[Generate PDF] PDF uploadé et sauvegardé: ${pdfUrl}`);
             } catch (uploadError) {
                 console.error('[Generate PDF] Erreur upload Blob:', uploadError);
-                // Continue quand même pour retourner le PDF
+                return NextResponse.json(
+                    { 
+                        success: false,
+                        message: 'Erreur lors de l\'upload du PDF',
+                        error: uploadError instanceof Error ? uploadError.message : 'Erreur inconnue'
+                    },
+                    { status: 500 }
+                );
             }
+        } else {
+            return NextResponse.json(
+                { 
+                    success: false,
+                    message: 'BLOB_READ_WRITE_TOKEN non configuré',
+                },
+                { status: 500 }
+            );
         }
 
-        // Streamer le PDF au navigateur
-        return new NextResponse(pdfBuffer, {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/pdf',
-                'Content-Disposition': `inline; filename="${filename}"`,
-                'Content-Length': pdfBuffer.length.toString(),
-                'Cache-Control': 'no-cache',
-            },
+        // Retourner les informations JSON pour que le frontend puisse gérer
+        return NextResponse.json({
+            success: true,
+            url: pdfUrl,
+            filename: filename,
+            type: type,
+            bookingId: bookingId,
+            message: `${type === 'facture' ? 'Facture' : type === 'devis' ? 'Devis' : type === 'bon' ? 'Bon de commande' : 'Bon de réservation'} généré avec succès`,
+            actions: {
+                download: pdfUrl,
+                sendToClient: `/api/admin/bookings/${bookingId}/send-document?type=${type}&recipient=client`,
+                sendToDriver: `/api/admin/bookings/${bookingId}/send-document?type=${type}&recipient=driver`,
+            }
         });
 
     } catch (error) {
         console.error('[Generate PDF] Erreur:', error);
         return NextResponse.json(
             { 
+                success: false,
                 message: 'Erreur lors de la génération du PDF',
                 error: error instanceof Error ? error.message : 'Erreur inconnue'
             },

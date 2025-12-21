@@ -113,7 +113,12 @@ export const bookings = pgTable('bookings', {
   rejectionReason: text('rejection_reason'), // Reason if admin rejects booking
 
   // Documents
-  documentsPdfPath: text('documents_pdf_path'), // Path to generated PDFs
+  documentsPdfPath: text('documents_pdf_path'), // Path to generated PDFs (legacy)
+  devisPdfUrl: text('devis_pdf_url'), // URL Blob du devis
+  facturePdfUrl: text('facture_pdf_url'), // URL Blob de la facture
+  bonCommandePdfUrl: text('bon_commande_pdf_url'), // URL Blob du bon de commande
+  bonReservationPdfUrl: text('bon_reservation_pdf_url'), // URL Blob du bon de réservation
+  lastPdfGeneratedAt: timestamp('last_pdf_generated_at'), // Dernière génération PDF
 
   // Stripe
   stripePaymentIntentId: text('stripe_payment_intent_id'),
