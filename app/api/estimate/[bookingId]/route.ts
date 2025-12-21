@@ -94,12 +94,12 @@ export async function GET(
       // 5. Générer le PDF du devis avec @react-pdf/renderer
       console.log('[Estimate API] Génération du PDF...');
       pdfBuffer = await renderToBuffer(
-        <InvoicePDF 
-          type="devis"
-          booking={booking}
-          company={company}
-          invoice={invoice}
-        />
+        React.createElement(InvoicePDF, {
+          type: 'devis',
+          booking: booking,
+          company: company,
+          invoice: invoice
+        })
       );
 
       console.log(`[Estimate API] PDF généré (${pdfBuffer.length} bytes)`);
@@ -139,12 +139,12 @@ export async function GET(
       console.log('[Estimate API] PDF cache invalide, génération forcée...');
       const { company, invoice } = await getAllSettings();
       pdfBuffer = await renderToBuffer(
-        <InvoicePDF 
-          type="devis"
-          booking={booking}
-          company={company}
-          invoice={invoice}
-        />
+        React.createElement(InvoicePDF, {
+          type: 'devis',
+          booking: booking,
+          company: company,
+          invoice: invoice
+        })
       );
     }
 

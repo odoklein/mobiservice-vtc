@@ -70,12 +70,12 @@ export async function POST(
 
         // Générer le PDF avec @react-pdf/renderer
         const pdfBuffer = await renderToBuffer(
-            <InvoicePDF 
-                type={pdfType}
-                booking={booking}
-                company={company}
-                invoice={invoice}
-            />
+            React.createElement(InvoicePDF, {
+                type: pdfType,
+                booking: booking,
+                company: company,
+                invoice: invoice
+            })
         );
 
         console.log(`[Generate PDF] PDF généré (${pdfBuffer.length} bytes)`);
