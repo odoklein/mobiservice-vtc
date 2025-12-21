@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   HelpCircle,
   BookOpen,
@@ -12,8 +11,6 @@ import {
   DollarSign,
   Calendar,
   FileText,
-  Users,
-  ChevronDown,
   Search,
   Code,
   AlertCircle,
@@ -32,7 +29,7 @@ import { helpSections, searchHelpContent, getHelpByCategory } from '@/lib/help-c
 
 export default function HelpPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('faq');
+  const [activeTab, setActiveTab] = useState<'faq' | 'documentation' | 'guide' | 'configuration'>('faq');
 
   const filteredSections = searchQuery
     ? searchHelpContent(searchQuery)
@@ -73,74 +70,83 @@ export default function HelpPage() {
     },
   ];
 
+  const tabs = [
+    { id: 'faq' as const, label: 'FAQ', icon: HelpCircle },
+    { id: 'documentation' as const, label: 'Documentation', icon: BookOpen },
+    { id: 'guide' as const, label: 'Guide PDF', icon: Zap },
+    { id: 'configuration' as const, label: 'Configuration', icon: Code },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-[#0A0A0A] to-[#1A1A1A] text-white px-6 py-12">
-        <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <div className="bg-slate-900 text-white px-6 py-8">
+        <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-4">
-            <HelpCircle className="h-10 w-10 text-[#00FF88]" />
-            <h1 className="text-4xl font-bold">Centre d'aide</h1>
+            <div className="p-2 rounded-lg bg-sky-500/20">
+              <HelpCircle className="h-8 w-8 text-sky-400" />
+            </div>
+            <h1 className="text-2xl font-bold">Centre d'aide</h1>
           </div>
-          <p className="text-white/70 text-lg mb-6">
+          <p className="text-slate-400 mb-6">
             Documentation complète et support pour l'administration MobiService VTC
           </p>
 
           {/* Search Bar */}
-          <div className="relative max-w-2xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <div className="relative max-w-xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <Input
               type="text"
-              placeholder="Rechercher dans l'aide et la documentation..."
+              placeholder="Rechercher dans l'aide..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-14 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20 focus:border-[#00FF88]"
+              className="pl-12 h-12 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-sky-500 focus:ring-sky-500"
             />
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-6 py-6">
         {/* Quick Links */}
         {!searchQuery && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <Link href="/admin/bookings" className="no-underline">
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group bg-white">
                 <CardContent className="p-4 text-center">
-                  <Calendar className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-semibold text-sm">Réservations</h3>
+                  <div className="p-2 rounded-lg bg-sky-50 w-fit mx-auto mb-2">
+                    <Calendar className="h-6 w-6 text-sky-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h3 className="font-semibold text-sm text-slate-700">Réservations</h3>
                 </CardContent>
               </Card>
             </Link>
             <Link href="/admin/settings/pricing" className="no-underline">
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group bg-white">
                 <CardContent className="p-4 text-center">
-                  <DollarSign className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-semibold text-sm">Tarification</h3>
+                  <div className="p-2 rounded-lg bg-emerald-50 w-fit mx-auto mb-2">
+                    <DollarSign className="h-6 w-6 text-emerald-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h3 className="font-semibold text-sm text-slate-700">Tarification</h3>
                 </CardContent>
               </Card>
             </Link>
             <Link href="/admin/settings/invoices" className="no-underline">
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group bg-white">
                 <CardContent className="p-4 text-center">
-                  <FileText className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-semibold text-sm">Factures</h3>
+                  <div className="p-2 rounded-lg bg-amber-50 w-fit mx-auto mb-2">
+                    <FileText className="h-6 w-6 text-amber-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h3 className="font-semibold text-sm text-slate-700">Factures & Devis</h3>
                 </CardContent>
               </Card>
             </Link>
-            <Link href="/admin/settings/invoices" className="no-underline">
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
+            <Link href="/admin/settings/working-hours" className="no-underline">
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group bg-white">
                 <CardContent className="p-4 text-center">
-                  <BookOpen className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-semibold text-sm">Documents</h3>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/admin/settings" className="no-underline">
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
-                <CardContent className="p-4 text-center">
-                  <Settings className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-semibold text-sm">Paramètres</h3>
+                  <div className="p-2 rounded-lg bg-purple-50 w-fit mx-auto mb-2">
+                    <Settings className="h-6 w-6 text-purple-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h3 className="font-semibold text-sm text-slate-700">Paramètres</h3>
                 </CardContent>
               </Card>
             </Link>
@@ -149,32 +155,32 @@ export default function HelpPage() {
 
         {/* Search Results */}
         {searchQuery && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">
+          <div className="mb-6">
+            <h2 className="text-lg font-bold mb-4 text-slate-900">
               Résultats de recherche ({filteredSections.length})
             </h2>
 
             {filteredSections.length === 0 ? (
-              <Card className="border-0 shadow-lg p-12 text-center">
-                <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucun résultat trouvé</h3>
-                <p className="text-gray-500">Essayez avec d'autres mots-clés</p>
+              <Card className="border-0 shadow-md p-8 text-center bg-white">
+                <Search className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">Aucun résultat trouvé</h3>
+                <p className="text-slate-500">Essayez avec d'autres mots-clés</p>
               </Card>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {filteredSections.map((section) => (
-                  <Card key={section.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
+                  <Card key={section.id} className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
+                    <CardContent className="p-5">
                       <div className="flex items-start gap-3 mb-2">
-                        <Badge className="text-xs bg-[#00FF88]/10 text-[#0A0A0A] border-0">
+                        <Badge className="bg-slate-100 text-slate-700">
                           {section.category === 'faq' && 'FAQ'}
                           {section.category === 'documentation' && 'Documentation'}
                           {section.category === 'guide' && 'Guide'}
                           {section.category === 'configuration' && 'Configuration'}
                         </Badge>
                       </div>
-                      <h3 className="font-bold text-lg text-[#0A0A0A] mb-2">{section.title}</h3>
-                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{section.content}</p>
+                      <h3 className="font-bold text-slate-900 mb-2">{section.title}</h3>
+                      <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{section.content}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -185,159 +191,157 @@ export default function HelpPage() {
 
         {/* Tabbed Content */}
         {!searchQuery && (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-white shadow-sm border w-full justify-start">
-              <TabsTrigger
-                value="faq"
-                className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
-              >
-                <HelpCircle className="h-4 w-4 mr-2" />
-                FAQ
-              </TabsTrigger>
-              <TabsTrigger
-                value="documentation"
-                className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
-              >
-                <BookOpen className="h-4 w-4 mr-2" />
-                Documentation
-              </TabsTrigger>
-              <TabsTrigger
-                value="guide"
-                className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
-              >
-                <Zap className="h-4 w-4 mr-2" />
-                Guide PDF
-              </TabsTrigger>
-              <TabsTrigger
-                value="configuration"
-                className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
-              >
-                <Code className="h-4 w-4 mr-2" />
-                Configuration
-              </TabsTrigger>
-            </TabsList>
-
-            {/* FAQ Tab */}
-            <TabsContent value="faq" className="space-y-6">
-              {faqGroups.map((group, idx) => {
-                const Icon = group.icon;
+          <div className="space-y-6">
+            {/* Tab Navigation */}
+            <div className="flex flex-wrap gap-2 bg-white rounded-lg shadow-sm p-1.5 border border-slate-200">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
                 return (
-                  <Card key={idx} className="border-0 shadow-lg">
-                    <CardHeader className="border-b bg-gray-50">
-                      <CardTitle className="flex items-center gap-2 text-xl">
-                        <Icon className="h-6 w-6 text-[#00FF88]" />
-                        {group.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <Accordion type="single" collapsible className="space-y-2">
-                        {group.items.map((item) => (
-                          <AccordionItem
-                            key={item.id}
-                            value={item.id}
-                            className="border rounded-lg px-4 hover:border-[#00FF88]/50 transition-colors"
-                          >
-                            <AccordionTrigger className="text-left font-semibold text-[#0A0A0A] hover:text-[#00FF88] hover:no-underline">
-                              {item.title}
-                            </AccordionTrigger>
-                            <AccordionContent className="text-gray-700 leading-relaxed pt-2">
-                              {item.content}
-                            </AccordionContent>
-                          </AccordionItem>
-                        ))}
-                      </Accordion>
-                    </CardContent>
-                  </Card>
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`
+                      flex items-center gap-2 px-4 py-2.5 rounded-md font-medium text-sm transition-all
+                      ${activeTab === tab.id
+                        ? 'bg-slate-800 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-100'
+                      }
+                    `}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
                 );
               })}
-            </TabsContent>
+            </div>
+
+            {/* FAQ Tab */}
+            {activeTab === 'faq' && (
+              <div className="space-y-4">
+                {faqGroups.map((group, idx) => {
+                  const Icon = group.icon;
+                  return (
+                    <Card key={idx} className="border-0 shadow-md overflow-hidden bg-white">
+                      <CardHeader className="border-b border-slate-100 bg-slate-50 py-4">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <div className="p-1.5 rounded-md bg-sky-100">
+                            <Icon className="h-4 w-4 text-sky-600" />
+                          </div>
+                          {group.title}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <Accordion type="single" collapsible className="space-y-2">
+                          {group.items.map((item) => (
+                            <AccordionItem
+                              key={item.id}
+                              value={item.id}
+                              className="border rounded-lg px-4 hover:border-slate-300 transition-colors"
+                            >
+                              <AccordionTrigger className="text-left font-medium text-slate-800 hover:text-slate-900 hover:no-underline text-sm py-3">
+                                {item.title}
+                              </AccordionTrigger>
+                              <AccordionContent className="text-slate-600 text-sm leading-relaxed pt-1 pb-4">
+                                {item.content}
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))}
+                        </Accordion>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Documentation Tab */}
-            <TabsContent value="documentation" className="space-y-6">
-              {docSections.map((section) => (
-                <Card key={section.id} className="border-0 shadow-lg">
-                  <CardHeader className="border-b bg-gradient-to-r from-[#0A0A0A] to-[#1A1A1A] text-white">
-                    <CardTitle className="flex items-center gap-2">
-                      <Database className="h-5 w-5 text-[#00FF88]" />
-                      {section.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="prose prose-sm max-w-none">
-                      <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 font-sans">
+            {activeTab === 'documentation' && (
+              <div className="space-y-4">
+                {docSections.map((section) => (
+                  <Card key={section.id} className="border-0 shadow-md overflow-hidden bg-white">
+                    <CardHeader className="border-b bg-slate-800 text-white py-4">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Database className="h-4 w-4 text-sky-400" />
+                        {section.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5">
+                      <pre className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 font-sans">
                         {section.content}
                       </pre>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
 
             {/* Guide Tab */}
-            <TabsContent value="guide" className="space-y-6">
-              {guideSections.map((section) => (
-                <Card key={section.id} className="border-0 shadow-lg">
-                  <CardHeader className="border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-                    <CardTitle className="flex items-center gap-2">
-                      <Zap className="h-5 w-5" />
-                      {section.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="prose prose-sm max-w-none">
-                      <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 font-sans">
+            {activeTab === 'guide' && (
+              <div className="space-y-4">
+                {guideSections.map((section) => (
+                  <Card key={section.id} className="border-0 shadow-md overflow-hidden bg-white">
+                    <CardHeader className="border-b bg-blue-600 text-white py-4">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Zap className="h-4 w-4" />
+                        {section.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5">
+                      <pre className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 font-sans">
                         {section.content}
                       </pre>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
 
             {/* Configuration Tab */}
-            <TabsContent value="configuration" className="space-y-6">
-              {configSections.map((section) => (
-                <Card key={section.id} className="border-0 shadow-lg">
-                  <CardHeader className="border-b bg-gradient-to-r from-purple-600 to-purple-700 text-white">
-                    <CardTitle className="flex items-center gap-2">
-                      <Code className="h-5 w-5" />
-                      {section.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="prose prose-sm max-w-none">
-                      <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 font-sans">
+            {activeTab === 'configuration' && (
+              <div className="space-y-4">
+                {configSections.map((section) => (
+                  <Card key={section.id} className="border-0 shadow-md overflow-hidden bg-white">
+                    <CardHeader className="border-b bg-purple-600 text-white py-4">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Code className="h-4 w-4" />
+                        {section.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5">
+                      <pre className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 font-sans">
                         {section.content}
                       </pre>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-          </Tabs>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Support Section */}
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-[#00FF88]/10 to-[#00CC6A]/10 mt-8">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="h-12 w-12 text-[#00FF88] mx-auto mb-4" />
-            <h3 className="font-bold text-xl mb-3 text-[#0A0A0A]">
+        <Card className="border-0 shadow-md bg-gradient-to-r from-slate-800 to-slate-900 mt-8">
+          <CardContent className="p-6 text-center">
+            <div className="p-3 rounded-full bg-sky-500/20 w-fit mx-auto mb-4">
+              <AlertCircle className="h-8 w-8 text-sky-400" />
+            </div>
+            <h3 className="font-bold text-lg mb-2 text-white">
               Besoin d'aide supplémentaire ?
             </h3>
-            <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
+            <p className="text-slate-300 mb-5 max-w-xl mx-auto text-sm">
               Si vous ne trouvez pas la réponse à votre question dans notre documentation,
               notre équipe support est là pour vous aider.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-3">
               <Button
-                className="bg-[#00FF88] hover:bg-[#00CC6A] text-[#0A0A0A] font-semibold"
+                className="bg-sky-500 hover:bg-sky-600 text-white font-medium"
               >
                 <Mail className="h-4 w-4 mr-2" />
                 Contacter le support
               </Button>
               <Button
                 variant="outline"
-                className="border-[#00FF88] text-[#0A0A0A] hover:bg-[#00FF88]/10"
+                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 Documentation complète
@@ -350,7 +354,7 @@ export default function HelpPage() {
   );
 }
 
-// Badge component (inline since it's simple)
+// Badge component
 function Badge({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>
