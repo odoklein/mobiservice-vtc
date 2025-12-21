@@ -1,5 +1,17 @@
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+
+/**
+ * Fonction helper pour charger chromium dynamiquement
+ * Nécessaire pour Vercel serverless
+ */
+async function getChromium() {
+  if (process.env.NODE_ENV === 'production') {
+    // En production (Vercel), charger dynamiquement @sparticuz/chromium
+    const chromium = await import('@sparticuz/chromium');
+    return chromium.default || chromium;
+  }
+  return null;
+}
 
 /**
  * Options pour la génération PDF
@@ -34,21 +46,36 @@ export async function renderHTMLToPDF(
   try {
     console.log('[Puppeteer] Lancement du navigateur...');
     
+    const chromium = await getChromium();
+    
     // Configuration pour Vercel serverless
-    const executablePath = process.env.NODE_ENV === 'production'
-      ? await chromium.executablePath()
-      : process.env.CHROME_PATH || '/usr/bin/google-chrome'; // Fallback pour développement local
+    let executablePath: string;
+    let browserArgs: string[];
+
+    if (process.env.NODE_ENV === 'production' && chromium) {
+      // Production Vercel avec chromium
+      executablePath = await chromium.executablePath();
+      browserArgs = chromium.args;
+    } else {
+      // Développement local
+      executablePath = process.env.CHROME_PATH || 
+        process.platform === 'win32' 
+          ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+          : process.platform === 'darwin'
+          ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+          : '/usr/bin/google-chrome';
+      
+      browserArgs = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+      ];
+    }
 
     browser = await puppeteer.launch({
-      args: process.env.NODE_ENV === 'production'
-        ? chromium.args
-        : [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--disable-gpu',
-          ],
+      args: browserArgs,
       executablePath,
       headless: true,
       defaultViewport: {
@@ -129,14 +156,27 @@ export async function renderURLToPDF(
   try {
     console.log('[Puppeteer] Lancement du navigateur pour URL...');
     
-    const executablePath = process.env.NODE_ENV === 'production'
-      ? await chromium.executablePath()
-      : process.env.CHROME_PATH || '/usr/bin/google-chrome';
+    const chromium = await getChromium();
+    
+    let executablePath: string;
+    let browserArgs: string[];
+
+    if (process.env.NODE_ENV === 'production' && chromium) {
+      executablePath = await chromium.executablePath();
+      browserArgs = chromium.args;
+    } else {
+      executablePath = process.env.CHROME_PATH || 
+        process.platform === 'win32' 
+          ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+          : process.platform === 'darwin'
+          ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+          : '/usr/bin/google-chrome';
+      
+      browserArgs = ['--no-sandbox', '--disable-setuid-sandbox'];
+    }
 
     browser = await puppeteer.launch({
-      args: process.env.NODE_ENV === 'production'
-        ? chromium.args
-        : ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: browserArgs,
       executablePath,
       headless: true,
     });
