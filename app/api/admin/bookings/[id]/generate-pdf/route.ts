@@ -1,12 +1,13 @@
+import React from 'react';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
-import { generateBonDeCommande, generateFacture, generateDevis, generateBonDeReservation } from '@/lib/pdf/generator';
 import { getAllSettings } from '@/lib/settings/company-settings';
-import { renderHTMLToPDF } from '@/lib/pdf/puppeteer-renderer';
 import { uploadPDF, generateFactureFilename, generateDevisFilename } from '@/lib/storage/blob-storage';
+import { InvoicePDF } from '@/lib/pdf/react-pdf-generator';
+import { renderToBuffer } from '@react-pdf/renderer';
 
 export async function POST(
     request: NextRequest,
@@ -42,21 +43,21 @@ export async function POST(
         // Load company and invoice settings
         const { company, invoice } = await getAllSettings();
 
-        let htmlContent: string;
         let filename: string;
+        let pdfType: 'facture' | 'devis' | 'bon' | 'bdr';
 
-        // Générer le HTML selon le type
+        // Déterminer le type et le nom de fichier
         if (type === 'bon') {
-            htmlContent = await generateBonDeCommande(booking);
+            pdfType = 'bon';
             filename = `bon-commande-${bookingId}.pdf`;
         } else if (type === 'facture') {
-            htmlContent = await generateFacture(booking, company, invoice);
+            pdfType = 'facture';
             filename = `facture-${bookingId}.pdf`;
         } else if (type === 'devis') {
-            htmlContent = await generateDevis(booking, company, invoice);
+            pdfType = 'devis';
             filename = `devis-${bookingId}.pdf`;
         } else if (type === 'bdr') {
-            htmlContent = await generateBonDeReservation(booking);
+            pdfType = 'bdr';
             filename = `bdr-${bookingId}.pdf`;
         } else {
             return NextResponse.json(
@@ -65,20 +66,17 @@ export async function POST(
             );
         }
 
-        console.log(`[Generate PDF] Génération du HTML terminée, conversion en PDF...`);
+        console.log(`[Generate PDF] Génération du PDF avec @react-pdf/renderer...`);
 
-        // Convertir HTML en PDF avec Puppeteer
-        const pdfBuffer = await renderHTMLToPDF(htmlContent, {
-            format: 'A4',
-            margin: {
-                top: '20mm',
-                right: '15mm',
-                bottom: '20mm',
-                left: '15mm',
-            },
-            printBackground: true,
-            preferCSSPageSize: true,
-        });
+        // Générer le PDF avec @react-pdf/renderer
+        const pdfBuffer = await renderToBuffer(
+            <InvoicePDF 
+                type={pdfType}
+                booking={booking}
+                company={company}
+                invoice={invoice}
+            />
+        );
 
         console.log(`[Generate PDF] PDF généré (${pdfBuffer.length} bytes)`);
 

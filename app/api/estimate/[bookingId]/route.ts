@@ -1,11 +1,12 @@
+import React from 'react';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyEstimateAccess } from '@/lib/auth/estimate-auth';
 import { getAllSettings } from '@/lib/settings/company-settings';
-import { generateDevisEnhanced } from '@/lib/pdf/generator-enhanced';
-import { renderHTMLToPDF } from '@/lib/pdf/puppeteer-renderer';
+import { InvoicePDF } from '@/lib/pdf/react-pdf-generator';
+import { renderToBuffer } from '@react-pdf/renderer';
 import { uploadPDF, generateDevisFilename } from '@/lib/storage/blob-storage';
 
 /**
@@ -90,23 +91,16 @@ export async function GET(
       // 4. Récupérer les settings de l'entreprise
       const { company, invoice } = await getAllSettings();
 
-      // 5. Générer le HTML du devis
-      console.log('[Estimate API] Génération du HTML...');
-      const htmlContent = await generateDevisEnhanced(booking, company, invoice);
-
-      // 6. Convertir HTML en PDF avec Puppeteer
-      console.log('[Estimate API] Conversion HTML -> PDF avec Puppeteer...');
-      pdfBuffer = await renderHTMLToPDF(htmlContent, {
-        format: 'A4',
-        margin: {
-          top: '20mm',
-          right: '15mm',
-          bottom: '20mm',
-          left: '15mm',
-        },
-        printBackground: true,
-        preferCSSPageSize: true,
-      });
+      // 5. Générer le PDF du devis avec @react-pdf/renderer
+      console.log('[Estimate API] Génération du PDF...');
+      pdfBuffer = await renderToBuffer(
+        <InvoicePDF 
+          type="devis"
+          booking={booking}
+          company={company}
+          invoice={invoice}
+        />
+      );
 
       console.log(`[Estimate API] PDF généré (${pdfBuffer.length} bytes)`);
 
@@ -144,8 +138,14 @@ export async function GET(
       // Fallback: générer quand même
       console.log('[Estimate API] PDF cache invalide, génération forcée...');
       const { company, invoice } = await getAllSettings();
-      const htmlContent = await generateDevisEnhanced(booking, company, invoice);
-      pdfBuffer = await renderHTMLToPDF(htmlContent);
+      pdfBuffer = await renderToBuffer(
+        <InvoicePDF 
+          type="devis"
+          booking={booking}
+          company={company}
+          invoice={invoice}
+        />
+      );
     }
 
     // 9. Streamer le PDF au client
