@@ -137,7 +137,7 @@ export default function PricingSettingsPage() {
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-[#5CD85A]" />
+          <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
         </div>
       );
     }
@@ -413,88 +413,91 @@ export default function PricingSettingsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-[#0A0A0A]">Gestion de la tarification</h1>
-          <p className="text-gray-600 mt-1">Configurez tous les tarifs et forfaits</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={loadPricingRules}
-            disabled={loading}
-            variant="outline"
-            className="h-10"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Actualiser
-          </Button>
-          <Button
-            onClick={handleReset}
-            disabled={saving}
-            variant="outline"
-            className="h-10 text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <AlertCircle className="h-4 w-4 mr-2" />
-            Réinitialiser
-          </Button>
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <div className="bg-slate-900 text-white px-6 py-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Gestion de la tarification</h1>
+            <p className="text-slate-400 mt-1">Configurez tous les tarifs et forfaits</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={loadPricingRules}
+              disabled={loading}
+              variant="outline"
+              className="bg-transparent border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Actualiser
+            </Button>
+            <Button
+              onClick={handleReset}
+              disabled={saving}
+              variant="outline"
+              className="bg-transparent border-red-400 text-red-300 hover:bg-red-500/20 hover:text-red-200"
+            >
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Réinitialiser
+            </Button>
+          </div>
         </div>
       </div>
 
-      {message && (
-        <div
-          className={`p-4 rounded-lg flex items-start gap-3 ${
-            message.type === 'success'
-              ? 'bg-green-50 border border-green-200'
-              : 'bg-red-50 border border-red-200'
-          }`}
-        >
-          <AlertCircle
-            className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
-              message.type === 'success' ? 'text-green-600' : 'text-red-600'
-            }`}
-          />
-          <p
-            className={`font-medium ${
-              message.type === 'success' ? 'text-green-900' : 'text-red-900'
-            }`}
+      <div className="p-6 space-y-6">
+        {message && (
+          <div
+            className={`p-4 rounded-lg flex items-start gap-3 ${message.type === 'success'
+                ? 'bg-emerald-50 border border-emerald-200'
+                : 'bg-red-50 border border-red-200'
+              }`}
           >
-            {message.text}
-          </p>
-        </div>
-      )}
-
-      <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-[#5CD85A]" />
-            <CardTitle>Configuration des tarifs</CardTitle>
+            <AlertCircle
+              className={`h-5 w-5 flex-shrink-0 mt-0.5 ${message.type === 'success' ? 'text-emerald-600' : 'text-red-600'
+                }`}
+            />
+            <p
+              className={`font-medium ${message.type === 'success' ? 'text-emerald-900' : 'text-red-900'
+                }`}
+            >
+              {message.text}
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
-          {/* Tabs */}
-          <div className="border-b border-gray-200 mb-6">
-            <nav className="flex space-x-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-[#5CD85A] text-[#5CD85A]'
-                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </div>
+        )}
 
-          {/* Tab Content */}
-          <div className="min-h-[400px]">{renderTabContent()}</div>
-        </CardContent>
-      </Card>
+        <Card className="border-0 shadow-md bg-white">
+          <CardHeader className="border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-emerald-50">
+                <DollarSign className="h-5 w-5 text-emerald-600" />
+              </div>
+              <CardTitle className="text-lg font-bold text-slate-900">Configuration des tarifs</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            {/* Tabs */}
+            <div className="border-b border-slate-200 mb-6">
+              <nav className="flex space-x-1 flex-wrap">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
+                        ? 'border-slate-800 text-slate-900'
+                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                      }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Tab Content */}
+            <div className="min-h-[400px]">{renderTabContent()}</div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

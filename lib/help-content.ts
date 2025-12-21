@@ -1,389 +1,309 @@
-// Help content parsed from documentation files
-// This file consolidates all help and documentation content for the admin help center
+// Centre d'aide - Contenu simplifié pour administrateurs non-techniques
+// Tout le contenu est en français simple, sans jargon technique
 
 export interface HelpSection {
   id: string;
   title: string;
   content: string;
-  category: 'faq' | 'documentation' | 'guide' | 'configuration';
+  category: 'faq' | 'guide';
   keywords: string[];
+  icon?: string;
 }
 
 export const helpSections: HelpSection[] = [
-  // FAQ - Gestion des réservations
+  // ============================================
+  // 📅 GESTION DES RÉSERVATIONS
+  // ============================================
   {
     id: 'faq-confirm-booking',
-    title: 'Comment confirmer une réservation ?',
-    content: 'Les réservations sont créées avec le statut "verified" (vérifiée). Vous devez les approuver manuellement depuis la page de détail de la réservation en cliquant sur "Approuver la réservation". Une fois approuvée, elle passe au statut "confirmed" et un email de confirmation est envoyé au client.',
+    title: '✅ Comment confirmer une réservation ?',
+    content: `Quand un client fait une réservation, vous recevez une notification.
+
+📋 Étapes simples :
+1. Allez dans "Réservations" dans le menu
+2. Cherchez les réservations marquées "À approuver" (en bleu)
+3. Cliquez dessus pour voir les détails
+4. Cliquez sur le bouton "Approuver la réservation"
+
+Une fois approuvée, le client reçoit automatiquement un email de confirmation ! 📧`,
     category: 'faq',
-    keywords: ['réservation', 'confirmer', 'approuver', 'statut', 'verified', 'confirmed'],
+    keywords: ['réservation', 'confirmer', 'approuver', 'valider'],
+    icon: '✅',
   },
   {
     id: 'faq-booking-statuses',
-    title: 'Quels sont les statuts possibles ?',
-    content: 'Le workflow des statuts suit cet ordre : pending (en attente) → verified (vérifiée par email OTP) → confirmed (confirmée par admin) → in_progress (en cours) → completed (terminée) → cancelled (annulée)',
+    title: '🔄 Que signifient les couleurs des réservations ?',
+    content: `Chaque réservation a une couleur qui indique son état :
+
+🟡 Jaune "En attente" → Le client n'a pas encore confirmé son email
+🔵 Bleu "À approuver" → Le client a confirmé, c'est à vous d'approuver
+🟢 Vert "Confirmé" → Tout est bon, la course est programmée
+🟣 Violet "En cours" → La course est en train de se faire
+⚫ Gris "Terminé" → La course est finie
+🔴 Rouge "Annulé" → La réservation a été annulée`,
     category: 'faq',
-    keywords: ['statut', 'workflow', 'pending', 'verified', 'confirmed', 'completed', 'cancelled'],
+    keywords: ['statut', 'couleur', 'état', 'réservation'],
+    icon: '🔄',
   },
   {
     id: 'faq-edit-booking',
-    title: 'Comment modifier une réservation ?',
-    content: 'Depuis la page de détail, cliquez sur "Modifier" pour éditer les informations. Les modifications sont sauvegardées immédiatement.',
+    title: '✏️ Comment modifier une réservation ?',
+    content: `Vous pouvez modifier les détails d'une réservation à tout moment.
+
+📋 Comment faire :
+1. Cliquez sur la réservation que vous voulez modifier
+2. Cliquez sur "Modifier" en haut de la page
+3. Changez les informations (date, heure, adresse...)
+4. Cliquez sur "Enregistrer"
+
+💡 Conseil : Si vous changez une information importante (date, heure), pensez à prévenir le client !`,
     category: 'faq',
-    keywords: ['modifier', 'éditer', 'réservation', 'changement'],
-  },
-  {
-    id: 'faq-generate-invoice',
-    title: 'Comment générer une facture ou un devis ?',
-    content: 'Sur la page de détail de la réservation, utilisez les boutons "Générer facture" ou "Générer devis". Les documents sont créés au format PDF et stockés dans Vercel Blob Storage.',
-    category: 'faq',
-    keywords: ['facture', 'devis', 'générer', 'pdf', 'document'],
+    keywords: ['modifier', 'changer', 'éditer', 'réservation'],
+    icon: '✏️',
   },
 
-  // FAQ - Tarification
+  // ============================================
+  // 📄 FACTURES ET DEVIS
+  // ============================================
   {
-    id: 'faq-change-pricing',
-    title: 'Comment modifier les tarifs ?',
-    content: 'Allez dans Paramètres > Tarification. Vous pouvez modifier tous les tarifs (forfaits, tarifs jour/nuit, aéroports, MDA) via l\'interface à onglets. Les modifications sont immédiates et s\'appliquent aux nouvelles réservations.',
+    id: 'faq-generate-invoice',
+    title: '📄 Comment créer une facture ou un devis ?',
+    content: `Créer une facture ou un devis, c'est très simple !
+
+📋 Étapes :
+1. Allez sur la page de la réservation
+2. Cliquez sur "Générer facture" ou "Générer devis"
+3. Attendez quelques secondes
+4. Le document est prêt !
+
+📧 Vous pouvez ensuite :
+• Voir le document (cliquez sur "Voir")
+• L'envoyer au client par email (cliquez sur "Envoyer")
+• Copier le lien pour le partager`,
     category: 'faq',
-    keywords: ['tarif', 'prix', 'modifier', 'paramètres', 'forfait'],
+    keywords: ['facture', 'devis', 'créer', 'générer', 'document'],
+    icon: '📄',
   },
   {
-    id: 'faq-pricing-existing-bookings',
-    title: 'Les changements de tarifs affectent-ils les réservations existantes ?',
-    content: 'Non, seules les nouvelles réservations utilisent les nouveaux tarifs. Les réservations existantes conservent leurs prix d\'origine.',
+    id: 'faq-customize-invoices',
+    title: '🏢 Comment personnaliser mes factures ?',
+    content: `Vous pouvez ajouter les informations de votre entreprise sur toutes les factures.
+
+📋 Comment faire :
+1. Allez dans "Factures & Devis" dans le menu de gauche
+2. Cliquez sur l'onglet "Paramètres"
+3. Remplissez les informations :
+   • Nom de votre entreprise
+   • Adresse, téléphone, email
+   • Numéro SIRET et TVA
+   • Coordonnées bancaires
+4. Cliquez sur "Enregistrer"
+
+✨ Ces informations apparaîtront automatiquement sur tous vos documents !`,
     category: 'faq',
-    keywords: ['tarif', 'prix', 'réservation', 'existante', 'changement'],
+    keywords: ['facture', 'personnaliser', 'entreprise', 'paramètres'],
+    icon: '🏢',
+  },
+  {
+    id: 'faq-send-document',
+    title: '📧 Comment envoyer un document au client ?',
+    content: `Après avoir créé une facture ou un devis, vous pouvez l'envoyer directement par email.
+
+📋 Étapes :
+1. Sur la page de la réservation, créez d'abord le document
+2. Cliquez sur "Envoyer"
+3. Choisissez "Envoyer au client"
+4. C'est fait ! Le client reçoit le document par email
+
+💡 Le client recevra un bel email avec un lien pour télécharger le document.`,
+    category: 'faq',
+    keywords: ['envoyer', 'email', 'document', 'client'],
+    icon: '📧',
+  },
+
+  // ============================================
+  // 💰 TARIFICATION
+  // ============================================
+  {
+    id: 'faq-change-pricing',
+    title: '💰 Comment modifier mes tarifs ?',
+    content: `Vous pouvez changer tous vos prix à tout moment.
+
+📋 Comment faire :
+1. Cliquez sur "Tarification" dans le menu de gauche
+2. Choisissez ce que vous voulez modifier :
+   • Forfaits horaires
+   • Tarifs au kilomètre (jour/nuit)
+   • Prix des aéroports
+3. Modifiez les prix
+4. Les changements sont sauvegardés automatiquement
+
+⚠️ Important : Les nouvelles réservations utiliseront les nouveaux tarifs. Les réservations déjà faites gardent leurs anciens prix.`,
+    category: 'faq',
+    keywords: ['tarif', 'prix', 'modifier', 'forfait'],
+    icon: '💰',
   },
   {
     id: 'faq-reset-pricing',
-    title: 'Comment réinitialiser les tarifs ?',
-    content: 'Dans la page Tarification, cliquez sur "Réinitialiser" pour restaurer les valeurs par défaut. Attention : cette action remplace tous les tarifs actuels.',
+    title: '🔄 Comment revenir aux tarifs par défaut ?',
+    content: `Si vous avez fait des erreurs dans vos tarifs, vous pouvez tout remettre comme au début.
+
+⚠️ Attention : Cette action remplace TOUS vos tarifs actuels !
+
+📋 Comment faire :
+1. Allez dans "Tarification"
+2. Cliquez sur le bouton "Réinitialiser" (en rouge)
+3. Confirmez votre choix
+
+💡 Conseil : Notez vos tarifs actuels avant de réinitialiser, au cas où.`,
     category: 'faq',
     keywords: ['tarif', 'réinitialiser', 'défaut', 'reset'],
+    icon: '🔄',
   },
 
-  // FAQ - Factures et Devis
-  {
-    id: 'faq-customize-invoices',
-    title: 'Comment personnaliser les factures et devis ?',
-    content: 'Allez dans Paramètres > Factures & Devis. Vous pouvez modifier les informations de l\'entreprise, les préfixes de numérotation, la validité des devis, et activer/désactiver l\'affichage des détails de calcul.',
-    category: 'faq',
-    keywords: ['facture', 'devis', 'personnaliser', 'paramètres', 'entreprise'],
-  },
-  {
-    id: 'faq-invoice-details',
-    title: 'Que contiennent les factures détaillées ?',
-    content: 'Les factures détaillées incluent : le détail du calcul (prise en charge, distance, heures supplémentaires, MDA), les segments de distance (CA, TP, Retour), et toutes les informations de trajet.',
-    category: 'faq',
-    keywords: ['facture', 'détails', 'calcul', 'distance', 'MDA'],
-  },
-  {
-    id: 'faq-document-storage',
-    title: 'Où sont stockés les documents générés ?',
-    content: 'Les documents PDF sont sauvegardés dans Vercel Blob Storage. Les URLs sont stockées dans la base de données (champs devis_pdf_url, facture_pdf_url, etc.).',
-    category: 'faq',
-    keywords: ['document', 'stockage', 'pdf', 'blob', 'vercel'],
-  },
-
-  // FAQ - Workflow
-  {
-    id: 'faq-booking-workflow',
-    title: 'Quel est le processus complet de réservation ?',
-    content: '1. Client crée une estimation → 2. Client confirme via email OTP → 3. Réservation passe en "verified" → 4. Admin approuve → 5. Réservation passe en "confirmed" → 6. Email de confirmation envoyé → 7. Service effectué → 8. Statut "completed"',
-    category: 'faq',
-    keywords: ['workflow', 'processus', 'réservation', 'étapes'],
-  },
-  {
-    id: 'faq-auto-confirm',
-    title: 'Les réservations sont-elles automatiquement confirmées ?',
-    content: 'Non. Même après vérification par email OTP, les réservations nécessitent une approbation manuelle par l\'administrateur. Cela vous donne un contrôle total sur les réservations acceptées.',
-    category: 'faq',
-    keywords: ['confirmation', 'automatique', 'approbation', 'manuel', 'contrôle'],
-  },
-
-  // Documentation - PDF Generation
-  {
-    id: 'doc-pdf-system',
-    title: 'Système de génération PDF',
-    content: `Le système de génération PDF utilise @react-pdf/renderer pour créer des documents professionnels. Chaque type de document (devis, facture, bon de commande, bon de réservation) a son propre champ dans la base de données.
-
-**Workflow complet :**
-1. Admin clique "Générer Facture"
-2. POST /api/admin/bookings/{id}/generate-pdf?type=facture
-3. @react-pdf/renderer génère le PDF
-4. Upload vers Vercel Blob
-5. Sauvegarde de l'URL dans la DB (facture_pdf_url)
-6. Retour JSON avec URL et actions disponibles
-
-**Réponse API :**
-{
-  "success": true,
-  "url": "https://blob.vercel-storage.com/facture-123-xxx.pdf",
-  "filename": "facture-123-xxx.pdf",
-  "type": "facture",
-  "bookingId": 123,
-  "actions": {
-    "download": "...",
-    "sendToClient": "...",
-    "sendToDriver": "..."
-  }
-}`,
-    category: 'documentation',
-    keywords: ['pdf', 'génération', 'facture', 'devis', 'react-pdf', 'blob', 'workflow'],
-  },
-  {
-    id: 'doc-pdf-sending',
-    title: 'Envoi de documents par email',
-    content: `L'API permet d'envoyer les documents générés par email aux clients et chauffeurs.
-
-**Endpoint :**
-POST /api/admin/bookings/{id}/send-document?type=facture&recipient=client
-
-**Fonctionnalités :**
-- Email stylé avec couleurs MobiService (#00FF88)
-- Lien direct vers le PDF dans Blob Storage
-- Détails de la réservation inclus
-- Support client et chauffeur
-
-**Template email inclut :**
-- Header avec logo MobiService
-- Détails de la réservation (date, trajet, passagers)
-- Bouton CTA pour télécharger le PDF
-- Footer avec coordonnées
-- Version texte brut pour compatibilité`,
-    category: 'documentation',
-    keywords: ['email', 'envoi', 'document', 'client', 'chauffeur', 'resend'],
-  },
-  {
-    id: 'doc-database-schema',
-    title: 'Schéma de base de données - Documents',
-    content: `Chaque type de document a son propre champ dans la table bookings :
-
-**Champs ajoutés :**
-- devis_pdf_url: URL Blob du devis
-- facture_pdf_url: URL Blob de la facture
-- bon_commande_pdf_url: URL Blob du bon de commande
-- bon_reservation_pdf_url: URL Blob du bon de réservation
-- last_pdf_generated_at: Timestamp de dernière génération
-
-**Migration SQL :**
-ALTER TABLE bookings ADD COLUMN IF NOT EXISTS devis_pdf_url TEXT;
-ALTER TABLE bookings ADD COLUMN IF NOT EXISTS facture_pdf_url TEXT;
-ALTER TABLE bookings ADD COLUMN IF NOT EXISTS bon_commande_pdf_url TEXT;
-ALTER TABLE bookings ADD COLUMN IF NOT EXISTS bon_reservation_pdf_url TEXT;
-ALTER TABLE bookings ADD COLUMN IF NOT EXISTS last_pdf_generated_at TIMESTAMP;
-
-Voir migrations/add-pdf-url-fields.sql pour le script complet.`,
-    category: 'documentation',
-    keywords: ['database', 'schema', 'migration', 'sql', 'pdf', 'url', 'neon'],
-  },
-
-  // Guide - Usage pratique
-  {
-    id: 'guide-generate-pdf',
-    title: 'Guide : Générer un document PDF',
-    content: `**Étape par étape :**
-
-1. Accédez à la page de détail de la réservation
-2. Cliquez sur "Générer facture" ou "Générer devis"
-3. Le système génère le PDF (peut prendre 3-5 secondes)
-4. Une fois généré, vous avez 4 options :
-   - **Télécharger** : Ouvre le PDF dans un nouvel onglet
-   - **Envoyer au client** : Email automatique au client
-   - **Envoyer au chauffeur** : Email automatique au chauffeur
-   - **Copier le lien** : Copie l'URL publique dans le presse-papier
-
-**Code exemple (Frontend) :**
-\`\`\`javascript
-async function generatePDF(bookingId, type) {
-  const response = await fetch(
-    \`/api/admin/bookings/\${bookingId}/generate-pdf?type=\${type}\`,
-    { method: 'POST' }
-  );
-  const data = await response.json();
-  
-  if (data.success) {
-    // Document prêt - URL dans data.url
-    return data;
-  }
-}
-\`\`\``,
-    category: 'guide',
-    keywords: ['guide', 'tutoriel', 'générer', 'pdf', 'facture', 'devis', 'étapes'],
-  },
-  {
-    id: 'guide-send-document',
-    title: 'Guide : Envoyer un document par email',
-    content: `**Comment envoyer un document :**
-
-1. Générez d'abord le document (devis ou facture)
-2. Cliquez sur "Envoyer"
-3. Choisissez le destinataire :
-   - **Au client** : Envoie à l'email du client (booking.guestEmail)
-   - **Au chauffeur** : Envoie à l'email configuré (DRIVER_EMAIL)
-4. Le système envoie l'email via Resend
-5. Confirmation affichée à l'écran
-
-**Email contenu :**
-- Objet personnalisé avec numéro de réservation
-- Message de présentation
-- Détails du trajet
-- Bouton de téléchargement du PDF
-- Coordonnées de contact
-
-**Code exemple :**
-\`\`\`javascript
-async function sendDocument(bookingId, type, recipient) {
-  const response = await fetch(
-    \`/api/admin/bookings/\${bookingId}/send-document?type=\${type}&recipient=\${recipient}\`,
-    { method: 'POST' }
-  );
-  const data = await response.json();
-  
-  if (data.success) {
-    alert(\`Document envoyé à \${data.recipient}\`);
-  }
-}
-\`\`\``,
-    category: 'guide',
-    keywords: ['guide', 'envoyer', 'email', 'document', 'client', 'chauffeur'],
-  },
-
-  // Configuration
-  {
-    id: 'config-env-vars',
-    title: 'Variables d\'environnement requises',
-    content: `**Variables essentielles pour la génération PDF :**
-
-\`\`\`bash
-# Vercel Blob Storage (REQUIS pour PDF)
-BLOB_READ_WRITE_TOKEN=vercel_blob_xxxxx
-
-# Resend (REQUIS pour envoi email)
-RESEND_API_KEY=re_xxxxx
-RESEND_FROM_EMAIL=noreply@mobiservice-vtc.fr
-
-# URL de l'application
-NEXT_PUBLIC_APP_URL=https://votre-domaine.vercel.app
-
-# Email du chauffeur (optionnel)
-DRIVER_EMAIL=chauffeur@mobiservice-vtc.fr
-\`\`\`
-
-**Comment obtenir les tokens :**
-
-1. **Vercel Blob** : 
-   - Aller sur https://vercel.com/dashboard
-   - Sélectionner votre projet
-   - Storage → Blob → Create Store
-   - Copier le token généré
-
-2. **Resend API** :
-   - Créer un compte sur https://resend.com
-   - Générer une API key
-   - Vérifier votre domaine d'envoi`,
-    category: 'configuration',
-    keywords: ['configuration', 'environnement', 'variable', 'blob', 'resend', 'token', 'api'],
-  },
-  {
-    id: 'config-troubleshooting',
-    title: 'Résolution de problèmes courants',
-    content: `**Erreur : "BLOB_READ_WRITE_TOKEN n'est pas configuré"**
-→ Ajouter la variable d'environnement dans Vercel ou .env.local
-
-**PDF ne se génère pas (timeout)**
-→ Vérifier que la fonction a bien 30s de timeout dans vercel.json
-→ Vérifier les logs Vercel pour l'erreur exacte
-
-**Cold start très lent (> 10s)**
-→ Normal pour le premier appel (Puppeteer + Chrome)
-→ Les appels suivants sont plus rapides (< 5s)
-
-**Erreur : "Booking not found"**
-→ Vérifier que la réservation existe dans la DB
-→ Vérifier l'ID dans l'URL
-
-**Erreur : "Non autorisé"**
-→ Pour admin : vérifier la connexion
-→ Pour client : vérifier l'email et le code OTP
-
-**Email non reçu**
-→ Vérifier RESEND_API_KEY dans les variables d'environnement
-→ Vérifier que le domaine est vérifié dans Resend
-→ Consulter les logs Resend (dashboard)`,
-    category: 'configuration',
-    keywords: ['troubleshooting', 'erreur', 'problème', 'debug', 'timeout', 'blob', 'email'],
-  },
-  {
-    id: 'config-performance',
-    title: 'Performance et coûts',
-    content: `**Performance attendue :**
-- Première génération : 10-15s (cold start Puppeteer)
-- Générations suivantes : 3-5s
-- Cache : PDF sauvegardé dans Blob Storage
-- Régénération : Ajouter ?regenerate=true à l'URL
-
-**Coûts estimés (Vercel) :**
-- Blob Storage : ~$0.15/GB/mois + $0.02/GB transfert
-- Vercel Functions : Inclus dans le plan (limite: 100 GB-hours/mois sur Hobby)
-- PDF moyen : ~200-500 KB
-- 1000 PDFs/mois : ~$0.10-0.20
-
-**Optimisations :**
-- Les PDFs sont mis en cache après génération
-- Pas de régénération automatique (manuel uniquement)
-- Compression automatique par Vercel Blob
-- Rate limiting recommandé pour l'endpoint public`,
-    category: 'configuration',
-    keywords: ['performance', 'coûts', 'optimisation', 'cache', 'vercel', 'blob'],
-  },
-
-  // Paramètres généraux
+  // ============================================
+  // ⚙️ PARAMÈTRES
+  // ============================================
   {
     id: 'faq-working-hours',
-    title: 'Comment configurer les horaires d\'ouverture ?',
-    content: 'Allez dans Paramètres > Horaires. Configurez les heures d\'ouverture pour chaque jour de la semaine et activez/désactivez les jours selon vos besoins.',
+    title: '🕐 Comment configurer mes horaires ?',
+    content: `Définissez les jours et heures où vous travaillez.
+
+📋 Comment faire :
+1. Cliquez sur "Horaires" dans le menu
+2. Pour chaque jour de la semaine :
+   • Activez ou désactivez le jour
+   • Choisissez l'heure d'ouverture
+   • Choisissez l'heure de fermeture
+3. Cliquez sur "Enregistrer"
+
+💡 Les clients ne pourront pas réserver en dehors de ces horaires !`,
     category: 'faq',
-    keywords: ['horaires', 'ouverture', 'paramètres', 'configuration'],
+    keywords: ['horaires', 'ouverture', 'fermeture', 'jours'],
+    icon: '🕐',
   },
   {
     id: 'faq-depot-address',
-    title: 'Comment modifier l\'adresse du dépôt ?',
-    content: 'Allez dans Paramètres > Dépôt VTC. Modifiez l\'adresse et les coordonnées GPS. Cette adresse est utilisée pour calculer les distances CA et retour.',
+    title: '📍 Comment changer l\'adresse de mon dépôt ?',
+    content: `L'adresse du dépôt est utilisée pour calculer les prix.
+
+📋 Comment faire :
+1. Cliquez sur "Dépôt VTC" dans le menu
+2. Tapez votre nouvelle adresse dans le champ
+3. Sélectionnez l'adresse exacte dans la liste
+4. Cliquez sur "Enregistrer"
+
+💡 C'est l'adresse d'où partent vos véhicules. Le système l'utilise pour calculer les distances.`,
     category: 'faq',
-    keywords: ['dépôt', 'adresse', 'gps', 'paramètres', 'CA'],
+    keywords: ['dépôt', 'adresse', 'garage', 'base'],
+    icon: '📍',
   },
   {
     id: 'faq-change-password',
-    title: 'Comment changer mon mot de passe ?',
-    content: 'Allez dans Paramètres > Mot de passe. Entrez votre ancien mot de passe et le nouveau. Le mot de passe doit contenir au moins 8 caractères.',
+    title: '🔒 Comment changer mon mot de passe ?',
+    content: `Pour plus de sécurité, changez votre mot de passe régulièrement.
+
+📋 Comment faire :
+1. Cliquez sur "Mot de passe" dans le menu
+2. Entrez votre mot de passe actuel
+3. Entrez votre nouveau mot de passe (2 fois)
+4. Cliquez sur "Changer le mot de passe"
+
+🔐 Votre mot de passe doit avoir :
+• Au moins 8 caractères
+• Une majuscule (A, B, C...)
+• Une minuscule (a, b, c...)
+• Un chiffre (1, 2, 3...)`,
     category: 'faq',
-    keywords: ['mot de passe', 'password', 'sécurité', 'changer'],
+    keywords: ['mot de passe', 'changer', 'sécurité'],
+    icon: '🔒',
+  },
+
+  // ============================================
+  // 📖 GUIDES PRATIQUES
+  // ============================================
+  {
+    id: 'guide-new-booking',
+    title: '📖 Guide : Traiter une nouvelle réservation',
+    content: `Quand vous recevez une nouvelle réservation, voici ce qu'il faut faire :
+
+📋 Étapes :
+1️⃣ Regardez la liste des réservations "À approuver" (en bleu)
+2️⃣ Cliquez sur la réservation pour voir les détails
+3️⃣ Vérifiez les informations :
+   • Date et heure ✓
+   • Adresses de départ et d'arrivée ✓
+   • Nombre de passagers ✓
+   • Prix ✓
+4️⃣ Si tout est bon, cliquez sur "Approuver"
+5️⃣ Le client reçoit un email automatiquement
+
+🎉 C'est fait ! La course est confirmée.`,
+    category: 'guide',
+    keywords: ['guide', 'nouvelle', 'réservation', 'étapes'],
+    icon: '📖',
+  },
+  {
+    id: 'guide-daily-routine',
+    title: '📖 Guide : Ma routine quotidienne',
+    content: `Voici ce que vous devriez faire chaque jour :
+
+☀️ Le matin :
+1. Connectez-vous à l'administration
+2. Vérifiez s'il y a des réservations "À approuver"
+3. Regardez les courses du jour dans le tableau de bord
+
+📅 Pendant la journée :
+4. Approuvez les nouvelles réservations rapidement
+5. Marquez les courses comme "Terminées" après chaque trajet
+
+🌙 Le soir :
+6. Vérifiez que toutes les courses du jour sont marquées "Terminées"
+7. Jetez un œil aux réservations de demain
+
+💡 Conseil : Plus vous répondez vite aux réservations, plus vos clients seront contents !`,
+    category: 'guide',
+    keywords: ['guide', 'quotidien', 'routine', 'jour'],
+    icon: '📖',
+  },
+  {
+    id: 'guide-create-invoice',
+    title: '📖 Guide : Créer et envoyer une facture',
+    content: `Après une course, vous pouvez créer et envoyer la facture au client :
+
+📋 Étapes :
+1️⃣ Allez sur la page de la réservation terminée
+2️⃣ Cliquez sur "Générer facture"
+3️⃣ Attendez quelques secondes (le document se crée)
+4️⃣ Une fois créée, cliquez sur "Envoyer" puis "Au client"
+
+✅ Le client reçoit la facture par email !
+
+💡 Vous pouvez aussi :
+• Télécharger la facture pour l'imprimer
+• Copier le lien pour l'envoyer vous-même`,
+    category: 'guide',
+    keywords: ['guide', 'facture', 'créer', 'envoyer'],
+    icon: '📖',
   },
 ];
 
-// Helper function to search help content
+// Fonction de recherche simplifiée
 export function searchHelpContent(query: string): HelpSection[] {
-  const lowercaseQuery = query.toLowerCase().trim();
-  
-  if (!lowercaseQuery) {
-    return helpSections;
-  }
+  const q = query.toLowerCase().trim();
+
+  if (!q) return helpSections;
 
   return helpSections.filter(section => {
-    const titleMatch = section.title.toLowerCase().includes(lowercaseQuery);
-    const contentMatch = section.content.toLowerCase().includes(lowercaseQuery);
-    const keywordMatch = section.keywords.some(keyword => 
-      keyword.toLowerCase().includes(lowercaseQuery)
-    );
-    
+    const titleMatch = section.title.toLowerCase().includes(q);
+    const contentMatch = section.content.toLowerCase().includes(q);
+    const keywordMatch = section.keywords.some(k => k.toLowerCase().includes(q));
+
     return titleMatch || contentMatch || keywordMatch;
   });
 }
 
-// Get sections by category
+// Récupérer les sections par catégorie
 export function getHelpByCategory(category: HelpSection['category']): HelpSection[] {
   return helpSections.filter(section => section.category === category);
 }
-

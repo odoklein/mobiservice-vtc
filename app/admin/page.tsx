@@ -275,7 +275,7 @@ export default async function AdminDashboard() {
                                     {stats.verified} réservation{stats.verified > 1 ? 's' : ''} en attente d'approbation
                                 </h3>
                                 <p className="text-sm text-blue-700 mb-4">
-                                    Ces réservations ont été vérifiées par OTP et nécessitent votre confirmation avant d'être validées.
+                                    Ces clients ont confirmé leur email et attendent votre réponse.
                                 </p>
                                 <Link
                                     href="/admin/bookings?status=verified"
@@ -289,100 +289,130 @@ export default async function AdminDashboard() {
                     </div>
                 )}
 
-                {/* Stats Grid */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-                    <Card className="border-0 shadow-md bg-white">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-slate-600">Aujourd'hui</CardTitle>
-                            <div className="p-2 rounded-lg bg-sky-50">
-                                <Calendar className="h-4 w-4 text-sky-600" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-slate-900">{stats.today}</div>
-                            <p className="text-xs text-slate-500 mt-1">réservations</p>
-                        </CardContent>
-                    </Card>
+                {/* Stats Grid - Clickable Cards */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Link href="/admin/bookings" className="group">
+                        <Card className="border-0 shadow-md bg-white hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-600">Aujourd'hui</CardTitle>
+                                <div className="p-2 rounded-lg bg-sky-50 group-hover:bg-sky-100 transition-colors">
+                                    <Calendar className="h-4 w-4 text-sky-600" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold text-slate-900">{stats.today}</div>
+                                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                    réservations
+                                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </Link>
 
-                    <Card className="border-0 shadow-md bg-white">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-slate-600">En attente</CardTitle>
-                            <div className="p-2 rounded-lg bg-amber-50">
-                                <Clock className="h-4 w-4 text-amber-600" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-slate-900">{stats.pending}</div>
-                            <p className="text-xs text-slate-500 mt-1">création initiale</p>
-                        </CardContent>
-                    </Card>
+                    <Link href="/admin/bookings?status=verified" className="group">
+                        <Card className={`border-0 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer ${stats.verified > 0 ? 'border-2 border-blue-300 bg-blue-50 hover:bg-blue-100' : 'bg-white'}`}>
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-600">À approuver</CardTitle>
+                                <div className={`p-2 rounded-lg transition-colors ${stats.verified > 0 ? 'bg-blue-100 group-hover:bg-blue-200' : 'bg-slate-100 group-hover:bg-slate-200'}`}>
+                                    <CheckCircle className={`h-4 w-4 ${stats.verified > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className={`text-3xl font-bold ${stats.verified > 0 ? 'text-blue-600' : 'text-slate-900'}`}>
+                                    {stats.verified}
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                    clients confirmés
+                                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </Link>
 
-                    <Card className={`border-0 shadow-md ${stats.verified > 0 ? 'border-2 border-blue-300 bg-blue-50' : 'bg-white'}`}>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-slate-600">À approuver</CardTitle>
-                            <div className={`p-2 rounded-lg ${stats.verified > 0 ? 'bg-blue-100' : 'bg-slate-100'}`}>
-                                <CheckCircle className={`h-4 w-4 ${stats.verified > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className={`text-2xl font-bold ${stats.verified > 0 ? 'text-blue-600' : 'text-slate-900'}`}>
-                                {stats.verified}
-                            </div>
-                            <p className="text-xs text-slate-500 mt-1">vérifiées (OTP OK)</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-0 shadow-md bg-white">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-slate-600">Espèces</CardTitle>
-                            <div className="p-2 rounded-lg bg-orange-50">
-                                <AlertCircle className="h-4 w-4 text-orange-600" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-slate-900">{stats.cashPending}</div>
-                            <p className="text-xs text-slate-500 mt-1">paiements en attente</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-0 shadow-md bg-white">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-slate-600">Total réservations</CardTitle>
-                            <div className="p-2 rounded-lg bg-purple-50">
-                                <TrendingUp className="h-4 w-4 text-purple-600" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-slate-900">{stats.totalBookings}</div>
-                            <p className="text-xs text-slate-500 mt-1">depuis le début</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-0 shadow-md bg-white">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-slate-600">CA ce mois</CardTitle>
-                            <div className="p-2 rounded-lg bg-blue-50">
-                                <Euro className="h-4 w-4 text-blue-600" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-slate-900">{formatPrice(stats.monthlyRevenue)}</div>
-                            <p className="text-xs text-slate-500 mt-1">encaissé</p>
-                        </CardContent>
-                    </Card>
+                    <Link href="/admin/bookings?payment=cash" className="group">
+                        <Card className="border-0 shadow-md bg-white hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-600">Paiement espèces</CardTitle>
+                                <div className="p-2 rounded-lg bg-orange-50 group-hover:bg-orange-100 transition-colors">
+                                    <AlertCircle className="h-4 w-4 text-orange-600" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold text-slate-900">{stats.cashPending}</div>
+                                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                    à encaisser
+                                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </Link>
 
                     <Card className="border-0 shadow-md bg-gradient-to-br from-slate-800 to-slate-900">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-slate-300">CA total</CardTitle>
+                            <CardTitle className="text-sm font-medium text-slate-300">Chiffre d'affaires</CardTitle>
                             <div className="p-2 rounded-lg bg-white/10">
                                 <Euro className="h-4 w-4 text-emerald-400" />
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-white">{formatPrice(stats.revenue)}</div>
-                            <p className="text-xs text-slate-400 mt-1">total encaissé</p>
+                            <div className="text-3xl font-bold text-white">{formatPrice(stats.revenue)}</div>
+                            <p className="text-xs text-slate-400 mt-1">
+                                {formatPrice(stats.monthlyRevenue)} ce mois
+                            </p>
                         </CardContent>
                     </Card>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="grid gap-3 md:grid-cols-4">
+                    <Link
+                        href="/admin/bookings/new"
+                        className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-sky-300 group"
+                    >
+                        <div className="p-2 rounded-lg bg-sky-50 group-hover:bg-sky-100 transition-colors">
+                            <Calendar className="h-5 w-5 text-sky-600" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-slate-800 text-sm">Nouvelle réservation</p>
+                            <p className="text-xs text-slate-500">Créer manuellement</p>
+                        </div>
+                    </Link>
+                    <Link
+                        href="/admin/settings/invoices"
+                        className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-emerald-300 group"
+                    >
+                        <div className="p-2 rounded-lg bg-emerald-50 group-hover:bg-emerald-100 transition-colors">
+                            <TrendingUp className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-slate-800 text-sm">Factures & Devis</p>
+                            <p className="text-xs text-slate-500">Gérer les documents</p>
+                        </div>
+                    </Link>
+                    <Link
+                        href="/admin/settings/pricing"
+                        className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-amber-300 group"
+                    >
+                        <div className="p-2 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors">
+                            <Euro className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-slate-800 text-sm">Mes tarifs</p>
+                            <p className="text-xs text-slate-500">Modifier les prix</p>
+                        </div>
+                    </Link>
+                    <Link
+                        href="/admin/help"
+                        className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-purple-300 group"
+                    >
+                        <div className="p-2 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
+                            <Settings className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-slate-800 text-sm">Besoin d'aide ?</p>
+                            <p className="text-xs text-slate-500">Guides et FAQ</p>
+                        </div>
+                    </Link>
                 </div>
 
                 {/* Recent Bookings */}
