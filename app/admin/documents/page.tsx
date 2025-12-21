@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { RefreshCw, FileText, Calendar, MapPin, User, Phone, Euro } from 'lucide-react';
+import { DocumentCard } from '@/components/admin/DocumentCard';
 
 interface Document {
   url: string;
@@ -90,185 +92,214 @@ export default function DocumentsPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      verified: 'bg-blue-100 text-blue-800',
-      confirmed: 'bg-green-100 text-green-800',
-      completed: 'bg-purple-100 text-purple-800',
-      cancelled: 'bg-red-100 text-red-800',
+    const styles: Record<string, string> = {
+      pending: 'bg-amber-100 text-amber-800 border-amber-200',
+      verified: 'bg-blue-100 text-blue-800 border-blue-200',
+      confirmed: 'bg-green-100 text-green-800 border-green-200',
+      completed: 'bg-purple-100 text-purple-800 border-purple-200',
+      cancelled: 'bg-red-100 text-red-800 border-red-200',
     };
     
     return (
-      <Badge className={colors[status] || 'bg-gray-100 text-gray-800'}>
+      <Badge className={`${styles[status] || 'bg-gray-100 text-gray-800 border-gray-200'} border`}>
         {status}
       </Badge>
     );
   };
 
-  const renderDocumentActions = (doc: Document | null, bookingId: number) => {
+  const renderDocumentCard = (doc: Document | null, bookingId: number, title: string, borderColor: string) => {
     if (!doc) return null;
 
+    const isLoading = sending?.startsWith(`${bookingId}-${doc.type}`);
+
     return (
-      <div className="flex gap-2 mt-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleView(doc.url)}
-          className="flex items-center gap-1"
-        >
-          <span>👁️</span> Voir
-        </Button>
-        
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleSend(bookingId, doc.type, 'client')}
-          disabled={sending === `${bookingId}-${doc.type}-client`}
-          className="flex items-center gap-1"
-        >
-          <span>📧</span> Client
-        </Button>
-        
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleSend(bookingId, doc.type, 'driver')}
-          disabled={sending === `${bookingId}-${doc.type}-driver`}
-          className="flex items-center gap-1"
-        >
-          <span>🚗</span> Chauffeur
-        </Button>
-        
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleShare(doc.url)}
-          className="flex items-center gap-1"
-        >
-          <span>🔗</span> Copier
-        </Button>
-      </div>
+      <DocumentCard
+        doc={doc}
+        bookingId={bookingId}
+        title={title}
+        borderColor={borderColor}
+        isLoading={isLoading}
+        onView={handleView}
+        onSend={handleSend}
+        onShare={handleShare}
+      />
     );
   };
 
   if (loading) {
     return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">Factures et Devis</h1>
-        <div className="text-center py-12">Chargement...</div>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#0A0A0A] to-[#1A1A1A] text-white px-8 py-8">
+          <h1 className="text-3xl font-bold mb-2">Factures et Devis</h1>
+          <p className="text-white/70">Gérez et envoyez vos documents professionnels</p>
+        </div>
+        
+        <div className="p-8">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00FF88] mx-auto mb-4"></div>
+              <p className="text-gray-600">Chargement des documents...</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Factures et Devis</h1>
-        <Button onClick={() => fetchDocuments(filter)} variant="outline">
-          🔄 Actualiser
-        </Button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-[#0A0A0A] to-[#1A1A1A] text-white px-8 py-8">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Factures et Devis</h1>
+            <p className="text-white/70">Gérez et envoyez vos documents professionnels</p>
+          </div>
+          <Button 
+            onClick={() => fetchDocuments(filter)} 
+            variant="outline"
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="mb-6">
-        <TabsList>
-          <TabsTrigger value="all">Tous ({documents.length})</TabsTrigger>
-          <TabsTrigger value="facture">Factures</TabsTrigger>
-          <TabsTrigger value="devis">Devis</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="p-8">
+        {/* Tabs */}
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="mb-8">
+          <TabsList className="bg-white shadow-sm border">
+            <TabsTrigger 
+              value="all"
+              className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
+            >
+              Tous <span className="ml-2 px-2 py-0.5 rounded-full bg-gray-100 text-xs font-medium">{documents.length}</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="facture"
+              className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
+            >
+              Factures
+            </TabsTrigger>
+            <TabsTrigger 
+              value="devis"
+              className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
+            >
+              Devis
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-      {documents.length === 0 ? (
-        <Card className="p-8 text-center text-gray-500">
-          Aucun document trouvé
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {documents.map((item) => (
-            <Card key={item.bookingId} className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl font-bold">
-                      Réservation #{item.bookingId}
-                    </h3>
-                    {getStatusBadge(item.status)}
-                  </div>
-                  
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p><strong>Client:</strong> {item.guestName}</p>
-                    <p><strong>Email:</strong> {item.guestEmail}</p>
-                    <p><strong>Téléphone:</strong> {item.guestPhone}</p>
-                    <p><strong>Date:</strong> {new Date(item.pickupDate).toLocaleDateString('fr-FR')} à {item.pickupTime}</p>
-                    <p><strong>Trajet:</strong> {item.pickupAddress} → {item.dropoffAddress}</p>
-                    <p><strong>Montant:</strong> {parseFloat(item.totalPrice).toFixed(2)}€</p>
+        {/* Documents List */}
+        {documents.length === 0 ? (
+          <Card className="border-0 shadow-lg p-12 text-center">
+            <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucun document trouvé</h3>
+            <p className="text-gray-500">Les documents générés apparaîtront ici</p>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {documents.map((item) => (
+              <Card key={item.bookingId} className="border-0 shadow-lg overflow-hidden">
+                {/* Dark Header */}
+                <div className="bg-gradient-to-r from-[#0A0A0A] to-[#1A1A1A] text-white px-6 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl font-bold text-[#00FF88]">#{item.bookingId}</span>
+                      <div>
+                        <h3 className="font-semibold text-lg">{item.guestName}</h3>
+                        <p className="text-sm text-white/70">{item.guestEmail}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="flex items-center gap-2 text-white/70 text-sm mb-1">
+                          <Calendar className="h-4 w-4" />
+                          {new Date(item.pickupDate).toLocaleDateString('fr-FR')} à {item.pickupTime}
+                        </div>
+                        {item.lastGenerated && (
+                          <p className="text-xs text-white/50">
+                            Généré le {new Date(item.lastGenerated).toLocaleString('fr-FR')}
+                          </p>
+                        )}
+                      </div>
+                      {getStatusBadge(item.status)}
+                    </div>
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">
-                    Dernière génération: {item.lastGenerated 
-                      ? new Date(item.lastGenerated).toLocaleString('fr-FR')
-                      : 'N/A'
-                    }
-                  </p>
+                {/* Body */}
+                <div className="p-6 space-y-6">
+                  {/* Trip Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-6 border-b">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-5 w-5 text-[#00FF88] mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Trajet</p>
+                        <p className="text-sm font-medium text-[#0A0A0A]">
+                          {item.pickupAddress} → {item.dropoffAddress}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <User className="h-5 w-5 text-[#00FF88] mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Contact</p>
+                        <p className="text-sm font-medium text-[#0A0A0A]">{item.guestPhone}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <Euro className="h-5 w-5 text-[#00FF88] mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Montant</p>
+                        <p className="text-lg font-bold text-[#0A0A0A]">
+                          {parseFloat(item.totalPrice).toFixed(2)}€
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Documents Grid */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+                      Documents disponibles
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {renderDocumentCard(item.documents.devis, item.bookingId, 'Devis', 'border-blue-500')}
+                      {renderDocumentCard(item.documents.facture, item.bookingId, 'Facture', 'border-green-500')}
+                      {renderDocumentCard(item.documents.bonCommande, item.bookingId, 'Bon de commande', 'border-purple-500')}
+                      {renderDocumentCard(item.documents.bonReservation, item.bookingId, 'Bon de réservation', 'border-amber-500')}
+                    </div>
+                    
+                    {!item.documents.devis && !item.documents.facture && !item.documents.bonCommande && !item.documents.bonReservation && (
+                      <div className="text-center py-8 text-gray-400">
+                        <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Aucun document généré pour cette réservation</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer Link */}
+                  <div className="pt-4 border-t">
+                    <a 
+                      href={`/admin/bookings/${item.bookingId}`}
+                      className="text-sm text-[#00FF88] hover:text-[#00CC6A] font-medium transition-colors inline-flex items-center gap-2"
+                    >
+                      Voir la réservation complète
+                      <span className="text-lg">→</span>
+                    </a>
+                  </div>
                 </div>
-              </div>
-
-              <div className="border-t pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Devis */}
-                {item.documents.devis && (
-                  <div className="border rounded-lg p-4 bg-blue-50">
-                    <h4 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
-                      📄 Devis
-                    </h4>
-                    {renderDocumentActions(item.documents.devis, item.bookingId)}
-                  </div>
-                )}
-
-                {/* Facture */}
-                {item.documents.facture && (
-                  <div className="border rounded-lg p-4 bg-green-50">
-                    <h4 className="font-bold text-green-900 mb-2 flex items-center gap-2">
-                      📄 Facture
-                    </h4>
-                    {renderDocumentActions(item.documents.facture, item.bookingId)}
-                  </div>
-                )}
-
-                {/* Bon de commande */}
-                {item.documents.bonCommande && (
-                  <div className="border rounded-lg p-4 bg-purple-50">
-                    <h4 className="font-bold text-purple-900 mb-2 flex items-center gap-2">
-                      📄 Bon de commande
-                    </h4>
-                    {renderDocumentActions(item.documents.bonCommande, item.bookingId)}
-                  </div>
-                )}
-
-                {/* Bon de réservation */}
-                {item.documents.bonReservation && (
-                  <div className="border rounded-lg p-4 bg-yellow-50">
-                    <h4 className="font-bold text-yellow-900 mb-2 flex items-center gap-2">
-                      📄 Bon de réservation
-                    </h4>
-                    {renderDocumentActions(item.documents.bonReservation, item.bookingId)}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 pt-4 border-t">
-                <a 
-                  href={`/admin/bookings/${item.bookingId}`}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  → Voir la réservation complète
-                </a>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-

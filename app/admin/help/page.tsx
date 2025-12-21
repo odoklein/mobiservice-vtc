@@ -1,208 +1,360 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { HelpCircle, BookOpen, Settings, DollarSign, Calendar, FileText, Users, CheckCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  HelpCircle, 
+  BookOpen, 
+  Settings, 
+  DollarSign, 
+  Calendar, 
+  FileText, 
+  Users, 
+  ChevronDown,
+  Search,
+  Code,
+  AlertCircle,
+  Zap,
+  Database,
+  Mail
+} from 'lucide-react';
 import Link from 'next/link';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import { helpSections, searchHelpContent, getHelpByCategory } from '@/lib/help-content';
 
 export default function HelpPage() {
-  const sections = [
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('faq');
+
+  const filteredSections = searchQuery 
+    ? searchHelpContent(searchQuery)
+    : helpSections;
+
+  const faqSections = getHelpByCategory('faq');
+  const docSections = getHelpByCategory('documentation');
+  const guideSections = getHelpByCategory('guide');
+  const configSections = getHelpByCategory('configuration');
+
+  // Group FAQ by topic
+  const faqGroups = [
     {
       icon: Calendar,
       title: 'Gestion des réservations',
-      items: [
-        {
-          question: 'Comment confirmer une réservation ?',
-          answer: 'Les réservations sont créées avec le statut "verified" (vérifiée). Vous devez les approuver manuellement depuis la page de détail de la réservation en cliquant sur "Approuver la réservation". Une fois approuvée, elle passe au statut "confirmed" et un email de confirmation est envoyé au client.',
-        },
-        {
-          question: 'Quels sont les statuts possibles ?',
-          answer: 'pending (en attente) → verified (vérifiée par email OTP) → confirmed (confirmée par admin) → in_progress (en cours) → completed (terminée) → cancelled (annulée)',
-        },
-        {
-          question: 'Comment modifier une réservation ?',
-          answer: 'Depuis la page de détail, cliquez sur "Modifier" pour éditer les informations. Les modifications sont sauvegardées immédiatement.',
-        },
-        {
-          question: 'Comment générer une facture ou un devis ?',
-          answer: 'Sur la page de détail de la réservation, utilisez les boutons "Générer facture" ou "Générer devis". Les documents sont créés au format HTML et peuvent être imprimés ou convertis en PDF.',
-        },
-      ],
+      items: faqSections.filter(s => 
+        s.keywords.includes('réservation') || s.keywords.includes('workflow')
+      ),
     },
     {
       icon: DollarSign,
       title: 'Gestion de la tarification',
-      items: [
-        {
-          question: 'Comment modifier les tarifs ?',
-          answer: 'Allez dans Paramètres > Tarification. Vous pouvez modifier tous les tarifs (forfaits, tarifs jour/nuit, aéroports, MDA) via l\'interface à onglets. Les modifications sont immédiates et s\'appliquent aux nouvelles réservations.',
-        },
-        {
-          question: 'Les changements de tarifs affectent-ils les réservations existantes ?',
-          answer: 'Non, seules les nouvelles réservations utilisent les nouveaux tarifs. Les réservations existantes conservent leurs prix d\'origine.',
-        },
-        {
-          question: 'Comment réinitialiser les tarifs ?',
-          answer: 'Dans la page Tarification, cliquez sur "Réinitialiser" pour restaurer les valeurs par défaut. Attention : cette action remplace tous les tarifs actuels.',
-        },
-      ],
+      items: faqSections.filter(s => s.keywords.includes('tarif')),
     },
     {
       icon: FileText,
       title: 'Factures et Devis',
-      items: [
-        {
-          question: 'Comment personnaliser les factures et devis ?',
-          answer: 'Allez dans Paramètres > Factures & Devis. Vous pouvez modifier les informations de l\'entreprise, les préfixes de numérotation, la validité des devis, et activer/désactiver l\'affichage des détails de calcul.',
-        },
-        {
-          question: 'Que contiennent les factures détaillées ?',
-          answer: 'Les factures détaillées incluent : le détail du calcul (prise en charge, distance, heures supplémentaires, MDA), les segments de distance (CA, TP, Retour), et toutes les informations de trajet.',
-        },
-        {
-          question: 'Où sont stockés les documents générés ?',
-          answer: 'Les documents sont sauvegardés dans /public/documents/bookings/ au format HTML. Ils peuvent être ouverts dans un navigateur et imprimés en PDF.',
-        },
-      ],
+      items: faqSections.filter(s => 
+        s.keywords.includes('facture') || s.keywords.includes('devis')
+      ),
     },
     {
       icon: Settings,
       title: 'Paramètres généraux',
-      items: [
-        {
-          question: 'Comment configurer les horaires d\'ouverture ?',
-          answer: 'Allez dans Paramètres > Horaires. Configurez les heures d\'ouverture pour chaque jour de la semaine et activez/désactivez les jours selon vos besoins.',
-        },
-        {
-          question: 'Comment modifier l\'adresse du dépôt ?',
-          answer: 'Allez dans Paramètres > Dépôt VTC. Modifiez l\'adresse et les coordonnées GPS. Cette adresse est utilisée pour calculer les distances CA et retour.',
-        },
-        {
-          question: 'Comment changer mon mot de passe ?',
-          answer: 'Allez dans Paramètres > Mot de passe. Entrez votre ancien mot de passe et le nouveau. Le mot de passe doit contenir au moins 8 caractères.',
-        },
-      ],
-    },
-    {
-      icon: Users,
-      title: 'Workflow de réservation',
-      items: [
-        {
-          question: 'Quel est le processus complet ?',
-          answer: '1. Client crée une estimation → 2. Client confirme via email OTP → 3. Réservation passe en "verified" → 4. Admin approuve → 5. Réservation passe en "confirmed" → 6. Email de confirmation envoyé → 7. Service effectué → 8. Statut "completed"',
-        },
-        {
-          question: 'Les réservations sont-elles automatiquement confirmées ?',
-          answer: 'Non. Même après vérification par email OTP, les réservations nécessitent une approbation manuelle par l\'administrateur. Cela vous donne un contrôle total sur les réservations acceptées.',
-        },
-        {
-          question: 'Comment voir les réservations en attente d\'approbation ?',
-          answer: 'Sur la page Réservations, filtrez par statut "verified" ou utilisez le tableau de bord qui affiche les réservations en attente.',
-        },
-      ],
+      items: faqSections.filter(s => 
+        s.keywords.includes('horaires') || s.keywords.includes('dépôt') || s.keywords.includes('mot de passe')
+      ),
     },
   ];
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-[#0A0A0A] flex items-center gap-3">
-          <HelpCircle className="h-8 w-8 text-[#5CD85A]" />
-          Centre d'aide
-        </h1>
-        <p className="text-gray-600 mt-2 text-sm md:text-base">
-          Trouvez des réponses à vos questions sur l'utilisation du panneau d'administration
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <Link href="/admin/bookings" className="no-underline">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-full">
-            <CardContent className="p-6">
-              <Calendar className="h-8 w-8 text-[#5CD85A] mb-3" />
-              <h3 className="font-semibold text-lg mb-2">Réservations</h3>
-              <p className="text-sm text-gray-600">Gérer et approuver les réservations</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/admin/settings/pricing" className="no-underline">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-full">
-            <CardContent className="p-6">
-              <DollarSign className="h-8 w-8 text-[#5CD85A] mb-3" />
-              <h3 className="font-semibold text-lg mb-2">Tarification</h3>
-              <p className="text-sm text-gray-600">Modifier les tarifs et forfaits</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/admin/settings/invoices" className="no-underline">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-full">
-            <CardContent className="p-6">
-              <FileText className="h-8 w-8 text-[#5CD85A] mb-3" />
-              <h3 className="font-semibold text-lg mb-2">Factures</h3>
-              <p className="text-sm text-gray-600">Personnaliser les documents</p>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      <div className="space-y-6">
-        {sections.map((section, sectionIdx) => {
-          const Icon = section.icon;
-          return (
-            <Card key={sectionIdx} className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Icon className="h-5 w-5 text-[#5CD85A]" />
-                  {section.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {section.items.map((item, itemIdx) => (
-                    <div key={itemIdx} className="pb-6 border-b last:border-b-0 last:pb-0">
-                      <h3 className="font-semibold text-[#0A0A0A] mb-2 flex items-start gap-2">
-                        <CheckCircle className="h-5 w-5 text-[#5CD85A] flex-shrink-0 mt-0.5" />
-                        {item.question}
-                      </h3>
-                      <p className="text-gray-700 text-sm md:text-base ml-7 leading-relaxed">
-                        {item.answer}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-[#5CD85A]/10 to-[#4BC449]/10">
-        <CardContent className="p-6">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-[#5CD85A]" />
-            Besoin d'aide supplémentaire ?
-          </h3>
-          <p className="text-gray-700 mb-4">
-            Si vous ne trouvez pas la réponse à votre question, n'hésitez pas à consulter la documentation
-            ou à contacter le support technique.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="outline"
-              className="border-[#5CD85A] text-[#5CD85A] hover:bg-[#5CD85A] hover:text-[#0A0A0A]"
-            >
-              Documentation complète
-            </Button>
-            <Button
-              variant="outline"
-              className="border-[#5CD85A] text-[#5CD85A] hover:bg-[#5CD85A] hover:text-[#0A0A0A]"
-            >
-              Contacter le support
-            </Button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Header */}
+      <div className="bg-gradient-to-r from-[#0A0A0A] to-[#1A1A1A] text-white px-6 py-12">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center gap-3 mb-4">
+            <HelpCircle className="h-10 w-10 text-[#00FF88]" />
+            <h1 className="text-4xl font-bold">Centre d'aide</h1>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-white/70 text-lg mb-6">
+            Documentation complète et support pour l'administration MobiService VTC
+          </p>
+          
+          {/* Search Bar */}
+          <div className="relative max-w-2xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Rechercher dans l'aide et la documentation..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 h-14 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20 focus:border-[#00FF88]"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Quick Links */}
+        {!searchQuery && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+            <Link href="/admin/bookings" className="no-underline">
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
+                <CardContent className="p-4 text-center">
+                  <Calendar className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-semibold text-sm">Réservations</h3>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/admin/settings/pricing" className="no-underline">
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
+                <CardContent className="p-4 text-center">
+                  <DollarSign className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-semibold text-sm">Tarification</h3>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/admin/settings/invoices" className="no-underline">
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
+                <CardContent className="p-4 text-center">
+                  <FileText className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-semibold text-sm">Factures</h3>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/admin/documents" className="no-underline">
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
+                <CardContent className="p-4 text-center">
+                  <BookOpen className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-semibold text-sm">Documents</h3>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/admin/settings" className="no-underline">
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer h-full group">
+                <CardContent className="p-4 text-center">
+                  <Settings className="h-8 w-8 text-[#00FF88] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-semibold text-sm">Paramètres</h3>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        )}
+
+        {/* Search Results */}
+        {searchQuery && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4">
+              Résultats de recherche ({filteredSections.length})
+            </h2>
+            
+            {filteredSections.length === 0 ? (
+              <Card className="border-0 shadow-lg p-12 text-center">
+                <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucun résultat trouvé</h3>
+                <p className="text-gray-500">Essayez avec d'autres mots-clés</p>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {filteredSections.map((section) => (
+                  <Card key={section.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-3 mb-2">
+                        <Badge className="text-xs bg-[#00FF88]/10 text-[#0A0A0A] border-0">
+                          {section.category === 'faq' && 'FAQ'}
+                          {section.category === 'documentation' && 'Documentation'}
+                          {section.category === 'guide' && 'Guide'}
+                          {section.category === 'configuration' && 'Configuration'}
+                        </Badge>
+                      </div>
+                      <h3 className="font-bold text-lg text-[#0A0A0A] mb-2">{section.title}</h3>
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{section.content}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tabbed Content */}
+        {!searchQuery && (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="bg-white shadow-sm border w-full justify-start">
+              <TabsTrigger 
+                value="faq"
+                className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
+              >
+                <HelpCircle className="h-4 w-4 mr-2" />
+                FAQ
+              </TabsTrigger>
+              <TabsTrigger 
+                value="documentation"
+                className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                Documentation
+              </TabsTrigger>
+              <TabsTrigger 
+                value="guide"
+                className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Guide PDF
+              </TabsTrigger>
+              <TabsTrigger 
+                value="configuration"
+                className="data-[state=active]:bg-[#00FF88]/10 data-[state=active]:text-[#0A0A0A] data-[state=active]:border-b-2 data-[state=active]:border-[#00FF88]"
+              >
+                <Code className="h-4 w-4 mr-2" />
+                Configuration
+              </TabsTrigger>
+            </TabsList>
+
+            {/* FAQ Tab */}
+            <TabsContent value="faq" className="space-y-6">
+              {faqGroups.map((group, idx) => {
+                const Icon = group.icon;
+                return (
+                  <Card key={idx} className="border-0 shadow-lg">
+                    <CardHeader className="border-b bg-gray-50">
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Icon className="h-6 w-6 text-[#00FF88]" />
+                        {group.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <Accordion type="single" collapsible className="space-y-2">
+                        {group.items.map((item) => (
+                          <AccordionItem 
+                            key={item.id} 
+                            value={item.id}
+                            className="border rounded-lg px-4 hover:border-[#00FF88]/50 transition-colors"
+                          >
+                            <AccordionTrigger className="text-left font-semibold text-[#0A0A0A] hover:text-[#00FF88] hover:no-underline">
+                              {item.title}
+                            </AccordionTrigger>
+                            <AccordionContent className="text-gray-700 leading-relaxed pt-2">
+                              {item.content}
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </TabsContent>
+
+            {/* Documentation Tab */}
+            <TabsContent value="documentation" className="space-y-6">
+              {docSections.map((section) => (
+                <Card key={section.id} className="border-0 shadow-lg">
+                  <CardHeader className="border-b bg-gradient-to-r from-[#0A0A0A] to-[#1A1A1A] text-white">
+                    <CardTitle className="flex items-center gap-2">
+                      <Database className="h-5 w-5 text-[#00FF88]" />
+                      {section.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="prose prose-sm max-w-none">
+                      <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 font-sans">
+                        {section.content}
+                      </pre>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+
+            {/* Guide Tab */}
+            <TabsContent value="guide" className="space-y-6">
+              {guideSections.map((section) => (
+                <Card key={section.id} className="border-0 shadow-lg">
+                  <CardHeader className="border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                    <CardTitle className="flex items-center gap-2">
+                      <Zap className="h-5 w-5" />
+                      {section.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="prose prose-sm max-w-none">
+                      <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 font-sans">
+                        {section.content}
+                      </pre>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+
+            {/* Configuration Tab */}
+            <TabsContent value="configuration" className="space-y-6">
+              {configSections.map((section) => (
+                <Card key={section.id} className="border-0 shadow-lg">
+                  <CardHeader className="border-b bg-gradient-to-r from-purple-600 to-purple-700 text-white">
+                    <CardTitle className="flex items-center gap-2">
+                      <Code className="h-5 w-5" />
+                      {section.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="prose prose-sm max-w-none">
+                      <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 font-sans">
+                        {section.content}
+                      </pre>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Support Section */}
+        <Card className="border-0 shadow-lg bg-gradient-to-r from-[#00FF88]/10 to-[#00CC6A]/10 mt-8">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-[#00FF88] mx-auto mb-4" />
+            <h3 className="font-bold text-xl mb-3 text-[#0A0A0A]">
+              Besoin d'aide supplémentaire ?
+            </h3>
+            <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
+              Si vous ne trouvez pas la réponse à votre question dans notre documentation,
+              notre équipe support est là pour vous aider.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Button
+                className="bg-[#00FF88] hover:bg-[#00CC6A] text-[#0A0A0A] font-semibold"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Contacter le support
+              </Button>
+              <Button
+                variant="outline"
+                className="border-[#00FF88] text-[#0A0A0A] hover:bg-[#00FF88]/10"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                Documentation complète
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
 
+// Badge component (inline since it's simple)
+function Badge({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>
+      {children}
+    </span>
+  );
+}
