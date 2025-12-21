@@ -1,41 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, companySettings } from '@/lib/db/schema';
+import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
-import { generateBonDeCommande, generateFacture, generateDevis, generateBonDeReservation, savePDF } from '@/lib/pdf/generator';
-
-async function loadCompanySettings() {
-  try {
-    const settings = await db.select().from(companySettings);
-    const company: any = {};
-    const invoice: any = {};
-
-    for (const s of settings) {
-      let value: any = s.settingValue;
-      if (s.settingType === 'json' && value) {
-        try {
-          value = JSON.parse(value);
-        } catch {}
-      } else if (s.settingType === 'number' && value) {
-        value = parseFloat(value);
-      } else if (s.settingType === 'boolean') {
-        value = value === 'true';
-      }
-
-      if (s.category === 'company') {
-        company[s.settingKey] = value;
-      } else if (s.category === 'invoice' || s.category === 'quote') {
-        invoice[s.settingKey] = value;
-      }
-    }
-
-    return { company, invoice };
-  } catch (error) {
-    console.error('Error loading company settings:', error);
-    return { company: {}, invoice: {} };
-  }
-}
+import { generateBonDeCommande, generateFacture, generateDevis, generateBonDeReservation } from '@/lib/pdf/generator';
+import { getAllSettings } from '@/lib/settings/company-settings';
+import { renderHTMLToPDF } from '@/lib/pdf/puppeteer-renderer';
+import { uploadPDF, generateFactureFilename, generateDevisFilename } from '@/lib/storage/blob-storage';
 
 export async function POST(
     request: NextRequest,
@@ -53,6 +24,8 @@ export async function POST(
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type'); // 'bon', 'facture', 'devis', or 'bdr'
 
+        console.log(`[Generate PDF] Type: ${type}, Booking: ${bookingId}`);
+
         const [booking] = await db
             .select()
             .from(bookings)
@@ -67,23 +40,24 @@ export async function POST(
         }
 
         // Load company and invoice settings
-        const { company, invoice } = await loadCompanySettings();
+        const { company, invoice } = await getAllSettings();
 
         let htmlContent: string;
         let filename: string;
 
+        // Générer le HTML selon le type
         if (type === 'bon') {
             htmlContent = await generateBonDeCommande(booking);
-            filename = `bon-commande-${bookingId}`;
+            filename = `bon-commande-${bookingId}.pdf`;
         } else if (type === 'facture') {
             htmlContent = await generateFacture(booking, company, invoice);
-            filename = `facture-${bookingId}`;
+            filename = `facture-${bookingId}.pdf`;
         } else if (type === 'devis') {
             htmlContent = await generateDevis(booking, company, invoice);
-            filename = `devis-${bookingId}`;
+            filename = `devis-${bookingId}.pdf`;
         } else if (type === 'bdr') {
             htmlContent = await generateBonDeReservation(booking);
-            filename = `bdr-${bookingId}`;
+            filename = `bdr-${bookingId}.pdf`;
         } else {
             return NextResponse.json(
                 { message: 'Type invalide (bon, facture, devis ou bdr)' },
@@ -91,31 +65,68 @@ export async function POST(
             );
         }
 
-        const pdfResult = await savePDF(htmlContent, filename);
+        console.log(`[Generate PDF] Génération du HTML terminée, conversion en PDF...`);
 
-        // Store HTML content as a data URL that can be opened directly in browser
-        // This works in both local and serverless environments
-        const htmlDataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(pdfResult.html)}`;
-
-        // Update booking with document info
-        await db
-            .update(bookings)
-            .set({
-                documentsPdfPath: htmlDataUrl,
-                updatedAt: new Date(),
-            })
-            .where(eq(bookings.id, bookingId));
-
-        return NextResponse.json({
-            success: true,
-            url: htmlDataUrl,
-            filename: pdfResult.filename,
-            message: 'Document généré avec succès',
+        // Convertir HTML en PDF avec Puppeteer
+        const pdfBuffer = await renderHTMLToPDF(htmlContent, {
+            format: 'A4',
+            margin: {
+                top: '20mm',
+                right: '15mm',
+                bottom: '20mm',
+                left: '15mm',
+            },
+            printBackground: true,
+            preferCSSPageSize: true,
         });
+
+        console.log(`[Generate PDF] PDF généré (${pdfBuffer.length} bytes)`);
+
+        // Upload vers Vercel Blob Storage (optionnel)
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+            try {
+                const blobFilename = type === 'facture' 
+                    ? generateFactureFilename(bookingId)
+                    : type === 'devis'
+                    ? generateDevisFilename(bookingId)
+                    : `${type}-${bookingId}-${Date.now()}.pdf`;
+
+                const blobUrl = await uploadPDF(pdfBuffer, blobFilename);
+                
+                // Mettre à jour la DB avec l'URL du PDF
+                await db
+                    .update(bookings)
+                    .set({
+                        documentsPdfPath: blobUrl,
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(bookings.id, bookingId));
+
+                console.log(`[Generate PDF] PDF uploadé: ${blobUrl}`);
+            } catch (uploadError) {
+                console.error('[Generate PDF] Erreur upload Blob:', uploadError);
+                // Continue quand même pour retourner le PDF
+            }
+        }
+
+        // Streamer le PDF au navigateur
+        return new NextResponse(pdfBuffer, {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `inline; filename="${filename}"`,
+                'Content-Length': pdfBuffer.length.toString(),
+                'Cache-Control': 'no-cache',
+            },
+        });
+
     } catch (error) {
-        console.error('Error generating PDF:', error);
+        console.error('[Generate PDF] Erreur:', error);
         return NextResponse.json(
-            { message: 'Erreur lors de la génération du PDF' },
+            { 
+                message: 'Erreur lors de la génération du PDF',
+                error: error instanceof Error ? error.message : 'Erreur inconnue'
+            },
             { status: 500 }
         );
     }
