@@ -1,5 +1,11 @@
 {
   "framework": "nextjs",
-  "regions": ["cdg1"]
+  "regions": ["cdg1"],
+  "functions": {
+    "app/api/estimate/[bookingId]/route.ts": {
+      "maxDuration": 30,
+      "memory": 1024
+    }
+  }
 }
 

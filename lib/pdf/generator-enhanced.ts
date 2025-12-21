@@ -14,6 +14,8 @@ interface CompanySettings {
   email: string;
   website?: string;
   bankDetails?: string;
+  iban?: string;
+  bic?: string;
   paymentTerms?: string;
   footerText?: string;
 }
@@ -25,6 +27,8 @@ interface InvoiceSettings {
   defaultPaymentTerms: string;
   showDetailedBreakdown: boolean;
   showDistanceSegments: boolean;
+  showQRCode?: boolean;
+  qrCodeData?: string;
 }
 
 // Default settings (can be overridden by admin)
@@ -112,7 +116,7 @@ export async function generateFactureEnhanced(
       justify-content: space-between; 
       margin-bottom: 40px;
       padding-bottom: 20px;
-      border-bottom: 3px solid #5CD85A;
+      border-bottom: 3px solid #00FF88;
     }
     .header-left h1 { 
       color: #0A0A0A; 
@@ -122,7 +126,7 @@ export async function generateFactureEnhanced(
     }
     .invoice-number { 
       font-size: 18px; 
-      color: #5CD85A; 
+      color: #00FF88; 
       margin: 5px 0; 
       font-weight: 600;
     }
@@ -148,7 +152,7 @@ export async function generateFactureEnhanced(
       margin: 30px 0; 
       padding: 20px;
       background: #f0f9ff;
-      border-left: 4px solid #5CD85A;
+      border-left: 4px solid #00FF88;
       border-radius: 4px;
     }
     .client-section h3 { 
@@ -237,7 +241,34 @@ export async function generateFactureEnhanced(
       border: none;
       margin-top: 10px;
     }
-    .total-final .amount { color: #5CD85A; }
+    .total-final .amount { color: #00FF88; }
+    .bank-info {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      border-left: 4px solid #00FF88;
+    }
+    .bank-info h4 {
+      margin: 0 0 10px 0;
+      color: #000000;
+      font-size: 14px;
+    }
+    .bank-details {
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .qr-code-section {
+      margin-top: 30px;
+      text-align: center;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    .qr-code-section img {
+      max-width: 150px;
+      height: auto;
+    }
     .footer { 
       margin-top: 60px; 
       padding-top: 20px; 
@@ -371,6 +402,24 @@ export async function generateFactureEnhanced(
     </div>
     ` : ''}
 
+    ${company.iban || company.bankDetails ? `
+    <div class="bank-info">
+      <h4>🏦 Informations bancaires</h4>
+      <div class="bank-details">
+        ${company.iban ? `<strong>IBAN:</strong> ${company.iban}<br>` : ''}
+        ${company.bic ? `<strong>BIC:</strong> ${company.bic}<br>` : ''}
+        ${company.bankDetails ? `${company.bankDetails}` : ''}
+      </div>
+    </div>
+    ` : ''}
+
+    ${settings.showQRCode && settings.qrCodeData ? `
+    <div class="qr-code-section">
+      <p style="font-size: 12px; margin-bottom: 10px;">Scannez pour payer ou plus d'infos</p>
+      <img src="${settings.qrCodeData}" alt="QR Code" />
+    </div>
+    ` : ''}
+
     <div class="footer">
       <p><strong>${company.footerText || company.name}</strong></p>
       <p>Merci de votre confiance</p>
@@ -434,7 +483,7 @@ export async function generateDevisEnhanced(
       justify-content: space-between; 
       margin-bottom: 40px;
       padding-bottom: 20px;
-      border-bottom: 3px solid #5CD85A;
+      border-bottom: 3px solid #00FF88;
     }
     .header-left h1 { 
       color: #0A0A0A; 
@@ -444,7 +493,7 @@ export async function generateDevisEnhanced(
     }
     .devis-number { 
       font-size: 18px; 
-      color: #5CD85A; 
+      color: #00FF88; 
       margin: 5px 0; 
       font-weight: 600;
     }
@@ -470,7 +519,7 @@ export async function generateDevisEnhanced(
       margin: 30px 0; 
       padding: 20px;
       background: #f0f9ff;
-      border-left: 4px solid #5CD85A;
+      border-left: 4px solid #00FF88;
       border-radius: 4px;
     }
     .client-section h3 { 
@@ -559,7 +608,34 @@ export async function generateDevisEnhanced(
       border: none;
       margin-top: 10px;
     }
-    .total-final .amount { color: #5CD85A; }
+    .total-final .amount { color: #00FF88; }
+    .bank-info {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      border-left: 4px solid #00FF88;
+    }
+    .bank-info h4 {
+      margin: 0 0 10px 0;
+      color: #000000;
+      font-size: 14px;
+    }
+    .bank-details {
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .qr-code-section {
+      margin-top: 30px;
+      text-align: center;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    .qr-code-section img {
+      max-width: 150px;
+      height: auto;
+    }
     .validity-box { 
       background: #fff3cd; 
       padding: 20px; 
@@ -687,7 +763,7 @@ export async function generateDevisEnhanced(
       </div>
     </div>
 
-    <div class="validity-box">
+    <div class="validity-box"> 
       <p style="margin: 0; font-size: 14px; color: #856404; line-height: 1.8;">
         <strong>⚠️ Conditions et validité:</strong><br>
         • Ce devis est valable ${settings.quoteValidityDays} jours à compter de la date d'émission (jusqu'au ${validityDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}).<br>
@@ -697,6 +773,24 @@ export async function generateDevisEnhanced(
         • Le paiement est dû à la réception de la facture.
       </p>
     </div>
+
+    ${company.iban || company.bankDetails ? `
+    <div class="bank-info">
+      <h4>🏦 Informations bancaires</h4>
+      <div class="bank-details">
+        ${company.iban ? `<strong>IBAN:</strong> ${company.iban}<br>` : ''}
+        ${company.bic ? `<strong>BIC:</strong> ${company.bic}<br>` : ''}
+        ${company.bankDetails ? `${company.bankDetails}` : ''}
+      </div>
+    </div>
+    ` : ''}
+
+    ${settings.showQRCode && settings.qrCodeData ? `
+    <div class="qr-code-section">
+      <p style="font-size: 12px; margin-bottom: 10px;">Scannez pour payer ou plus d'infos</p>
+      <img src="${settings.qrCodeData}" alt="QR Code" />
+    </div>
+    ` : ''}
 
     <div class="footer">
       <p><strong>${company.footerText || company.name}</strong></p>
