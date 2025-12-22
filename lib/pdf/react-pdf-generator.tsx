@@ -338,3 +338,4 @@ export const InvoicePDF: React.FC<PDFDocumentProps> = ({ type, booking, company,
   );
 };
 
+

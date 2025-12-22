@@ -9,7 +9,63 @@ import {
   IconCalculator,
   IconInfoCircle,
   IconRoute,
+  IconClock,
+  IconReceipt,
 } from '@tabler/icons-react';
+
+/**
+ * Type matching the PricingDebugInfo from lib/pricing/tariffs-2026.ts
+ */
+interface PricingDebugInfo {
+  rateType: {
+    isNight: boolean;
+    reason: string;
+    details: {
+      pickupTime: string;
+      hour: number;
+      dayOfWeek: string;
+      isNightHours: boolean;
+      isSunday: boolean;
+      isHoliday: boolean;
+    };
+  };
+  distances: {
+    ca_out: number;
+    tp: number;
+    ca_return: number;
+    totalRoundTrip: number;
+    explanation: string;
+  };
+  bracket: {
+    value: string;
+    reason: string;
+    thresholds: string;
+  };
+  rates: {
+    pricePerKmCA: number;
+    pricePerKmTP: number;
+    rateTableUsed: 'DAY_RATES' | 'NIGHT_RATES';
+    allCARates: Record<string, number>;
+  };
+  calculation: {
+    steps: Array<{
+      step: number;
+      description: string;
+      formula: string;
+      result: number;
+    }>;
+    subtotalBeforeTolls: number;
+    tollCalculation: string;
+    finalTotal: number;
+  };
+  forfaitAgglomeration: {
+    applied: boolean;
+    reason: string;
+    threshold: number;
+    forfaitPrice: number | null;
+  };
+  summary: string[];
+}
 
 interface PricingDebugPanelProps {
   bookingData: {
@@ -35,6 +91,8 @@ interface PricingDebugPanelProps {
       tollCost?: number;
       isForfaitAgglomeration?: boolean;
       bracket?: string;
+      pricePerKmCA?: number;
+      pricePerKmTP?: number;
     };
     breakdown?: {
       costCA_out?: number;
@@ -43,7 +101,10 @@ interface PricingDebugPanelProps {
       tollCost?: number;
       isForfaitAgglomeration?: boolean;
       bracket?: string;
+      pricePerKmCA?: number;
+      pricePerKmTP?: number;
     };
+    debugInfo?: PricingDebugInfo;
   };
 }
 
@@ -72,6 +133,7 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
   const [debugExpanded, setDebugExpanded] = useState(true);
 
   const breakdown = bookingData.priceBreakdown || bookingData.breakdown;
+  const debugInfo = bookingData.debugInfo;
 
   return (
     <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl overflow-hidden shadow-2xl border border-orange-500/20 animate-fade-in-up">
@@ -104,7 +166,65 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
 
       {debugExpanded && (
         <div className="p-6 space-y-6">
-          {/* Section 1: Distance Segments */}
+          {/* Quick Summary from debugInfo */}
+          {debugInfo?.summary && (
+            <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-2xl p-4 border border-emerald-500/20">
+              <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm mb-3">
+                <IconReceipt className="h-4 w-4" />
+                RÉSUMÉ RAPIDE
+              </div>
+              <div className="space-y-1 font-mono text-sm">
+                {debugInfo.summary.map((line, i) => (
+                  <div key={i} className="text-white/80">{line}</div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section 1: Rate Type Determination */}
+          {debugInfo?.rateType && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
+                <IconClock className="h-4 w-4" />
+                DÉTERMINATION TARIF JOUR/NUIT
+              </div>
+              
+              <div className={`rounded-2xl p-4 border-2 ${
+                debugInfo.rateType.isNight 
+                  ? 'bg-indigo-500/10 border-indigo-500/30' 
+                  : 'bg-amber-500/10 border-amber-500/30'
+              }`}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="text-3xl">
+                    {debugInfo.rateType.isNight ? '🌙' : '☀️'}
+                  </div>
+                  <div>
+                    <div className={`font-bold text-lg ${debugInfo.rateType.isNight ? 'text-indigo-400' : 'text-amber-400'}`}>
+                      {debugInfo.rateType.isNight ? 'Tarif NUIT' : 'Tarif JOUR'}
+                    </div>
+                    <div className="text-sm text-white/70">{debugInfo.rateType.reason}</div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-2 text-xs font-mono">
+                  <div className={`p-2 rounded-lg ${debugInfo.rateType.details.isNightHours ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-white/40'}`}>
+                    <div className="font-bold">Heure: {debugInfo.rateType.details.hour}h</div>
+                    <div>{debugInfo.rateType.details.isNightHours ? '✓ 20h-7h' : '✗ 7h-20h'}</div>
+                  </div>
+                  <div className={`p-2 rounded-lg ${debugInfo.rateType.details.isSunday ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-white/40'}`}>
+                    <div className="font-bold">{debugInfo.rateType.details.dayOfWeek}</div>
+                    <div>{debugInfo.rateType.details.isSunday ? '✓ Dimanche' : '✗ Pas dimanche'}</div>
+                  </div>
+                  <div className={`p-2 rounded-lg ${debugInfo.rateType.details.isHoliday ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-white/40'}`}>
+                    <div className="font-bold">Jour férié</div>
+                    <div>{debugInfo.rateType.details.isHoliday ? '✓ Oui' : '✗ Non'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 2: Distance Segments */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
               <IconRoute className="h-4 w-4" />
@@ -124,7 +244,7 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-cyan-400 font-bold">{bookingData.distanceCA?.toFixed(1) || '0.0'} km</span>
+                  <span className="text-cyan-400 font-bold">{(debugInfo?.distances?.ca_out ?? bookingData.distanceCA)?.toFixed(1) || '0.0'} km</span>
                 </div>
               </div>
 
@@ -145,9 +265,9 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-green-400 font-bold">{bookingData.distanceTP?.toFixed(1) || bookingData.distance?.toFixed(1) || '0.0'} km</span>
+                  <span className="text-green-400 font-bold">{(debugInfo?.distances?.tp ?? bookingData.distanceTP ?? bookingData.distance)?.toFixed(1) || '0.0'} km</span>
                   {bookingData.tripType === 'round-trip' && (
-                    <div className="text-xs text-yellow-400">→ {((bookingData.distanceTP || bookingData.distance || 0) * 2).toFixed(1)} km facturés</div>
+                    <div className="text-xs text-yellow-400">→ {(((debugInfo?.distances?.tp ?? bookingData.distanceTP ?? bookingData.distance) || 0) * 2).toFixed(1)} km facturés</div>
                   )}
                 </div>
               </div>
@@ -164,7 +284,7 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-purple-400 font-bold">{bookingData.distanceReturn?.toFixed(1) || '0.0'} km</span>
+                  <span className="text-purple-400 font-bold">{(debugInfo?.distances?.ca_return ?? bookingData.distanceReturn)?.toFixed(1) || '0.0'} km</span>
                   <div className="text-xs text-green-400">✓ Toujours inclus</div>
                 </div>
               </div>
@@ -174,194 +294,131 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                 <div className="flex items-center justify-between text-lg">
                   <span className="text-white/80 font-semibold">Distance totale A/R</span>
                   <span className="text-white font-bold">
-                    {((bookingData.distanceCA || 0) + 
-                      (bookingData.tripType === 'round-trip' 
-                        ? (bookingData.distanceTP || bookingData.distance || 0) * 2 
-                        : (bookingData.distanceTP || bookingData.distance || 0)) + 
-                      (bookingData.distanceReturn || 0)).toFixed(1)} km
+                    {(debugInfo?.distances?.totalRoundTrip ?? 
+                      ((bookingData.distanceCA || 0) + (bookingData.distanceTP || bookingData.distance || 0) + (bookingData.distanceReturn || 0))
+                    ).toFixed(1)} km
                   </span>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Tariff Applied */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
-              <IconInfoCircle className="h-4 w-4" />
-              TARIF APPLIQUÉ
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {/* Day/Night */}
-              <div className={`
-                rounded-2xl p-4 border-2
-                ${bookingData.isNightRate 
-                  ? 'bg-indigo-500/10 border-indigo-500/30' 
-                  : 'bg-amber-500/10 border-amber-500/30'
-                }
-              `}>
-                <div className="text-3xl mb-2">
-                  {bookingData.isNightRate ? '🌙' : '☀️'}
-                </div>
-                <div className={`font-bold ${bookingData.isNightRate ? 'text-indigo-400' : 'text-amber-400'}`}>
-                  {bookingData.isNightRate ? 'Tarif NUIT' : 'Tarif JOUR'}
-                </div>
-                <div className="text-xs text-white/50 mt-1">
-                  {bookingData.isNightRate ? '20h-7h + Dim & JF' : '7h-20h (sauf Dim & JF)'}
-                </div>
-              </div>
-
-              {/* Trip Type */}
-              <div className={`
-                rounded-2xl p-4 border-2
-                ${bookingData.tripType === 'round-trip' 
-                  ? 'bg-yellow-500/10 border-yellow-500/30' 
-                  : 'bg-blue-500/10 border-blue-500/30'
-                }
-              `}>
-                <div className="text-3xl mb-2">
-                  {bookingData.tripType === 'round-trip' ? '🔄' : '➡️'}
-                </div>
-                <div className={`font-bold ${bookingData.tripType === 'round-trip' ? 'text-yellow-400' : 'text-blue-400'}`}>
-                  {bookingData.tripType === 'round-trip' ? 'Aller-Retour (A/R)' : 'Aller Simple (A/S)'}
-                </div>
-                <div className="text-xs text-white/50 mt-1">
-                  {bookingData.tripType === 'round-trip' ? 'TP × 2, Péages × 2' : 'TP × 1, Péages × 1'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Rate Details */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
-              <IconCode className="h-4 w-4" />
-              GRILLE TARIFAIRE
-            </div>
-
-            <div className="bg-black/30 rounded-2xl p-4 font-mono text-sm space-y-2">
-              <div className="flex justify-between">
-                <span className="text-white/60">Palier km</span>
-                <span className="text-cyan-400">{breakdown?.bracket || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/60">Prix TP/km</span>
-                <span className="text-green-400">{bookingData.isNightRate ? '1.90' : '1.32'} €/km</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/60">Prix CA/km (selon palier)</span>
-                <span className="text-blue-400">
-                  {(() => {
-                    const bracket = breakdown?.bracket;
-                    const isNight = bookingData.isNightRate;
-                    const rates: Record<string, { day: number; night: number }> = {
-                      '0-25': { day: 1.32, night: 1.90 },
-                      '25-50': { day: 1.32, night: 1.70 },
-                      '50-75': { day: 1.10, night: 1.40 },
-                      '75-100': { day: 0.90, night: 1.10 },
-                      '100+': { day: 0.70, night: 0.70 },
-                    };
-                    const rate = rates[bracket as string];
-                    return rate ? (isNight ? rate.night : rate.day).toFixed(2) : 'N/A';
-                  })()} €/km
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/60">Forfait agglomération</span>
-                <span className={breakdown?.isForfaitAgglomeration ? 'text-green-400' : 'text-white/40'}>
-                  {breakdown?.isForfaitAgglomeration 
-                    ? `OUI (${bookingData.isNightRate ? '47.50' : '33.00'}€)` 
-                    : 'NON (>25km)'
-                  }
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 4: Formula Breakdown */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
-              <IconCalculator className="h-4 w-4" />
-              FORMULE DE CALCUL
-            </div>
-
-            <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-2xl p-5 border border-orange-500/20">
-              <div className="font-mono text-sm space-y-3">
-                {breakdown?.isForfaitAgglomeration ? (
-                  <>
-                    <div className="text-white/80 mb-4 text-center p-3 bg-green-500/10 rounded-xl">
-                      <span className="text-green-400 font-bold">FORFAIT AGGLOMÉRATION APPLIQUÉ</span>
-                      <br />
-                      <span className="text-white/60">Distance A/R ≤ 25 km</span>
-                    </div>
-                    <div className="text-center text-2xl font-bold text-[#5CD85A]">
-                      = {bookingData.isNightRate ? '47.50' : '33.00'} € TTC
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-white/60 text-xs mb-3">CT = (CA_aller × coef_CA) + (TP × coef_TP{bookingData.tripType === 'round-trip' ? ' × 2' : ''}) + (CA_retour × coef_CA)</div>
-                    
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-blue-400">CA aller:</span>
-                        <span className="text-white">
-                          {bookingData.distanceCA?.toFixed(1) || '0'} km × {(() => {
-                            const bracket = breakdown?.bracket;
-                            const isNight = bookingData.isNightRate;
-                            const rates: Record<string, { day: number; night: number }> = {
-                              '25-50': { day: 1.32, night: 1.70 },
-                              '50-75': { day: 1.10, night: 1.40 },
-                              '75-100': { day: 0.90, night: 1.10 },
-                              '100+': { day: 0.70, night: 0.70 },
-                            };
-                            const rate = rates[bracket as string];
-                            return rate ? (isNight ? rate.night : rate.day).toFixed(2) : '1.32';
-                          })()} = <span className="text-cyan-400">{breakdown?.costCA_out?.toFixed(2) || 'N/A'} €</span>
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-green-400">TP{bookingData.tripType === 'round-trip' ? ' (×2)' : ''}:</span>
-                        <span className="text-white">
-                          {bookingData.tripType === 'round-trip' 
-                            ? `${bookingData.distanceTP?.toFixed(1) || bookingData.distance?.toFixed(1) || '0'} × 2 × ${bookingData.isNightRate ? '1.90' : '1.32'}`
-                            : `${bookingData.distanceTP?.toFixed(1) || bookingData.distance?.toFixed(1) || '0'} km × ${bookingData.isNightRate ? '1.90' : '1.32'}`
-                          } = <span className="text-green-400">{breakdown?.costTP?.toFixed(2) || 'N/A'} €</span>
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-purple-400">CA retour:</span>
-                        <span className="text-white">
-                          {bookingData.distanceReturn?.toFixed(1) || '0'} km × coef = <span className="text-purple-400">{breakdown?.costCA_return?.toFixed(2) || 'N/A'} €</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-white/10 pt-3 mt-3">
-                      <div className="flex justify-between items-center text-lg">
-                        <span className="text-white/80">Sous-total:</span>
-                        <span className="text-white font-bold">
-                          {((breakdown?.costCA_out || 0) + 
-                            (breakdown?.costTP || 0) + 
-                            (breakdown?.costCA_return || 0)).toFixed(2)} € TTC
-                        </span>
-                      </div>
-                    </div>
-
-                    {(breakdown?.tollCost || 0) > 0 && (
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-yellow-400">+ Péages:</span>
-                        <span className="text-yellow-400">{breakdown?.tollCost} €</span>
-                      </div>
-                    )}
-                  </>
+                {debugInfo?.distances?.explanation && (
+                  <div className="text-xs text-white/50 mt-1">{debugInfo.distances.explanation}</div>
                 )}
               </div>
             </div>
           </div>
+
+          {/* Section 3: Bracket & Rates */}
+          {debugInfo?.bracket && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
+                <IconInfoCircle className="h-4 w-4" />
+                PALIER TARIFAIRE
+              </div>
+
+              <div className="bg-black/30 rounded-2xl p-4 font-mono text-sm space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60">Palier sélectionné:</span>
+                  <span className="text-cyan-400 font-bold text-lg">{debugInfo.bracket.value}</span>
+                </div>
+                <div className="text-xs text-white/50">{debugInfo.bracket.reason}</div>
+                <div className="text-xs text-white/40">Paliers disponibles: {debugInfo.bracket.thresholds}</div>
+                
+                {/* Show all CA rates for context */}
+                {debugInfo.rates && (
+                  <div className="mt-3 pt-3 border-t border-white/10">
+                    <div className="text-xs text-white/60 mb-2">Grille {debugInfo.rates.rateTableUsed}:</div>
+                    <div className="grid grid-cols-5 gap-1 text-xs">
+                      {Object.entries(debugInfo.rates.allCARates).map(([bracket, rate]) => (
+                        <div 
+                          key={bracket} 
+                          className={`p-1.5 rounded text-center ${
+                            bracket === debugInfo.bracket.value 
+                              ? 'bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/50' 
+                              : 'bg-white/5 text-white/50'
+                          }`}
+                        >
+                          <div className="font-bold">{bracket}</div>
+                          <div>{rate.toFixed(2)}€</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Section 4: Calculation Steps */}
+          {debugInfo?.calculation?.steps && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
+                <IconCalculator className="h-4 w-4" />
+                ÉTAPES DU CALCUL
+              </div>
+
+              <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-2xl p-5 border border-orange-500/20">
+                <div className="space-y-3 font-mono text-sm">
+                  {debugInfo.calculation.steps.map((step, i) => (
+                    <div 
+                      key={i} 
+                      className={`flex items-start gap-3 p-3 rounded-xl ${
+                        i === debugInfo.calculation.steps.length - 1 
+                          ? 'bg-emerald-500/10 border border-emerald-500/20' 
+                          : 'bg-white/5'
+                      }`}
+                    >
+                      <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-xs shrink-0">
+                        {step.step}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white/80 font-medium">{step.description}</div>
+                        <div className="text-xs text-white/50 mt-1">{step.formula}</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className={`font-bold ${
+                          i === debugInfo.calculation.steps.length - 1 
+                            ? 'text-emerald-400 text-lg' 
+                            : 'text-white'
+                        }`}>
+                          {step.result.toFixed(2)} €
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Final Total */}
+                  <div className="border-t border-white/10 pt-4 mt-4">
+                    <div className="flex justify-between items-center text-xl">
+                      <span className="text-white font-bold">TOTAL TTC:</span>
+                      <span className="text-[#5CD85A] font-bold">{debugInfo.calculation.finalTotal.toFixed(2)} €</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Forfait Agglomeration Info */}
+          {debugInfo?.forfaitAgglomeration && (
+            <div className={`rounded-2xl p-4 ${
+              debugInfo.forfaitAgglomeration.applied 
+                ? 'bg-emerald-500/10 border border-emerald-500/20' 
+                : 'bg-white/5 border border-white/10'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`font-bold ${debugInfo.forfaitAgglomeration.applied ? 'text-emerald-400' : 'text-white/60'}`}>
+                  {debugInfo.forfaitAgglomeration.applied ? '✓ Forfait agglomération APPLIQUÉ' : '✗ Forfait agglomération NON applicable'}
+                </span>
+              </div>
+              <div className="text-sm text-white/60">
+                {debugInfo.forfaitAgglomeration.reason}
+              </div>
+              {debugInfo.forfaitAgglomeration.forfaitPrice && (
+                <div className="mt-2 text-lg font-bold text-emerald-400">
+                  Prix forfait: {debugInfo.forfaitAgglomeration.forfaitPrice.toFixed(2)}€ TTC
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Section 5: Raw Data */}
           <div className="space-y-4">
@@ -374,36 +431,41 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
               <summary className="cursor-pointer text-white/60 text-sm hover:text-white/80 transition-colors">
                 Cliquer pour afficher/masquer les données complètes...
               </summary>
-              <pre className="mt-3 bg-black/50 rounded-xl p-4 text-xs text-green-400 overflow-x-auto max-h-64 overflow-y-auto">
+              <pre className="mt-3 bg-black/50 rounded-xl p-4 text-xs text-green-400 overflow-x-auto max-h-96 overflow-y-auto">
 {JSON.stringify({
-  distances: {
-    CA_aller: bookingData.distanceCA,
-    TP: bookingData.distanceTP || bookingData.distance,
-    CA_retour: bookingData.distanceReturn,
-    total_AR: (bookingData.distanceCA || 0) + (bookingData.distanceTP || bookingData.distance || 0) + (bookingData.distanceReturn || 0),
-  },
-  tarification: {
-    isNightRate: bookingData.isNightRate,
-    rateType: bookingData.rateType,
-    tripType: bookingData.tripType,
-    bracket: breakdown?.bracket,
-    isForfaitAgglomeration: breakdown?.isForfaitAgglomeration,
-  },
-  prix: {
-    costCA_out: breakdown?.costCA_out,
-    costTP: breakdown?.costTP,
-    costCA_return: breakdown?.costCA_return,
-    tollCost: breakdown?.tollCost,
-    totalHT: bookingData.totalPriceHT,
-    tva: bookingData.tvaAmount,
-    totalTTC: bookingData.totalPrice,
-  },
-  metadata: {
-    pickupDate: bookingData.pickupDate instanceof Date ? bookingData.pickupDate.toISOString() : bookingData.pickupDate,
-    pickupTime: bookingData.pickupTime,
-    duration: bookingData.duration,
-    passengers: bookingData.passengers,
-    luggage: bookingData.luggage,
+  debugInfo: debugInfo,
+  legacy: {
+    distances: {
+      CA_aller: bookingData.distanceCA,
+      TP: bookingData.distanceTP || bookingData.distance,
+      CA_retour: bookingData.distanceReturn,
+      total_AR: (bookingData.distanceCA || 0) + (bookingData.distanceTP || bookingData.distance || 0) + (bookingData.distanceReturn || 0),
+    },
+    tarification: {
+      isNightRate: bookingData.isNightRate,
+      rateType: bookingData.rateType,
+      tripType: bookingData.tripType,
+      bracket: breakdown?.bracket,
+      isForfaitAgglomeration: breakdown?.isForfaitAgglomeration,
+    },
+    prix: {
+      costCA_out: breakdown?.costCA_out,
+      costTP: breakdown?.costTP,
+      costCA_return: breakdown?.costCA_return,
+      tollCost: breakdown?.tollCost,
+      pricePerKmCA: breakdown?.pricePerKmCA,
+      pricePerKmTP: breakdown?.pricePerKmTP,
+      totalHT: bookingData.totalPriceHT,
+      tva: bookingData.tvaAmount,
+      totalTTC: bookingData.totalPrice,
+    },
+    metadata: {
+      pickupDate: bookingData.pickupDate instanceof Date ? bookingData.pickupDate.toISOString() : bookingData.pickupDate,
+      pickupTime: bookingData.pickupTime,
+      duration: bookingData.duration,
+      passengers: bookingData.passengers,
+      luggage: bookingData.luggage,
+    }
   }
 }, null, 2)}
               </pre>
@@ -470,5 +532,6 @@ export function DebugModeToggle({
 }
 
 export default PricingDebugPanel;
+
 
 

@@ -136,6 +136,8 @@ export async function POST(request: NextRequest) {
             tollCost: pricing.breakdown.tollCost,
             isForfaitAgglomeration: pricing.breakdown.isForfaitAgglomeration,
             bracket: pricing.breakdown.bracket,
+            pricePerKmCA: pricing.breakdown.pricePerKmCA,
+            pricePerKmTP: pricing.breakdown.pricePerKmTP,
           },
         },
         // Métadonnées
@@ -145,6 +147,8 @@ export async function POST(request: NextRequest) {
           address: '4 rue des artisans, 74300 Cluses',
           coordinates: depot,
         },
+        // Debug info - détails complets du calcul
+        debugInfo: pricing.debugInfo,
       },
     });
   } catch (error) {

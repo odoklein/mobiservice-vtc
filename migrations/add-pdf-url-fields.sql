@@ -20,3 +20,4 @@ CREATE INDEX IF NOT EXISTS idx_bookings_devis_pdf ON bookings(devis_pdf_url) WHE
 CREATE INDEX IF NOT EXISTS idx_bookings_facture_pdf ON bookings(facture_pdf_url) WHERE facture_pdf_url IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_bookings_last_pdf_date ON bookings(last_pdf_generated_at);
 
+

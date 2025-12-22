@@ -230,3 +230,4 @@ Voir `docs/PDF_GENERATION_SETUP.md` pour:
 
 Tous les todos du plan ont été complétés avec succès. Le système est prêt pour les tests en local et le déploiement sur Vercel.
 
+
