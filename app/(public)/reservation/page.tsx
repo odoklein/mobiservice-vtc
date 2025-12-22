@@ -45,7 +45,9 @@ import {
   IconCircleDot,
   IconMapPinFilled,
   IconArrowsExchange,
+  IconBug,
 } from '@tabler/icons-react';
+import { PricingDebugPanel } from '@/components/debug-ui';
 
 type BookingStep = 1 | 2 | 3;
 type PaymentMethod = 'card' | 'cash';
@@ -57,6 +59,7 @@ export default function ReservationPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
   const [otpError, setOtpError] = useState('');
@@ -215,6 +218,7 @@ export default function ReservationPage() {
             rateType: est.pricing.rateType,
             breakdown: est.pricing.breakdown,
             priceBreakdown: est.pricing.breakdown,
+            debugInfo: est.debugInfo, // Debug info for pricing calculation details
             step: 2,
             pickupDate: data.pickupDate,
           };
@@ -1070,6 +1074,44 @@ export default function ReservationPage() {
                         <IconArrowRight className="ml-2 h-5 w-5" />
                       </Button>
                     </div>
+
+                    {/* Debug Mode Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setDebugMode(!debugMode)}
+                      className={`
+                        w-full flex items-center justify-between p-4 rounded-xl transition-all duration-300
+                        ${debugMode 
+                          ? 'bg-orange-50 border-2 border-orange-200' 
+                          : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`
+                          w-10 h-10 rounded-lg flex items-center justify-center
+                          ${debugMode ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'}
+                        `}>
+                          <IconBug className="h-5 w-5" />
+                        </div>
+                        <div className="text-left">
+                          <div className="font-semibold text-gray-900">Mode Debug</div>
+                          <div className="text-xs text-gray-500">Afficher les détails du calcul</div>
+                        </div>
+                      </div>
+                      <div className={`
+                        w-12 h-6 rounded-full transition-colors duration-300 relative
+                        ${debugMode ? 'bg-orange-500' : 'bg-gray-300'}
+                      `}>
+                        <div className={`
+                          absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-300
+                          ${debugMode ? 'translate-x-7' : 'translate-x-1'}
+                        `} />
+                      </div>
+                    </button>
+
+                    {/* Debug Panel */}
+                    {debugMode && <PricingDebugPanel bookingData={bookingData} />}
                   </div>
                 )}
 
