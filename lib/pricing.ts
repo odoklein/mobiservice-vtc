@@ -51,6 +51,13 @@ export interface PricingResult {
   rateType: string;
   isForfait?: boolean;
 
+  // Forfait adjustment info (for hourly services)
+  forfaitAdjusted?: boolean; // True if we auto-adjusted the forfait
+  requestedHours?: number; // Original hours requested by client
+  appliedHours?: number; // Actual hours used for pricing
+  estimatedDuration?: number; // Estimated duration in minutes
+  suggestionMessage?: string; // User-friendly message about the adjustment
+
   // Internal breakdown (NOT exposed to frontend UI)
   breakdown: {
     baseFare?: number;
@@ -251,14 +258,69 @@ function calculatePriceWithConfig(input: PricingInput, config: any): PricingResu
   // ===== HOURLY SERVICE (Mise à Disposition) =====
   else if (input.serviceType === 'hourly') {
     const requestedHours = input.hours || 2;
-    
+
+    // Calculate estimated trip duration in hours from the duration in minutes
+    // If duration is provided, use it to determine the actual forfait needed
+    let actualHours = requestedHours;
+    let adjusted = false;
+
+    if (input.duration) {
+      const estimatedHours = Math.ceil(input.duration / 60); // Convert minutes to hours, round up
+
+      // Use the MAXIMUM between requested and estimated duration
+      // This ensures we don't undercharge for long trips
+      if (estimatedHours > requestedHours) {
+        actualHours = estimatedHours;
+        adjusted = true;
+        console.log(`[PRICING] Hourly service: Requested ${requestedHours}h but estimated duration is ${estimatedHours}h. Using ${actualHours}h for pricing.`);
+      }
+    }
+
+    // Estimate distance based on hours (assuming 90km/h average)
+    const estimatedKm = actualHours * 90;
+
     // Find the matching forfait from the grid
-    // Forfaits start at 2H, so always use the forfait system
-    const forfait = findBestForfait(config.forfaits, requestedHours, requestedHours * 90, night);
+    const forfait = findBestForfait(config.forfaits, actualHours, estimatedKm, night);
     totalPrice = forfait.price;
     breakdown.forfaitApplied = true;
     breakdown.forfaitName = `Forfait ${forfait.hours}H`;
     rateType = `Mise à disposition ${forfait.hours}H`;
+
+    // Apply minimum price
+    totalPrice = Math.max(totalPrice, config.minPrice);
+
+    // Calculate HT and TVA
+    const totalPriceHT = Math.round((totalPrice / (1 + TVA_RATE)) * 100) / 100;
+    const tva = Math.round((totalPrice - totalPriceHT) * 100) / 100;
+
+    // Store adjustment information in the result
+    const result: PricingResult = {
+      totalPrice: Math.round(totalPrice * 100) / 100,
+      totalPriceHT,
+      tva,
+      currency: 'EUR',
+      isNightRate: night,
+      rateType,
+      isForfait: true,
+      breakdown,
+      distance: input.distance || (input.distanceTP || 0),
+      duration: input.duration,
+    };
+
+    // Add forfait adjustment metadata
+    if (adjusted && input.duration) {
+      result.forfaitAdjusted = true;
+      result.requestedHours = requestedHours;
+      result.appliedHours = forfait.hours;
+      result.estimatedDuration = input.duration;
+
+      const durationHours = Math.round(input.duration / 60 * 10) / 10;
+      result.suggestionMessage = `⚠️ Attention : Le forfait de ${requestedHours}h est insuffisant pour ce trajet (durée estimée : ${durationHours}h). Le forfait de ${forfait.hours}h a été automatiquement appliqué.`;
+
+      result.rateType += ` (ajusté depuis ${requestedHours}h)`;
+    }
+
+    return result;
   }
 
   // ===== BUSINESS SERVICE =====

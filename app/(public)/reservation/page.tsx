@@ -281,6 +281,7 @@ export default function ReservationPage() {
         distanceReturn,
         pickupTime: pickupDateTime,
         hours: data.serviceType === 'hourly' ? (data.hours || 2) : undefined,
+        duration, // Pass estimated duration for automatic forfait calculation
       });
 
       const completeBookingData = {
@@ -1013,6 +1014,28 @@ export default function ReservationPage() {
                             </div>
                           </div>
                         </div>
+
+                        {/* Forfait Adjustment Warning */}
+                        {bookingData.forfaitAdjusted && bookingData.suggestionMessage && (
+                          <div className="mb-8 p-5 bg-amber-50 border-2 border-amber-200 rounded-2xl">
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center flex-shrink-0">
+                                <IconSparkles className="h-5 w-5 text-white" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-amber-900 mb-1">Forfait ajusté automatiquement</h4>
+                                <p className="text-sm text-amber-800 leading-relaxed">
+                                  {bookingData.suggestionMessage.replace('⚠️ Attention : ', '')}
+                                </p>
+                                <div className="mt-3 flex items-center gap-4 text-xs text-amber-700">
+                                  <span>Demandé : {bookingData.requestedHours}h</span>
+                                  <span className="text-amber-400">→</span>
+                                  <span className="font-semibold">Appliqué : {bookingData.appliedHours}h</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Info grid */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
