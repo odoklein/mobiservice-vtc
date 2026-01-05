@@ -37,7 +37,7 @@ export default function Home() {
 
               {/* Main Headline */}
               <div className="space-y-4">
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05]">
+                <h1 className="text-5xl font-bold leading-[1.1]">
                   <span className="text-white drop-shadow-lg">L'Excellence du</span>
                   <br />
                   <span className="text-[#00FF88] drop-shadow-lg">Transport Privé avec Chauffeur</span>
