@@ -167,11 +167,7 @@ export default function ReservationPage() {
     try {
       if (data.serviceType === 'transfer' && data.pickupLat && data.pickupLng && data.dropoffLat && data.dropoffLng) {
         try {
-          const pickupDateStr = data.pickupDate instanceof Date 
-            ? data.pickupDate.toISOString().split('T')[0]
-            : typeof data.pickupDate === 'string'
-            ? data.pickupDate.split('T')[0]
-            : '';
+          const pickupDateStr = new Date(data.pickupDate).toISOString().split('T')[0];
 
           const response = await fetch('/api/pricing/estimate', {
             method: 'POST',
@@ -526,7 +522,9 @@ export default function ReservationPage() {
     setIsProcessingPayment(true);
 
     try {
-      const bookingId = await createBooking(data);
+      // Force payment method to cash (payment on-site with driver)
+      const bookingDataWithCash = { ...data, paymentMethod: 'cash' as PaymentMethod };
+      const bookingId = await createBooking(bookingDataWithCash);
 
       if (!bookingId) {
         alert('Erreur lors de la création de la réservation');
@@ -536,15 +534,12 @@ export default function ReservationPage() {
 
       setCreatedBookingId(bookingId);
 
-      if (paymentMethod === 'card') {
-        await handleCardPayment(bookingId);
+      // Send OTP verification code
+      const otpSent = await sendOtp(bookingId);
+      if (otpSent) {
+        setShowOtpInput(true);
       } else {
-        const otpSent = await sendOtp(bookingId);
-        if (otpSent) {
-          setShowOtpInput(true);
-        } else {
-          alert('Erreur lors de l\'envoi du code de vérification');
-        }
+        alert('Erreur lors de l\'envoi du code de vérification');
       }
     } catch (error) {
       console.error('Booking submission error:', error);
@@ -615,7 +610,7 @@ export default function ReservationPage() {
         </div>
 
         <div className="relative z-10 pt-8 pb-16 md:pt-12 md:pb-20">
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-6 md:px-12 lg:px-24">
             {/* Header */}
             <div className="text-center mb-10 md:mb-14">
               <div className={`
@@ -653,7 +648,7 @@ export default function ReservationPage() {
 
       {/* Main Content */}
       <div className="relative -mt-8 z-20">
-        <div className="container mx-auto px-4 pb-16">
+        <div className="container mx-auto px-6 md:px-12 lg:px-24 pb-16">
           <div className="max-w-5xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
               {/* Main Form Area */}
@@ -981,8 +976,8 @@ export default function ReservationPage() {
                             </div>
                             <Badge className={`
                               px-4 py-2 text-sm font-semibold rounded-full
-                              ${bookingData.isNightRate 
-                                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/30' 
+                              ${bookingData.isNightRate
+                                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/30'
                                 : 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
                               }
                             `}>
@@ -1081,8 +1076,8 @@ export default function ReservationPage() {
                       onClick={() => setDebugMode(!debugMode)}
                       className={`
                         w-full flex items-center justify-between p-4 rounded-xl transition-all duration-300
-                        ${debugMode 
-                          ? 'bg-orange-50 border-2 border-orange-200' 
+                        ${debugMode
+                          ? 'bg-orange-50 border-2 border-orange-200'
                           : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
                         }
                       `}
@@ -1169,144 +1164,31 @@ export default function ReservationPage() {
                           </div>
                         </div>
 
-                        {/* Payment Method */}
+                        {/* Payment Info - Cash Only */}
                         <div className="pt-6 border-t border-gray-100">
-                          <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
-                              <IconCreditCard className="h-5 w-5 text-[#5CD85A]" />
-                            </div>
-                            <div>
-                              <h2 className="text-lg font-bold text-[#0A0A0A]">Paiement</h2>
-                              <p className="text-sm text-gray-500">Choisissez votre mode de paiement</p>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            {[
-                              { value: 'card', label: 'Carte bancaire', desc: 'Paiement sécurisé', icon: IconCreditCard },
-                              { value: 'cash', label: 'Espèces', desc: 'Au chauffeur', icon: IconCash },
-                            ].map((method) => (
-                              <button
-                                key={method.value}
-                                type="button"
-                                onClick={() => {
-                                  setPaymentMethod(method.value as PaymentMethod);
-                                  setValueStep3('paymentMethod', method.value as any);
-                                }}
-                                className={`
-                                  relative p-5 rounded-2xl text-left transition-all duration-300 border-2
-                                  ${paymentMethod === method.value
-                                    ? 'border-[#5CD85A] bg-[#5CD85A]/5'
-                                    : 'border-gray-100 hover:border-gray-200'
-                                  }
-                                `}
-                              >
-                                <div className={`
-                                  w-12 h-12 rounded-xl mb-4 flex items-center justify-center
-                                  ${paymentMethod === method.value ? 'bg-[#5CD85A] text-white' : 'bg-gray-100 text-gray-500'}
-                                `}>
-                                  <method.icon className="h-6 w-6" />
+                          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6">
+                            <div className="flex items-start gap-4">
+                              <div className="w-14 h-14 rounded-2xl bg-amber-600 flex items-center justify-center flex-shrink-0">
+                                <IconCash className="h-7 w-7 text-white" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-lg font-bold text-amber-900 mb-2">Mode de paiement</h3>
+                                <p className="text-amber-800 leading-relaxed">
+                                  <strong>Paiement sur place avec le chauffeur</strong>
+                                </p>
+                                <p className="text-sm text-amber-700 mt-3 leading-relaxed">
+                                  Vous pourrez régler votre course directement auprès du chauffeur à l'issue du trajet,
+                                  en espèces ou par carte bancaire.
+                                </p>
+                                <div className="mt-4 p-3 bg-white/70 rounded-xl">
+                                  <p className="text-xs text-amber-800">
+                                    <strong>Note :</strong> Un code de vérification sera envoyé par email pour confirmer votre réservation.
+                                  </p>
                                 </div>
-                                <div className="font-semibold text-gray-900">{method.label}</div>
-                                <div className="text-sm text-gray-500 mt-1">{method.desc}</div>
-                                {paymentMethod === method.value && (
-                                  <div className="absolute top-3 right-3">
-                                    <IconCheck className="h-5 w-5 text-[#5CD85A]" />
-                                  </div>
-                                )}
-                              </button>
-                            ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
-
-                        {/* Card Details */}
-                        {paymentMethod === 'card' && (
-                          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 space-y-4">
-                            <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                              <IconLock className="h-4 w-4 text-[#5CD85A]" />
-                              <span className="font-medium">Paiement sécurisé SSL</span>
-                            </div>
-
-                            <div>
-                              <Label className="text-sm font-semibold text-gray-700 mb-2 block">Titulaire</Label>
-                              <Input
-                                placeholder="JEAN DUPONT"
-                                className="h-14 rounded-xl border-2 border-gray-200 focus:border-[#5CD85A] uppercase bg-white"
-                                value={cardData.cardHolder}
-                                onChange={(e) => setCardData({ ...cardData, cardHolder: e.target.value.toUpperCase() })}
-                              />
-                              {cardErrors.cardHolder && (
-                                <p className="text-sm text-red-500 mt-1">{cardErrors.cardHolder}</p>
-                              )}
-                            </div>
-
-                            <div>
-                              <Label className="text-sm font-semibold text-gray-700 mb-2 block">Numéro de carte</Label>
-                              <div className="relative">
-                                <Input
-                                  placeholder="1234 5678 9012 3456"
-                                  className="h-14 rounded-xl border-2 border-gray-200 focus:border-[#5CD85A] pr-20 text-lg tracking-wider bg-white"
-                                  value={cardData.cardNumber}
-                                  onChange={(e) => setCardData({ ...cardData, cardNumber: formatCardNumber(e.target.value) })}
-                                  maxLength={19}
-                                />
-                                {getCardType(cardData.cardNumber) && (
-                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#5CD85A]">
-                                    {getCardType(cardData.cardNumber)}
-                                  </span>
-                                )}
-                              </div>
-                              {cardErrors.cardNumber && (
-                                <p className="text-sm text-red-500 mt-1">{cardErrors.cardNumber}</p>
-                              )}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label className="text-sm font-semibold text-gray-700 mb-2 block">Expiration</Label>
-                                <Input
-                                  placeholder="MM/AA"
-                                  className="h-14 rounded-xl border-2 border-gray-200 focus:border-[#5CD85A] text-center text-lg bg-white"
-                                  value={cardData.expiry}
-                                  onChange={(e) => setCardData({ ...cardData, expiry: formatExpiry(e.target.value) })}
-                                  maxLength={5}
-                                />
-                                {cardErrors.expiry && (
-                                  <p className="text-sm text-red-500 mt-1">{cardErrors.expiry}</p>
-                                )}
-                              </div>
-                              <div>
-                                <Label className="text-sm font-semibold text-gray-700 mb-2 block">CVV</Label>
-                                <Input
-                                  type="password"
-                                  placeholder="•••"
-                                  className="h-14 rounded-xl border-2 border-gray-200 focus:border-[#5CD85A] text-center text-lg bg-white"
-                                  value={cardData.cvv}
-                                  onChange={(e) => setCardData({ ...cardData, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                                  maxLength={4}
-                                />
-                                {cardErrors.cvv && (
-                                  <p className="text-sm text-red-500 mt-1">{cardErrors.cvv}</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Cash info */}
-                        {paymentMethod === 'cash' && (
-                          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-                            <div className="flex items-start gap-3">
-                              <IconCash className="h-6 w-6 text-amber-600 mt-0.5" />
-                              <div>
-                                <div className="font-semibold text-amber-800">Paiement en espèces</div>
-                                <p className="text-sm text-amber-700 mt-1">
-                                  Un code de vérification sera envoyé par email. Le paiement sera effectué au chauffeur.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
 
                         {/* Terms */}
                         <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
@@ -1336,7 +1218,7 @@ export default function ReservationPage() {
                             <div className="text-right">
                               <p className="text-white/50 text-sm">{bookingData.isNightRate ? 'Tarif nuit' : 'Tarif jour'}</p>
                               <p className="text-white/70 text-sm mt-1">
-                                {paymentMethod === 'card' ? 'Par carte' : 'En espèces'}
+                                Paiement sur place
                               </p>
                             </div>
                           </div>
@@ -1362,16 +1244,11 @@ export default function ReservationPage() {
                             {isProcessingPayment ? (
                               <>
                                 <IconLoader2 className="mr-2 h-5 w-5 animate-spin" />
-                                Traitement...
-                              </>
-                            ) : paymentMethod === 'card' ? (
-                              <>
-                                Payer {formatPrice(bookingData.totalPrice)}
-                                <IconLock className="ml-2 h-5 w-5" />
+                                Envoi en cours...
                               </>
                             ) : (
                               <>
-                                Confirmer
+                                Envoyer la demande
                                 <IconArrowRight className="ml-2 h-5 w-5" />
                               </>
                             )}
@@ -1389,10 +1266,18 @@ export default function ReservationPage() {
                       <div className="w-20 h-20 rounded-2xl bg-[#5CD85A]/10 flex items-center justify-center mx-auto mb-6">
                         <IconLock className="h-10 w-10 text-[#5CD85A]" />
                       </div>
-                      <h2 className="text-2xl font-bold mb-2">Vérification par email</h2>
-                      <p className="text-gray-500 mb-8">
+                      <h2 className="text-2xl font-bold text-[#0A0A0A] mb-2">
+                        Code de vérification
+                      </h2>
+                      <p className="text-gray-500 mb-2">
                         Un code à 6 chiffres a été envoyé à votre adresse email
                       </p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                        <p className="text-sm text-blue-800">
+                          <strong>Attente de confirmation du chauffeur</strong><br />
+                          Votre demande sera examinée. Vous recevrez une notification par email.
+                        </p>
+                      </div>
 
                       {/* OTP Input */}
                       <div className="flex justify-center gap-3 mb-6">
@@ -1428,11 +1313,11 @@ export default function ReservationPage() {
                         {isProcessingPayment ? (
                           <>
                             <IconLoader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Vérification...
+                            Envoi de la demande...
                           </>
                         ) : (
                           <>
-                            Confirmer ma réservation
+                            Envoyer la demande de réservation
                             <IconCheck className="ml-2 h-5 w-5" />
                           </>
                         )}
@@ -1464,7 +1349,7 @@ export default function ReservationPage() {
                           </div>
                           <div className="flex items-center gap-2 text-[#5CD85A] font-bold pt-2 border-t border-gray-200 mt-3">
                             <IconCash className="h-4 w-4" />
-                            {formatPrice(bookingData.totalPrice)} (espèces)
+                            {formatPrice(bookingData.totalPrice)} (paiement sur place)
                           </div>
                         </div>
                       </div>
@@ -1534,9 +1419,9 @@ export default function ReservationPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </div >
+        </div >
+      </div >
+    </div >
   );
 }

@@ -11,13 +11,14 @@ import {
     AdminEmptyState,
     AdminAlertBanner
 } from '@/components/admin/admin-components';
-import { Calendar, Clock, Euro, AlertCircle, Settings, ArrowRight, CheckCircle2, Sparkles, TrendingUp, MapPin, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, Euro, AlertCircle, Settings, ArrowRight, CheckCircle2, Sparkles, TrendingUp, MapPin, CheckCircle, Users } from 'lucide-react';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/pricing';
 
 // Status translations
 const statusLabels: Record<string, string> = {
     pending: 'En attente',
+    verified: 'Vérifié',
     confirmed: 'Confirmé',
     in_progress: 'En cours',
     completed: 'Terminé',
@@ -142,6 +143,7 @@ async function getRecentBookings() {
                 paymentMethod: bookings.paymentMethod,
                 totalPrice: bookings.totalPrice,
                 serviceType: bookings.serviceType,
+                passengers: bookings.passengers,
                 createdAt: bookings.createdAt,
             })
             .from(bookings)
@@ -191,6 +193,7 @@ export default async function AdminDashboard() {
                                 <div className="p-3 rounded-full bg-sky-100">
                                     <Sparkles className="h-6 w-6 text-sky-600" />
                                 </div>
+
                                 <div>
                                     <CardTitle className="text-xl font-bold text-slate-900">
                                         🎉 Bienvenue dans votre espace admin !
@@ -462,31 +465,41 @@ export default async function AdminDashboard() {
                                                 <span className="font-semibold text-slate-900">
                                                     #{booking.id} - {booking.guestName || 'Client'}
                                                 </span>
-                                                <span
-                                                    className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'confirmed'
-                                                        ? 'bg-emerald-100 text-emerald-700'
-                                                        : booking.status === 'pending'
-                                                            ? 'bg-amber-100 text-amber-700'
-                                                            : booking.status === 'cancelled'
-                                                                ? 'bg-red-100 text-red-700'
-                                                                : booking.status === 'completed'
-                                                                    ? 'bg-blue-100 text-blue-700'
-                                                                    : 'bg-slate-100 text-slate-700'
-                                                        }`}
-                                                >
-                                                    {statusLabels[booking.status] || booking.status}
-                                                </span>
-                                                <span
-                                                    className={`px-2 py-1 rounded-full text-xs font-medium ${booking.paymentStatus === 'paid'
-                                                        ? 'bg-emerald-100 text-emerald-700'
-                                                        : booking.paymentStatus === 'pending'
-                                                            ? 'bg-orange-100 text-orange-700'
-                                                            : 'bg-slate-100 text-slate-700'
-                                                        }`}
-                                                >
-                                                    {paymentStatusLabels[booking.paymentStatus] || booking.paymentStatus}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span
+                                                        className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'confirmed'
+                                                            ? 'bg-emerald-100 text-emerald-700'
+                                                            : booking.status === 'verified'
+                                                                ? 'bg-blue-100 text-blue-700'
+                                                                : booking.status === 'pending'
+                                                                    ? 'bg-amber-100 text-amber-700'
+                                                                    : booking.status === 'cancelled'
+                                                                        ? 'bg-red-100 text-red-700'
+                                                                        : booking.status === 'completed'
+                                                                            ? 'bg-slate-100 text-slate-700'
+                                                                            : 'bg-slate-100 text-slate-700'
+                                                            }`}
+                                                    >
+                                                        {statusLabels[booking.status] || booking.status}
+                                                    </span>
+                                                    <span
+                                                        className={`px-2 py-1 rounded-full text-xs font-medium ${booking.paymentStatus === 'paid'
+                                                            ? 'bg-emerald-100 text-emerald-700'
+                                                            : booking.paymentStatus === 'pending'
+                                                                ? 'bg-orange-100 text-orange-700'
+                                                                : 'bg-slate-100 text-slate-700'
+                                                            }`}
+                                                    >
+                                                        {paymentStatusLabels[booking.paymentStatus] || booking.paymentStatus}
+                                                    </span>
+                                                </div>
                                             </div>
+
+                                            <div className="text-xs text-slate-500 mb-2 flex items-center gap-2">
+                                                <Users className="h-3 w-3" />
+                                                {booking.passengers} passager(s)
+                                            </div>
+
                                             <div className="flex items-center gap-2 text-sm text-slate-600">
                                                 <MapPin className="h-4 w-4 flex-shrink-0 text-slate-400" />
                                                 <span className="truncate">{booking.pickupAddress}</span>

@@ -28,7 +28,7 @@ export async function isTimeAvailable(date: Date, time: string): Promise<boolean
     // Check regular working hours
     const [schedule] = await db
         .select()
-        .from(working Hours)
+        .from(workingHours)
         .where(eq(workingHours.dayOfWeek, dayOfWeek))
         .limit(1);
 

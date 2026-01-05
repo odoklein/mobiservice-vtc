@@ -6,7 +6,13 @@
 
 import { isFrenchHoliday } from '../holidays';
 
-export const TVA_RATE = 0.10; // 10%
+// Taux de TVA différenciés selon le type de prestation
+export const TVA_RATE_TRANSPORT = 0.10; // 10% - TVA sur le trajet (courses)
+export const TVA_RATE_TOLL = 0.20; // 20% - TVA sur les péages d'autoroute
+export const TVA_RATE_MDA = 0.20; // 20% - TVA sur les mises à disposition horaires
+
+// Export pour compatibilité avec code existant
+export const TVA_RATE = TVA_RATE_TRANSPORT;
 
 // Dépôt VTC (fixe)
 export const VTC_DEPOT_ADDRESS = '4 rue des artisans, 74300 Cluses';
@@ -101,70 +107,102 @@ export function getDistanceBracket(totalDistanceRoundTrip: number): keyof typeof
 }
 
 /**
- * Structure de debug détaillée pour comprendre le calcul du prix
+ * Structure de debug AMÉLIORÉE - Affichage clair et compréhensible
+ * Format lisible pour comprendre facilement le calcul du prix
  */
 export interface PricingDebugInfo {
-  // 1. Détermination tarif jour/nuit
-  rateType: {
-    isNight: boolean;
-    reason: string;
+  // ═══════════════════════════════════════════════════════════════
+  // 1. HORAIRE ET TARIFICATION
+  // ═══════════════════════════════════════════════════════════════
+  horaireTarification: {
+    typeApplique: 'JOUR' | 'NUIT';
+    explicationSimple: string; // Ex: "Tarif JOUR car 14h00 le Lundi"
     details: {
-      pickupTime: string;
-      hour: number;
-      dayOfWeek: string;
-      isNightHours: boolean;
-      isSunday: boolean;
-      isHoliday: boolean;
+      heureReservation: string; // Ex: "14:00"
+      jourSemaine: string; // Ex: "Lundi"
+      estHeureDeNuit: boolean; // 20h-7h
+      estDimanche: boolean;
+      estJourFerie: boolean;
     };
   };
-  
-  // 2. Distances
+
+  // ═══════════════════════════════════════════════════════════════
+  // 2. DISTANCES DU TRAJET
+  // ═══════════════════════════════════════════════════════════════
   distances: {
-    ca_out: number;
-    tp: number;
-    ca_return: number;
-    totalRoundTrip: number;
-    explanation: string;
+    depotVersDepart: number; // km - Dépôt → Lieu de prise en charge
+    trajetClient: number; // km - Prise en charge → Destination (LE CLIENT EST DANS LA VOITURE)
+    destinationVersDepot: number; // km - Destination → Retour dépôt
+    distanceTotale: number; // km - Total aller-retour
+    explicationSimple: string; // Ex: "12km + 35km + 15km = 62km au total"
   };
-  
-  // 3. Bracket / palier tarifaire
-  bracket: {
-    value: string;
-    reason: string;
-    thresholds: string;
+
+  // ═══════════════════════════════════════════════════════════════
+  // 3. GRILLE TARIFAIRE APPLIQUÉE
+  // ═══════════════════════════════════════════════════════════════
+  grilleTarifaire: {
+    palierDistance: string; // Ex: "50-75 km"
+    explicationPalier: string; // Ex: "Distance totale (62km) → palier 50-75km"
+    tarifsAppliques: {
+      prixKmDeplacement: number; // €/km pour trajets dépôt (CA)
+      prixKmClient: number; // €/km pour trajet client (TP)
+    };
   };
-  
-  // 4. Tarifs appliqués
-  rates: {
-    pricePerKmCA: number;
-    pricePerKmTP: number;
-    rateTableUsed: 'DAY_RATES' | 'NIGHT_RATES';
-    allCARates: Record<string, number>;
-  };
-  
-  // 5. Calcul détaillé
-  calculation: {
-    steps: Array<{
-      step: number;
-      description: string;
-      formula: string;
-      result: number;
+
+  // ═══════════════════════════════════════════════════════════════
+  // 4. CALCUL DÉTAILLÉ (étape par étape)
+  // ═══════════════════════════════════════════════════════════════
+  calculDetaille: {
+    etapes: Array<{
+      numero: number;
+      description: string; // Description claire en français
+      calcul: string; // Ex: "12 km × 1,10 €/km"
+      montant: number; // Résultat en €
     }>;
-    subtotalBeforeTolls: number;
-    tollCalculation: string;
-    finalTotal: number;
+    sousTotalAvantPeages: number;
   };
-  
-  // 6. Forfait agglomération
+
+  // ═══════════════════════════════════════════════════════════════
+  // 5. PÉAGES (uniquement quand client dans véhicule)
+  // ═══════════════════════════════════════════════════════════════
+  peages: {
+    concerne: boolean; // Y a-t-il des péages ?
+    explication: string; // Ex: "Péages A40 sur trajet client: 8,90€"
+    montantUnitaire: number; // Coût aller simple
+    multiplicateur: number; // 1 pour A/S, 2 pour A/R
+    montantTotal: number; // Montant final inclus
+    tvaAppliquee: string; // "20%"
+    note: string; // "Les péages des trajets chauffeur seul ne sont pas facturés au client"
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // 6. FORFAIT AGGLOMÉRATION (si applicable)
+  // ═══════════════════════════════════════════════════════════════
   forfaitAgglomeration: {
-    applied: boolean;
-    reason: string;
-    threshold: number;
-    forfaitPrice: number | null;
+    applique: boolean;
+    explication: string; // Ex: "Distance ≤ 25km → forfait agglomération 33€"
+    seuil: number; // 25 km
+    prixForfait: number | null;
   };
-  
-  // 7. Résumé final
-  summary: string[];
+
+  // ═══════════════════════════════════════════════════════════════
+  // 7. TVA DÉTAILLÉE
+  // ═══════════════════════════════════════════════════════════════
+  tvaDetails: {
+    tvaTransport: { taux: string; montant: number }; // 10% sur le trajet
+    tvaPeages: { taux: string; montant: number }; // 20% sur les péages
+    tvaTotale: number;
+    explication: string; // Ex: "TVA transport (10%): 5,80€ + TVA péages (20%): 1,78€"
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // 8. RÉSUMÉ FINAL (format lisible pour affichage)
+  // ═══════════════════════════════════════════════════════════════
+  resumeFinal: {
+    lignes: string[]; // Résumé ligne par ligne
+    prixFinalTTC: number;
+    prixFinalHT: number;
+  };
 }
 
 /**
@@ -172,12 +210,16 @@ export interface PricingDebugInfo {
  * RÈGLE N°1 (NON NÉGOCIABLE): Toutes les estimations sont calculées en ALLER et RETOUR
  * par rapport au point de départ du chauffeur VTC (point de dépôt).
  * 
+ * TVA DIFFÉRENCIÉE:
+ * - 10% sur le transport (courses)
+ * - 20% sur les péages d'autoroute
+ * 
  * @param distanceCA_out Distance dépôt → pickup (km)
  * @param distanceTP Distance pickup → dropoff (km)
  * @param distanceCA_return Distance dropoff → dépôt (km) - TOUJOURS inclus
  * @param tripType 'one-way' ou 'round-trip' (affecte TP x2 et péages x2 pour A/R)
  * @param pickupTime Date/heure de prise en charge
- * @param tollCost Coût des péages (€ TTC) - x1 pour A/S, x2 pour A/R
+ * @param tollCost Coût des péages (€ TTC) - UNIQUEMENT sur trajet client (pickup→dropoff)
  */
 export function calculateTransferPrice(
   distanceCA_out: number,
@@ -206,25 +248,17 @@ export function calculateTransferPrice(
   const hours = pickupTime.getHours();
   const dayOfWeek = pickupTime.getDay();
   const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-  
+
   const isNightHours = hours >= 20 || hours < 7;
   const isSunday = dayOfWeek === 0;
   const isHoliday = isFrenchHoliday(pickupTime);
-  
+
   const night = isNightHours || isSunday || isHoliday;
   const rates = night ? NIGHT_RATES : DAY_RATES;
 
-  // Build rate type reason
-  let rateReason = '';
-  if (night) {
-    const reasons: string[] = [];
-    if (isNightHours) reasons.push(`heure: ${hours}h (20h-7h = tarif nuit)`);
-    if (isSunday) reasons.push('dimanche');
-    if (isHoliday) reasons.push('jour férié');
-    rateReason = `Tarif NUIT appliqué car: ${reasons.join(' + ')}`;
-  } else {
-    rateReason = `Tarif JOUR appliqué (${hours}h, ${dayNames[dayOfWeek]}, pas de jour férié)`;
-  }
+  // ═══════════════════════════════════════════════════════════════
+  // CALCULS DE BASE
+  // ═══════════════════════════════════════════════════════════════
 
   // RÈGLE N°1: Le retour au dépôt est TOUJOURS inclus dans le calcul
   const totalDistanceRoundTrip = distanceCA_out + distanceTP + distanceCA_return;
@@ -240,183 +274,256 @@ export function calculateTransferPrice(
   let costCA_out = 0;
   let costTP = 0;
   let costCA_return = 0;
-  let totalTTC = 0;
-  const calculationSteps: PricingDebugInfo['calculation']['steps'] = [];
-  let stepNumber = 1;
+  let transportTTC = 0;
+
+  const etapesCalcul: PricingDebugInfo['calculDetaille']['etapes'] = [];
+  let etapeNum = 1;
 
   if (isForfaitAgglomeration) {
     // Forfait agglomération: prix fixe (≤ 25km A/R)
     const forfaitPrice = night ? FORFAIT_AGGLOMERATION.night.ttc : FORFAIT_AGGLOMERATION.day.ttc;
-    totalTTC = forfaitPrice;
-    
-    calculationSteps.push({
-      step: stepNumber++,
-      description: 'Forfait agglomération appliqué',
-      formula: `Distance A/R (${totalDistanceRoundTrip.toFixed(1)}km) ≤ ${FORFAIT_AGGLOMERATION.maxKm}km`,
-      result: forfaitPrice,
+    transportTTC = forfaitPrice;
+
+    etapesCalcul.push({
+      numero: etapeNum++,
+      description: `Forfait agglomération appliqué (≤ ${FORFAIT_AGGLOMERATION.maxKm} km)`,
+      calcul: `Prix fixe ${night ? 'NUIT' : 'JOUR'}`,
+      montant: forfaitPrice,
     });
-    
-    // Breakdown masqué mais conservé pour admin (calcul théorique)
+
+    // Breakdown théorique pour admin
     costCA_out = distanceCA_out * pricePerKmCA;
     costTP = tripType === 'round-trip' ? distanceTP * pricePerKmTP * 2 : distanceTP * pricePerKmTP;
     costCA_return = distanceCA_return * pricePerKmCA;
   } else {
     // Tarification au km selon les brackets
+
+    // Étape 1: Déplacement dépôt → lieu de prise en charge
     costCA_out = distanceCA_out * pricePerKmCA;
-    calculationSteps.push({
-      step: stepNumber++,
-      description: 'CA aller (Dépôt → Départ)',
-      formula: `${distanceCA_out.toFixed(1)}km × ${pricePerKmCA.toFixed(2)}€/km`,
-      result: Math.round(costCA_out * 100) / 100,
+    etapesCalcul.push({
+      numero: etapeNum++,
+      description: 'Déplacement: Dépôt → Lieu de prise en charge',
+      calcul: `${distanceCA_out.toFixed(1)} km × ${pricePerKmCA.toFixed(2)} €/km`,
+      montant: Math.round(costCA_out * 100) / 100,
     });
-    
-    // RÈGLE: En A/R client, le TP est doublé
+
+    // Étape 2: Trajet client (le client est dans la voiture)
     if (tripType === 'round-trip') {
       costTP = distanceTP * pricePerKmTP * 2;
-      calculationSteps.push({
-        step: stepNumber++,
-        description: 'TP (Trajet Principal) × 2 pour A/R',
-        formula: `${distanceTP.toFixed(1)}km × ${pricePerKmTP.toFixed(2)}€/km × 2`,
-        result: Math.round(costTP * 100) / 100,
+      etapesCalcul.push({
+        numero: etapeNum++,
+        description: 'Trajet client (A/R): Prise en charge ↔ Destination × 2',
+        calcul: `${distanceTP.toFixed(1)} km × ${pricePerKmTP.toFixed(2)} €/km × 2`,
+        montant: Math.round(costTP * 100) / 100,
       });
     } else {
       costTP = distanceTP * pricePerKmTP;
-      calculationSteps.push({
-        step: stepNumber++,
-        description: 'TP (Trajet Principal)',
-        formula: `${distanceTP.toFixed(1)}km × ${pricePerKmTP.toFixed(2)}€/km`,
-        result: Math.round(costTP * 100) / 100,
+      etapesCalcul.push({
+        numero: etapeNum++,
+        description: 'Trajet client: Prise en charge → Destination',
+        calcul: `${distanceTP.toFixed(1)} km × ${pricePerKmTP.toFixed(2)} €/km`,
+        montant: Math.round(costTP * 100) / 100,
       });
     }
-    
-    // RÈGLE N°1: CA_retour est TOUJOURS inclus (même en A/S)
+
+    // Étape 3: Retour au dépôt (TOUJOURS inclus)
     costCA_return = distanceCA_return * pricePerKmCA;
-    calculationSteps.push({
-      step: stepNumber++,
-      description: 'CA retour (Arrivée → Dépôt) - TOUJOURS inclus',
-      formula: `${distanceCA_return.toFixed(1)}km × ${pricePerKmCA.toFixed(2)}€/km`,
-      result: Math.round(costCA_return * 100) / 100,
+    etapesCalcul.push({
+      numero: etapeNum++,
+      description: 'Retour: Destination → Dépôt (toujours inclus)',
+      calcul: `${distanceCA_return.toFixed(1)} km × ${pricePerKmCA.toFixed(2)} €/km`,
+      montant: Math.round(costCA_return * 100) / 100,
     });
 
-    totalTTC = costCA_out + costTP + costCA_return;
-    calculationSteps.push({
-      step: stepNumber++,
-      description: 'Sous-total (CA_out + TP + CA_return)',
-      formula: `${costCA_out.toFixed(2)}€ + ${costTP.toFixed(2)}€ + ${costCA_return.toFixed(2)}€`,
-      result: Math.round(totalTTC * 100) / 100,
+    transportTTC = costCA_out + costTP + costCA_return;
+    etapesCalcul.push({
+      numero: etapeNum++,
+      description: 'Sous-total transport',
+      calcul: `${costCA_out.toFixed(2)}€ + ${costTP.toFixed(2)}€ + ${costCA_return.toFixed(2)}€`,
+      montant: Math.round(transportTTC * 100) / 100,
     });
   }
 
-  const subtotalBeforeTolls = totalTTC;
+  const sousTotalAvantPeages = transportTTC;
 
-  // Ajouter les péages
-  // RÈGLE: Péages x1 pour A/S, x2 pour A/R
-  const finalTollCost = tripType === 'round-trip' ? tollCost * 2 : tollCost;
-  let tollCalculation = '';
+  // ═══════════════════════════════════════════════════════════════
+  // PÉAGES (uniquement sur trajet client - pickup → dropoff)
+  // ═══════════════════════════════════════════════════════════════
+
+  // RÈGLE IMPORTANTE: Péages x1 pour A/S, x2 pour A/R
+  // LES PÉAGES NE SONT COMPTÉS QUE LORSQUE LE CLIENT EST DANS LE VÉHICULE
+  const multiplicateurPeage = tripType === 'round-trip' ? 2 : 1;
+  const peageTotal = tollCost * multiplicateurPeage;
+
+  let explicationPeage = '';
   if (tollCost > 0) {
     if (tripType === 'round-trip') {
-      tollCalculation = `${tollCost.toFixed(2)}€ × 2 (A/R) = ${finalTollCost.toFixed(2)}€`;
+      explicationPeage = `Péages trajet client: ${tollCost.toFixed(2)}€ × 2 (A/R) = ${peageTotal.toFixed(2)}€`;
     } else {
-      tollCalculation = `${tollCost.toFixed(2)}€ (A/S)`;
+      explicationPeage = `Péages trajet client: ${tollCost.toFixed(2)}€`;
     }
-    totalTTC += finalTollCost;
-    calculationSteps.push({
-      step: stepNumber++,
-      description: `Péages${tripType === 'round-trip' ? ' (×2 pour A/R)' : ''}`,
-      formula: tollCalculation,
-      result: finalTollCost,
+    etapesCalcul.push({
+      numero: etapeNum++,
+      description: `Péages autoroute${tripType === 'round-trip' ? ' (×2 pour A/R)' : ''}`,
+      calcul: explicationPeage,
+      montant: peageTotal,
     });
   } else {
-    tollCalculation = 'Aucun péage';
+    explicationPeage = 'Aucun péage sur ce trajet';
   }
 
-  // Calcul HT et TVA
-  const totalHT = Math.round((totalTTC / (1 + TVA_RATE)) * 100) / 100;
-  const tva = Math.round((totalTTC - totalHT) * 100) / 100;
+  // ═══════════════════════════════════════════════════════════════
+  // CALCUL TVA DIFFÉRENCIÉE
+  // ═══════════════════════════════════════════════════════════════
 
-  // Build summary
-  const summary: string[] = [
-    `📍 Distance totale A/R: ${totalDistanceRoundTrip.toFixed(1)} km`,
-    `🕐 ${night ? 'Tarif NUIT' : 'Tarif JOUR'} (${hours}h, ${dayNames[dayOfWeek]})`,
-    `📊 Palier tarifaire: ${bracket} km`,
-  ];
-  
-  if (isForfaitAgglomeration) {
-    summary.push(`✅ Forfait agglomération: ${night ? '47.50' : '33.00'}€ TTC`);
+  // TVA Transport: 10%
+  const transportHT = Math.round((transportTTC / (1 + TVA_RATE_TRANSPORT)) * 100) / 100;
+  const tvaTransport = Math.round((transportTTC - transportHT) * 100) / 100;
+
+  // TVA Péages: 20%
+  const peageHT = Math.round((peageTotal / (1 + TVA_RATE_TOLL)) * 100) / 100;
+  const tvaPeages = Math.round((peageTotal - peageHT) * 100) / 100;
+
+  // Totaux
+  const totalTTC = Math.round((transportTTC + peageTotal) * 100) / 100;
+  const totalHT = Math.round((transportHT + peageHT) * 100) / 100;
+  const tvaTotale = Math.round((tvaTransport + tvaPeages) * 100) / 100;
+
+  // ═══════════════════════════════════════════════════════════════
+  // CONSTRUCTION DU DEBUG INFO (format lisible)
+  // ═══════════════════════════════════════════════════════════════
+
+  // Explication horaire
+  let explicationHoraire = '';
+  if (night) {
+    const raisons: string[] = [];
+    if (isNightHours) raisons.push(`${hours}h (horaire de nuit: 20h-7h)`);
+    if (isSunday) raisons.push('dimanche');
+    if (isHoliday) raisons.push('jour férié');
+    explicationHoraire = `Tarif NUIT appliqué car ${raisons.join(' + ')}`;
   } else {
-    summary.push(`💰 CA/km: ${pricePerKmCA.toFixed(2)}€ | TP/km: ${pricePerKmTP.toFixed(2)}€`);
-    summary.push(`🧮 Calcul: CA(${costCA_out.toFixed(2)}€) + TP(${costTP.toFixed(2)}€) + Retour(${costCA_return.toFixed(2)}€)`);
+    explicationHoraire = `Tarif JOUR appliqué: ${hours}h le ${dayNames[dayOfWeek]}`;
   }
-  
-  if (finalTollCost > 0) {
-    summary.push(`🛣️ Péages: +${finalTollCost.toFixed(2)}€`);
-  }
-  
-  summary.push(`💵 TOTAL TTC: ${(Math.round(totalTTC * 100) / 100).toFixed(2)}€`);
 
-  // Build debug info
+  // Résumé final minimaliste
+  const lignesResume: string[] = [
+    ``,
+    `ESTIMATION TARIFAIRE`,
+    `─────────────────────────────────────────────────`,
+    ``,
+    `Réservation: ${dayNames[dayOfWeek]} à ${hours}h${pickupTime.getMinutes().toString().padStart(2, '0')}`,
+    `Type de trajet: ${tripType === 'round-trip' ? 'Aller-Retour' : 'Aller Simple'}`,
+    `Tarif appliqué: ${night ? 'NUIT' : 'JOUR'}`,
+    ``,
+    `DISTANCES:`,
+    `  Dépôt vers départ client: ${distanceCA_out.toFixed(1)} km`,
+    `  Trajet client: ${distanceTP.toFixed(1)} km${tripType === 'round-trip' ? ' × 2' : ''}`,
+    `  Retour vers dépôt: ${distanceCA_return.toFixed(1)} km`,
+    `  Total aller-retour: ${totalDistanceRoundTrip.toFixed(1)} km`,
+    ``,
+    `TARIFICATION (palier ${bracket}):`,
+  ];
+
+  if (isForfaitAgglomeration) {
+    lignesResume.push(`  Forfait agglomération: ${night ? '47,50' : '33,00'}€ TTC`);
+  } else {
+    lignesResume.push(`  Déplacement: ${pricePerKmCA.toFixed(2)}€/km`);
+    lignesResume.push(`  Trajet client: ${pricePerKmTP.toFixed(2)}€/km`);
+  }
+
+  lignesResume.push(``);
+  lignesResume.push(`MONTANTS:`);
+  lignesResume.push(`  Transport: ${transportTTC.toFixed(2)}€ TTC (TVA 10%)`);
+
+  if (peageTotal > 0) {
+    lignesResume.push(`  Péages: ${peageTotal.toFixed(2)}€ TTC (TVA 20%)`);
+    lignesResume.push(`  Note: Péages uniquement sur trajet client`);
+  }
+
+  lignesResume.push(``);
+  lignesResume.push(`─────────────────────────────────────────────────`);
+  lignesResume.push(`TOTAL TTC: ${totalTTC.toFixed(2)}€`);
+  lignesResume.push(`  dont TVA: ${tvaTotale.toFixed(2)}€`);
+  lignesResume.push(`  HT: ${totalHT.toFixed(2)}€`);
+  lignesResume.push(`─────────────────────────────────────────────────`);
+
   const debugInfo: PricingDebugInfo = {
-    rateType: {
-      isNight: night,
-      reason: rateReason,
+    horaireTarification: {
+      typeApplique: night ? 'NUIT' : 'JOUR',
+      explicationSimple: explicationHoraire,
       details: {
-        pickupTime: pickupTime.toISOString(),
-        hour: hours,
-        dayOfWeek: dayNames[dayOfWeek],
-        isNightHours,
-        isSunday,
-        isHoliday,
+        heureReservation: `${hours}:${pickupTime.getMinutes().toString().padStart(2, '0')}`,
+        jourSemaine: dayNames[dayOfWeek],
+        estHeureDeNuit: isNightHours,
+        estDimanche: isSunday,
+        estJourFerie: isHoliday,
       },
     },
     distances: {
-      ca_out: distanceCA_out,
-      tp: distanceTP,
-      ca_return: distanceCA_return,
-      totalRoundTrip: totalDistanceRoundTrip,
-      explanation: `Dépôt→Départ (${distanceCA_out.toFixed(1)}km) + Trajet (${distanceTP.toFixed(1)}km) + Retour dépôt (${distanceCA_return.toFixed(1)}km) = ${totalDistanceRoundTrip.toFixed(1)}km`,
+      depotVersDepart: distanceCA_out,
+      trajetClient: distanceTP,
+      destinationVersDepot: distanceCA_return,
+      distanceTotale: totalDistanceRoundTrip,
+      explicationSimple: `${distanceCA_out.toFixed(1)}km + ${distanceTP.toFixed(1)}km + ${distanceCA_return.toFixed(1)}km = ${totalDistanceRoundTrip.toFixed(1)}km`,
     },
-    bracket: {
-      value: bracket,
-      reason: `Distance A/R totale (${totalDistanceRoundTrip.toFixed(1)}km) correspond au palier ${bracket}`,
-      thresholds: '0-25km, 25-50km, 50-75km, 75-100km, 100+km',
+    grilleTarifaire: {
+      palierDistance: bracket,
+      explicationPalier: `Distance totale (${totalDistanceRoundTrip.toFixed(1)}km) → palier ${bracket}`,
+      tarifsAppliques: {
+        prixKmDeplacement: pricePerKmCA,
+        prixKmClient: pricePerKmTP,
+      },
     },
-    rates: {
-      pricePerKmCA,
-      pricePerKmTP,
-      rateTableUsed: night ? 'NIGHT_RATES' : 'DAY_RATES',
-      allCARates: rates.CA_RATES,
+    calculDetaille: {
+      etapes: etapesCalcul,
+      sousTotalAvantPeages: Math.round(sousTotalAvantPeages * 100) / 100,
     },
-    calculation: {
-      steps: calculationSteps,
-      subtotalBeforeTolls: Math.round(subtotalBeforeTolls * 100) / 100,
-      tollCalculation,
-      finalTotal: Math.round(totalTTC * 100) / 100,
+    peages: {
+      concerne: tollCost > 0,
+      explication: explicationPeage,
+      montantUnitaire: tollCost,
+      multiplicateur: multiplicateurPeage,
+      montantTotal: peageTotal,
+      tvaAppliquee: '20%',
+      note: 'Les péages des trajets chauffeur seul (dépôt ↔ client) ne sont PAS facturés',
     },
     forfaitAgglomeration: {
-      applied: isForfaitAgglomeration,
-      reason: isForfaitAgglomeration 
-        ? `Distance A/R (${totalDistanceRoundTrip.toFixed(1)}km) ≤ seuil (${FORFAIT_AGGLOMERATION.maxKm}km)`
-        : `Distance A/R (${totalDistanceRoundTrip.toFixed(1)}km) > seuil (${FORFAIT_AGGLOMERATION.maxKm}km)`,
-      threshold: FORFAIT_AGGLOMERATION.maxKm,
-      forfaitPrice: isForfaitAgglomeration 
+      applique: isForfaitAgglomeration,
+      explication: isForfaitAgglomeration
+        ? `Distance ≤ ${FORFAIT_AGGLOMERATION.maxKm}km → forfait ${night ? '47,50' : '33,00'}€`
+        : `Distance > ${FORFAIT_AGGLOMERATION.maxKm}km → calcul au km`,
+      seuil: FORFAIT_AGGLOMERATION.maxKm,
+      prixForfait: isForfaitAgglomeration
         ? (night ? FORFAIT_AGGLOMERATION.night.ttc : FORFAIT_AGGLOMERATION.day.ttc)
         : null,
     },
-    summary,
+    tvaDetails: {
+      tvaTransport: { taux: '10%', montant: tvaTransport },
+      tvaPeages: { taux: '20%', montant: tvaPeages },
+      tvaTotale: tvaTotale,
+      explication: peageTotal > 0
+        ? `TVA transport (10%): ${tvaTransport.toFixed(2)}€ + TVA péages (20%): ${tvaPeages.toFixed(2)}€`
+        : `TVA transport (10%): ${tvaTransport.toFixed(2)}€`,
+    },
+    resumeFinal: {
+      lignes: lignesResume,
+      prixFinalTTC: totalTTC,
+      prixFinalHT: totalHT,
+    },
   };
 
-  // Log debug info for server-side debugging
-  console.log('[PRICING DEBUG]', JSON.stringify(debugInfo, null, 2));
+  // Log debug lisible pour server-side
+  console.log('\n' + lignesResume.join('\n') + '\n');
 
   return {
-    totalTTC: Math.round(totalTTC * 100) / 100,
+    totalTTC,
     totalHT,
-    tva,
+    tva: tvaTotale,
     breakdown: {
       costCA_out: Math.round(costCA_out * 100) / 100,
       costTP: Math.round(costTP * 100) / 100,
       costCA_return: Math.round(costCA_return * 100) / 100,
-      tollCost: finalTollCost,
+      tollCost: peageTotal,
       isForfaitAgglomeration,
       bracket,
       pricePerKmCA,

@@ -97,7 +97,7 @@ INSERT INTO pricing_rules (rule_type, service_type, time_slot, price_ht, price_t
 -- ============================================================================
 INSERT INTO pricing_rules (rule_type, service_type, time_slot, price_ht, price_ttc, per_hour, description, is_active, created_at, updated_at) VALUES
 ('extra_hour', 'hourly', 'day', '105.45', '116.00', '116.00', 'Heure supplémentaire (Jour)', true, NOW(), NOW()),
-('extra_hour', 'hourly', 'night', '118.18', '130.00', '130.00', 'Heure supplémentaire (Nuit)', true, NOW(), NOW());
+('extra_hour', 'hourly', 'night', '127.27', '140.00', '140.00', 'Heure supplémentaire (Nuit)', true, NOW(), NOW());
 
 -- ============================================================================
 -- MINIMUM PRICE
@@ -113,4 +113,3 @@ INSERT INTO pricing_rules (rule_type, service_type, time_slot, price_ht, price_t
 -- WHERE is_active = true 
 -- GROUP BY rule_type, service_type, time_slot 
 -- ORDER BY rule_type, time_slot;
-

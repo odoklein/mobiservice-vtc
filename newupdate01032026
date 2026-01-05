@@ -1,0 +1,788 @@
+# MobiService VTC - Contenu Textuel des Pages
+
+
+---
+
+
+## 🏠 PAGE D'ACCUEIL (`/`)
+
+
+### Hero Section
+```
+🌍 Europe › 🇫🇷 France › 🏔️ Auvergne-Rhône-Alpes › Haute-Savoie
+
+
+L'Excellence du Transport Privé avec Chauffeur
+
+
+Pour tous vos déplacements professionnels et/ou personnels, votre chauffeur privé en Haute-Savoie sera vous accompagner en répondant à vos attentes. Confort, ponctualité et discrétion, avec MobiService VTC découvrez la mobilité en toute sérénité.
+
+
+15+        5.0 ⭐      24/7
+Années     Avis clients   Disponible
+
+
+[Estimation de votre trajet →]  [📞 Appeler]
+```
+
+
+**Carte Chauffeur:**
+```
+Patrice
+15+ ans d'expérience
+⭐ 5.0
+```
+
+
+### Section Services
+```
+Nos prestations (en noir)
+
+
+Nos services sur mesure
+Chaque trajet est une expérience unique, adaptée à vos besoins
+
+
+🚗 Transfert Aller Simple (A/S) et Aller Retour (A/R)
+Transfert direct de votre point de départ à votre destination
+À partir de 33€ TTC
+[Estimation de votre trajet →]
+
+
+⏰ Transfert Forfaitaire en taux horaire Aller et Retour  
+Chauffeur à disposition pour vos déplacements multiples.
+Forfaits de 2H à 8H disponibles, de jour comme de nuit.
+[Demandez votre réservation →]
+```
+
+
+### Section Valeurs
+```
+Nos engagements
+L'excellence à chaque trajet
+Nous mettons un point d'honneur à offrir une expérience irréprochable.
+
+
+🧘 Sérénité
+Un trajet en toute tranquillité, sans stress ni imprévu, MobiService VTC sera répondre à votre attente.
+
+
+🔒 Confidentialité
+Dans une éthique de respect et de confidentialité, nous nous engageons à préserver la vie privée et les conversations de notre clientèle.
+
+
+🌱 Écologie
+Véhicule premium, 100% électrique (zéro émission) pour réduire notre empreinte carbone au maximum en préservant notre environnement par un transport éco-responsable.
+
+
+⭐ Expérience
+Plus de 15 années d'expertise et d’écoute au service de votre confort pour une réelle expérience à voyager en toute tranquillité. 
+
+
+100%
+Satisfaction client
+⭐⭐⭐⭐⭐
+
+
+✓ Véhicule premium 100% électrique
+🛡️ Assurance incluse
+```
+
+
+### Section CTA
+```
+Prêt pour votre prochain trajet ?
+Estimez et Réservez en quelques clics pour profitez d'un service d'exception.
+
+
+[📅 Estimation de votre trajet →]  [Voir les tarifs]
+
+
+🛡️ Paiement sécurisé
+⏰ Estimation 
+⏰ Demande de réservation
+⏰ Confirmation instantanée
+📍 Haute-Savoie & environs
+```
+
+
+---
+
+
+## 💰 PAGE TARIFS (`/tarifs`)
+
+
+### Hero
+```
+Tarifs 2026
+
+
+Des tarifs transparents, sans surprise.
+Tous nos prix sont affichés clairement : 
+Forfait agglomération, tarif minimum jour et nuit A/S OU A/R
+Trajet hors agglomération, déplacement au km en A/S ou A/R
+Forfait hors agglomération par MAD de votre chauffeur (Forfaits de 2h00 à 8h00 - calcul suivant un taux horaire jour ou nuit avec un kilométrage maximum, établi à l’avance... Déplacement conçu pour un A/R le même jour. Mise à disposition (MAD) automatique (mini 15 min).     
+
+
+[📥 Télécharger la grille PDF]
+```
+
+
+### Info Dépôt
+```
+📍 Point de départ et de retour : Base de stationnement - 74300 Cluses
+```
+
+
+### Horaires Tarifaires
+```
+☀️ Tarif Jour               🌙 Tarif Nuit
+7h00 - 20h00 (sauf dim/JF)  20h00 - 7h00 + dim/JF (24/24) 
+```
+
+
+### Forfait Agglomération
+```
+Calcul au départ et retour de la base de stationnement du VTC - Le forfait Agglomération inclus jusqu'à 25 km en aller-retour.
+
+
+☀️ Tarif Jour    🌙 Tarif Nuit
+33€              47,50€
+TTC (30€ HT)     TTC (43,18€ HT)
+```
+
+
+### Tarifs Hors Agglomération
+```
+Calcul au départ et retour de la base de stationnement du VTC - Le forfait Hors Agglomération est proposé au-delà de 25km en aller-retour, Pour (A/S ou A/R)
+
+
+☀️ Tarif Jour              🌙 Tarif Nuit
+Tarif kilométrique         Tarif kilométrique
+1,32€/km                   1,90€/km
+(1,20€ HT)                 (1,73€ HT)
+```
+
+
+### Forfaits MDA
+```
+⏰ Mise à Disposition (MAD)
+Chauffeur à disposition - A/R le même jour - Péage inclus
+
+
+Forfait    Km max   ☀️ Jour TTC   🌙 Nuit TTC   Taux horaire
+2H         180 km   232€          280€          116€/H jour, 140 €/H nuit
+2H30       225 km   290€          337,50€       116€/H jour, 135 €/H nuit
+3H         270 km   348€          390€          116€/H jour, 130 €/H nuit
+3H30       315 km   406€          455€          116€/H jour, 130 €/H nuit
+4H         360 km   464€          520€          116€/H jour, 130 €/H nuit
+4H30       405 km   522€          585€          116€/H jour, 130 €/H nuit
+5H         450 km   580€          650€          116€/H jour, 130 €/H nuit
+5H30       495 km   638€          715€          116€/H jour, 130 €/H nuit
+6H         540 km   660€          750€          110€/H jour, 125 €/H nuit
+6H30       585 km   715€          812,50€       110€/H jour, 125 €/H nuit
+7H         630 km   735€          840€          105€/H jour, 120 €/H nuit
+7H30       675 km   787,50€       900€          105€/H jour, 120 €/H nuit
+8H         720 km   840€          960€          105€/H jour, 120 €/H nuit
+
+
+ℹ️ Heure supplémentaire (jour): 116€ TTC
+   Tarifée par tranche de 10 min entamée
+
+
+ℹ️ Heure supplémentaire (nuit): 140€ TTC
+   Tarifée par tranche de 10 min entamée
+```
+
+
+### Mise À Disposition (MAD)
+```
+Mise à Disposition - Attente Clientèle
+10 minutes gratuites, au-delà tarif à la minute
+
+
+☀️ Jour         🌙 Nuit
+1,20€/min       1,80€/min
+= 66€/heure TTC = 99€/heure TTC
+```
+
+
+### Informations Importantes
+```
+✓ Tous les prix sont TTC (TVA 10% sur le trajet) 
+✓ Péages inclus sur les prix estimés (TVA 20%)
+✓ Devis valable 5 jours
+✓ MDA = Mise à disposition en sus (TVA 20%)
+✓ Départ et retour au point de base de stationnement (dépôt VTC)
+✓ A/S = Aller Simple, A/R = Aller-Retour
+
+
+[📄 Voir les CGV]
+```
+
+
+### CTA Final
+```
+Obtenez une estimation instantanée
+Notre calculateur vous donne le prix exact en quelques secondes
+
+
+[Calculer mon trajet →]
+```
+
+
+---
+
+
+## 🖥️ ADMIN - DASHBOARD (`/admin`)
+
+
+### Header
+```
+Dashboard
+Vue d'ensemble de votre activité
+```
+
+
+### Onboarding (si pas d'horaires)
+```
+🎉 Bienvenue dans votre espace admin !
+Configurez vos horaires de travail pour commencer à recevoir des réservations
+
+
+⚙️ Configuration requise
+
+
+1. Définissez vos horaires d'ouverture
+   Indiquez les jours et heures où vous êtes disponible pour les courses
+
+
+2. Recevez vos premières réservations
+   Les clients pourront réserver uniquement pendant vos créneaux actifs
+
+
+3. Gérez votre activité
+   Confirmez les réservations et suivez vos revenus
+
+
+[⏰ Configurer mes horaires →]
+⏱️ Configuration en moins de 2 minutes
+```
+
+
+### Alertes
+```
+✅ X jour(s) actif(s) configuré(s) — Modifier les horaires
+
+
+⚠️ X réservation(s) en attente d'approbation
+Ces clients ont confirmé leur email et attendent votre réponse.
+[✓ Voir les réservations à approuver]
+```
+
+
+### Stats Cards
+```
+📅 Aujourd'hui        ✓ À approuver       ⚠️ Paiement espèces    💰 Chiffre d'affaires
+X réservations        X clients confirmés  X à encaisser          XXX€
+                                                                   XXX€ ce mois
+```
+
+
+### Actions Rapides
+```
+📅 Nouvelle réservation     📈 Factures & Devis      💶 Mes tarifs         ⚙️ Besoin d'aide ?
+   Créer manuellement          Gérer les documents      Modifier les prix      Guides et FAQ
+```
+
+
+### Réservations Récentes
+```
+Réservations récentes                                              [Voir tout →]
+
+
+#ID - Client Name
+[Statut] [Paiement]
+Nombre de personnes à transporter 
+- Adulte      - Enfant de moins de 10 ans
+📍 Adresse départ → Adresse arrivée
+📅 Date à Heure                                                    XXX€
+                                                                   Mode paiement
+```
+
+
+**États de réservation:**
+```
+En attente (pending)
+Confirmé (confirmed)
+En cours (in_progress)
+Terminé (completed)
+Annulé (cancelled)
+```
+
+
+**États de paiement:**
+```
+Non payé (pending)
+Payé (paid)
+Remboursé (refunded)
+```
+
+
+---
+
+
+## 📋 ADMIN - RÉSERVATIONS (`/admin/bookings`)
+
+
+### Header
+```
+Réservations
+Gérez toutes les réservations
+
+
+[+ Nouvelle réservation]  [📥 Exporter CSV]
+```
+
+
+### Filtres
+```
+🔍 Rechercher par nom, email, ID...
+
+
+[Tout] [À approuver] [En attente] [Confirmé] [Terminé]
+```
+
+
+### Liste
+```
+#ID [Statut] [⚠️ Action requise] [Payé]
+Client Name - email@example.com
+📍 Adresse départ → Adresse arrivée
+📅 Date à Heure • X passager(s) • Type service
+                                                    XXX€
+                                                    Mode paiement
+```
+
+
+### État Vide
+```
+📅 Aucune réservation trouvée
+Ajustez vos filtres ou créez une nouvelle réservation
+```
+
+
+---
+
+
+## 📄 ADMIN - DOCUMENTS (`/admin/documents`)
+
+
+### Header
+```
+Documents
+Gérez les factures, bons de commande et devis
+
+
+[🔄 Actualiser]
+```
+
+
+### Filtres
+```
+🔍 Rechercher par nom, fichier ou n° réservation...
+
+
+[Tous] [Factures] [Bons de commande] [Devis]
+```
+
+
+### Liste
+```
+📄 Liste des documents (X)
+
+
+[Icône] nom-fichier.html
+        [Type] • Réservation #ID • Client Name
+                                                    Date
+                                                    [👁️] [📥]
+```
+
+
+### Types de documents
+```
+📑 Facture
+📋 Bon de commande
+📝 Devis
+```
+
+
+### État Vide
+```
+📄 Aucun document trouvé
+Essayez de modifier vos filtres
+Les documents apparaîtront ici une fois générés
+```
+
+
+---
+
+
+## 💶 ADMIN - TARIFICATION (`/admin/settings/pricing`)
+
+
+### Header
+```
+Gestion de la tarification
+Configurez tous les tarifs et forfaits
+
+
+[🔄 Actualiser]  [⚠️ Réinitialiser]
+```
+
+
+### Onglets
+```
+[Forfaits] [Tarifs Jour] [Tarifs Nuit] [Forfait Agglo] [Aéroports] [MDA] [Divers]
+```
+
+
+### Contenu par onglet
+
+
+**Forfaits:**
+```
+Forfaits horaires
+Heures | Max Km | Période | Prix TTC (€) | Prix HT (€) | Description
+```
+
+
+**Tarifs Jour:**
+```
+Tarif TP (Jour) - Prix constant
+Prix TTC/km (€) | Description
+
+
+Tarifs CA (Jour) - Paliers progressifs
+Tranche (km) | Prix TTC/km (€) | Description
+```
+
+
+**Tarifs Nuit:**
+```
+Tarif TP (Nuit) - Prix constant
+Prix TTC/km (€) | Description
+
+
+Tarifs CA (Nuit) - Paliers progressifs
+Tranche (km) | Prix TTC/km (€) | Description
+```
+
+
+**Forfait Agglo:**
+```
+Forfait agglomération (≤25km A/R)
+Période | Prix TTC (€) | Max Km | Description
+```
+
+
+**Aéroports:**
+```
+Tarifs aéroports
+Période | Prix TTC (€) | Aéroport
+```
+
+
+**MDA:**
+```
+Mise à disposition (MDA) - Par minute après 10 min gratuites
+Période | Prix/minute TTC (€) | Description
+```
+
+
+**Divers:**
+```
+Heure supplémentaire
+Période | Prix TTC (€) | Description
+
+
+Prix minimum
+Prix minimum TTC (€) | Description
+```
+
+
+---
+
+
+## ⏰ ADMIN - HORAIRES (`/admin/settings/working-hours`)
+
+
+### Header
+```
+Horaires de travail
+Configurez vos horaires d'ouverture
+
+
+[💾 Enregistrer]
+```
+
+
+### Planning
+```
+⏰ Planning hebdomadaire
+
+
+[Toggle] Dimanche    Ouverture [08:00] → Fermeture [20:00]   ou   Fermé
+[Toggle] Lundi       Ouverture [08:00] → Fermeture [20:00]
+[Toggle] Mardi       Ouverture [08:00] → Fermeture [20:00]
+[Toggle] Mercredi    Ouverture [08:00] → Fermeture [20:00]
+[Toggle] Jeudi       Ouverture [08:00] → Fermeture [20:00]
+[Toggle] Vendredi    Ouverture [08:00] → Fermeture [20:00]
+[Toggle] Samedi      Ouverture [08:00] → Fermeture [20:00]
+```
+
+
+### Note
+```
+ℹ️ Note : Les réservations en ligne seront automatiquement bloquées
+en dehors de ces horaires.
+```
+
+
+---
+
+
+## ❓ ADMIN - AIDE (`/admin/help`)
+
+
+### Header
+```
+❓ Centre d'aide
+Trouvez des réponses à vos questions sur l'utilisation du panneau d'administration
+```
+
+
+### Raccourcis
+```
+📅 Réservations              💶 Tarification           📄 Factures
+   Gérer et approuver           Modifier les tarifs       Personnaliser les documents
+```
+
+
+### FAQ - Gestion des réservations
+```
+✓ Comment confirmer une réservation ?
+Les réservations sont créées avec le statut "verified" (vérifiée).
+Vous devez les approuver manuellement depuis la page de détail...
+
+
+✓ Quels sont les statuts possibles ?
+pending → verified → confirmed → in_progress → completed → cancelled
+
+
+✓ Comment modifier une réservation ?
+Depuis la page de détail, cliquez sur "Modifier"...
+
+
+✓ Comment générer une facture ou un devis ?
+Sur la page de détail, utilisez les boutons "Générer facture" ou "Générer devis"...
+```
+
+
+### FAQ - Tarification
+```
+✓ Comment modifier les tarifs ?
+Allez dans Paramètres > Tarification...
+
+
+✓ Les changements de tarifs affectent-ils les réservations existantes ?
+Non, seules les nouvelles réservations utilisent les nouveaux tarifs...
+
+
+✓ Comment réinitialiser les tarifs ?
+Dans la page Tarification, cliquez sur "Réinitialiser"...
+```
+
+
+### FAQ - Factures et Devis
+```
+✓ Comment personnaliser les factures et devis ?
+Allez dans Paramètres > Factures & Devis...
+
+
+✓ Que contiennent les factures détaillées ?
+Le détail du calcul, les segments de distance, les informations de trajet...
+
+
+✓ Où sont stockés les documents générés ?
+Dans /public/documents/bookings/ au format HTML...
+```
+
+
+### FAQ - Paramètres
+```
+✓ Comment configurer les horaires d'ouverture ?
+Allez dans Paramètres > Horaires...
+
+
+✓ Comment modifier l'adresse du dépôt ?
+Allez dans Paramètres > Dépôt VTC...
+
+
+✓ Comment changer mon mot de passe ?
+Allez dans Paramètres > Mot de passe...
+```
+
+
+### FAQ - Workflow
+```
+✓ Quel est le processus complet ?
+1. Client crée estimation → 2. Client confirme via OTP → 3. "verified" →
+4. Admin approuve → 5. "confirmed" → 6. Email envoyé → 7. Service → 8. "completed"
+
+
+✓ Les réservations sont-elles automatiquement confirmées ?
+Non, approbation manuelle requise...
+
+
+✓ Comment voir les réservations en attente ?
+Filtrer par statut "verified" ou dashboard...
+```
+
+
+### Aide supplémentaire
+```
+📖 Besoin d'aide supplémentaire ?
+Si vous ne trouvez pas la réponse, consultez la documentation ou contactez le support.
+
+
+[Documentation complète]  [Contacter le support]
+```
+
+
+---
+
+
+## 🧭 HEADER (Navigation)
+
+
+```
+[Logo MobiService]
+
+
+Accueil | Services | Tarifs | Contact
+
+
+[📞 Appeler]  [Réserver →]
+```
+
+
+### Menu Mobile
+```
+Accueil
+Services
+Tarifs
+Contact
+
+
+[📞 Appeler]
+[Réserver maintenant →]
+```
+
+
+---
+
+
+## 🦶 FOOTER
+
+
+### Colonnes
+```
+[Logo MobiService]
+Service de transport avec chauffeur privé premium en Haute-Savoie
+
+
+🛡️ Sécurisé  ⏰ 24/7  ⭐ 5.0
+
+
+─────────────────────────────────────────
+
+
+Navigation          Services            Contact
+─ Accueil           → Point à Point     📞 +33 (0)6 07 72 50 07
+→ Services          → Mise à Disposition 📧 contact@mobiservice-vtc.fr
+→ Tarifs            → Tarifs 2026       📍 Haute-Savoie, France
+→ Contact
+```
+
+
+### Copyright
+```
+© 2025 MobiService VTC. Tous droits réservés.
+
+
+CGV | Administration
+```
+
+
+---
+
+
+## 📞 INFORMATIONS DE CONTACT
+
+
+```
+Téléphone: +33 (0)6 07 72 50 07
+Email: contact@mobiservice-vtc.fr
+WhatsApp: +33607725007
+Adresse: Haute-Savoie, France
+Dépôt: 4 rue des artisans, 74300 Cluses
+```
+
+
+---
+
+
+## 🚗 INFORMATIONS CHAUFFEUR
+
+
+```
+Nom: Patrice
+Expérience: 15+ ans d'expérience
+Bio: Chauffeur professionnel avec plus de 15 ans d'expérience dans le transport
+de personnes. Discrétion, ponctualité et confort sont mes maîtres-mots.
+```
+
+
+---
+
+
+## 🚙 INFORMATIONS VÉHICULE
+
+
+```
+Mercedes-Benz Classe E Hybride 2023
+Couleur: Noir
+Places: 4 passagers
+Bagages: 3
+
+
+Équipements:
+• Climatisation automatique
+• Sièges cuir chauffants
+• WiFi à bord
+• Bouteilles d'eau offertes
+• Chargeurs USB
+• Système audio premium
+```
+
+
+---
+
+
+*Document généré à partir de l'analyse des fichiers source du projet MobiService VTC*
+
+
+
+
+

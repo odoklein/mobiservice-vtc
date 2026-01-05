@@ -44,7 +44,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="MobiService VTC" />
-        <meta name="theme-color" content="#5CD85A" />
+        <meta name="theme-color" content="#00FF88" />
       </head>
       <body className={`${dmSans.variable} font-sans antialiased tracking-tight`}>
         {!isAdminRoute && <Header />}
@@ -55,4 +55,3 @@ export default async function RootLayout({
     </html>
   );
 }
-

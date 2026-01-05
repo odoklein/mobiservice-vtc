@@ -44,10 +44,10 @@ export async function POST(request: NextRequest) {
     // Utiliser les composants de date pour garantir l'heure locale
     const [year, month, day] = pickupDate.split('-').map(Number);
     const [hours, minutes] = pickupTime.split(':').map(Number);
-    
+
     // Créer la date en heure locale explicite
     const pickupDateTime = new Date(year, month - 1, day, hours, minutes, 0);
-    
+
     if (isNaN(pickupDateTime.getTime())) {
       return NextResponse.json(
         { success: false, error: 'Date/heure invalide' },
@@ -80,9 +80,24 @@ export async function POST(request: NextRequest) {
       const segments = await getRouteMatrix(depot, pickup, dropoff);
       distanceCA_out = segments.distanceCA;
       distanceTP = segments.distanceTP;
-      // RÈGLE N°1: Le retour au dépôt est TOUJOURS inclus dans le calcul
-      // Même pour un aller simple, le retour du véhicule est facturé
-      distanceCA_return = segments.distanceReturn;
+
+      // RÈGLE CORRECTE selon type de trajet:
+      // - ALLER SIMPLE (A/S): Le client va de pickup → dropoff
+      //   → CA retour = dropoff → dépôt
+      // - ALLER-RETOUR (A/R): Le client va de pickup → dropoff → pickup
+      //   → CA retour = pickup → dépôt (même que CA aller car il revient au point de départ)
+      if (tripType === 'round-trip') {
+        // Pour A/R: le client revient à son point de départ (pickup)
+        // donc le CA retour est identique au CA aller (pickup → depot)
+        distanceCA_return = segments.distanceCA; // pickup → depot
+        console.log('[PRICING] A/R détecté - CA retour = CA aller (pickup→depot):', distanceCA_return);
+      } else {
+        // Pour A/S: le client termine à dropoff
+        // donc le CA retour part de dropoff
+        distanceCA_return = segments.distanceReturn; // dropoff → depot
+        console.log('[PRICING] A/S détecté - CA retour depuis dropoff→depot:', distanceCA_return);
+      }
+
       totalDuration = segments.totalDuration;
     } catch (error) {
       console.error('Distance calculation error:', error);
@@ -96,6 +111,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Détecter automatiquement les péages sur le trajet
+    let autoDetectedTollCost = tollCost;
+    let tollDetails = '';
+
+    if (tollCost === 0) {
+      // Importer le service de détection de péages
+      const { calculateTollForTrip } = await import('@/lib/services/toll-calculator');
+
+      try {
+        const tollResult = await calculateTollForTrip({
+          depot,
+          pickup,
+          dropoff,
+          tripType,
+        });
+
+        if (tollResult.hasTolls) {
+          autoDetectedTollCost = tollResult.tollCost;
+          tollDetails = tollResult.details;
+          console.log('[PRICING] Péages détectés automatiquement:', {
+            cost: autoDetectedTollCost,
+            details: tollDetails,
+          });
+        }
+      } catch (tollError) {
+        console.warn('[PRICING] Échec de la détection automatique des péages:', tollError);
+        // Continue sans péages si la détection échoue
+      }
+    }
+
     // Calculer le prix selon la logique tarifaire
     const pricing = calculateTransferPrice(
       distanceCA_out,
@@ -103,7 +148,7 @@ export async function POST(request: NextRequest) {
       distanceCA_return,
       tripType,
       pickupDateTime,
-      tollCost
+      autoDetectedTollCost  // Utiliser le coût détecté automatiquement
     );
 
     // Préparer la réponse
@@ -138,6 +183,14 @@ export async function POST(request: NextRequest) {
             bracket: pricing.breakdown.bracket,
             pricePerKmCA: pricing.breakdown.pricePerKmCA,
             pricePerKmTP: pricing.breakdown.pricePerKmTP,
+          },
+          // Informations sur les péages
+          tollInfo: {
+            detected: autoDetectedTollCost > 0,
+            cost: autoDetectedTollCost,
+            details: tollDetails || (autoDetectedTollCost > 0 ? `Péages inclus: ${autoDetectedTollCost.toFixed(2)}€` : 'Aucun péage détecté'),
+            tripMultiplier: tripType === 'round-trip' ? 2 : 1,
+            totalIncluded: tripType === 'round-trip' ? autoDetectedTollCost * 2 : autoDetectedTollCost,
           },
         },
         // Métadonnées
