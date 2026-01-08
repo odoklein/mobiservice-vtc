@@ -212,7 +212,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 max-w-6xl mx-auto">
 
             {/* Card 1 - Transfert A/S & A/R (Green) */}
-            <Link href="/reservation" className="group relative rounded-3xl overflow-hidden aspect-[4/3] lg:aspect-[5/4]">
+            <Link href="/reservation" className="group relative rounded-3xl overflow-hidden aspect-[3/4] sm:aspect-[4/3] lg:aspect-[5/4]">
               {/* Background Image */}
               <Image
                 src="/90 (2).jpg"
@@ -267,7 +267,7 @@ export default function Home() {
             </Link>
 
             {/* Card 2 - Transfert Forfaitaire (Blue) */}
-            <Link href="/reservation" className="group relative rounded-3xl overflow-hidden aspect-[4/3] lg:aspect-[5/4]">
+            <Link href="/reservation" className="group relative rounded-3xl overflow-hidden aspect-[3/4] sm:aspect-[4/3] lg:aspect-[5/4]">
               {/* Background Image */}
               <Image
                 src="/Gemini_Generated_Image_aimpniaimpniaimp.png"
