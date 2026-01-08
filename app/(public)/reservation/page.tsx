@@ -557,7 +557,7 @@ export default function ReservationPage() {
         {[
           { num: 1, label: 'Trajet', icon: IconRoute },
           { num: 2, label: 'Estimation', icon: IconSparkles },
-          { num: 3, label: 'Réservation', icon: IconCheck },
+          { num: 3, label: 'Demande', icon: IconCheck },
         ].map((s, i) => (
           <div key={s.num} className="flex items-center">
             <div className="flex flex-col items-center">
@@ -620,14 +620,14 @@ export default function ReservationPage() {
                 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
               `}>
                 <IconSparkles className="h-4 w-4 text-[#5CD85A]" />
-                <span className="text-sm text-white/80">Réservation instantanée</span>
+                <span className="text-sm text-white/80">Devis instantané gratuit</span>
               </div>
               <h1 className={`
                 text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4
                 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
               `}>
-                Réservez votre
-                <span className="text-[#5CD85A]"> VTC</span>
+                Obtenez votre
+                <span className="text-[#5CD85A]"> Devis VTC</span>
               </h1>
               <p className={`
                 text-lg text-white/70 max-w-xl mx-auto
@@ -672,7 +672,7 @@ export default function ReservationPage() {
                       <div className="grid grid-cols-2 gap-4">
                         {SERVICES.map((service) => {
                           const isSelected = step1Data.serviceType === service.id;
-                          const IconComponent = service.id === 'transfer' ? IconCar : IconClockHour4;
+                          const IconComponent = service.id === 'transfer' ? IconCar : IconRoute;
 
                           return (
                             <button
@@ -1271,7 +1271,7 @@ export default function ReservationPage() {
                               </>
                             ) : (
                               <>
-                                Envoyer la demande
+                                Demander mon devis
                                 <IconArrowRight className="ml-2 h-5 w-5" />
                               </>
                             )}
@@ -1340,7 +1340,7 @@ export default function ReservationPage() {
                           </>
                         ) : (
                           <>
-                            Envoyer la demande de réservation
+                            Valider ma demande de Devis
                             <IconCheck className="ml-2 h-5 w-5" />
                           </>
                         )}
@@ -1372,7 +1372,7 @@ export default function ReservationPage() {
                           </div>
                           <div className="flex items-center gap-2 text-[#5CD85A] font-bold pt-2 border-t border-gray-200 mt-3">
                             <IconCash className="h-4 w-4" />
-                            {formatPrice(bookingData.totalPrice)} (paiement sur place)
+                            {formatPrice(bookingData.totalPrice)} (Estimation)
                           </div>
                         </div>
                       </div>

@@ -57,7 +57,7 @@ export const SERVICES = [
     description: 'Transfert direct de votre point de départ à votre destination',
     icon: '🚗',
     priceInfo: 'À partir de 33€ TTC',
-    illustration: '/illustrations/coursenormal.png',
+    illustration: '/90 (2).jpg',
   },
   {
     id: 'hourly',
@@ -65,7 +65,7 @@ export const SERVICES = [
     description: 'Chauffeur à disposition pour vos déplacements multiples. Forfaits de 2H à 8H disponibles, de jour comme de nuit.',
     icon: '⏰',
     priceInfo: 'Demandez votre réservation',
-    illustration: '/illustrations/coursemad.png',
+    illustration: '/Gemini_Generated_Image_aimpniaimpniaimp.png',
   },
 ];
 

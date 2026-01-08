@@ -77,6 +77,13 @@ export const bookings = pgTable('bookings', {
   waitingCharge: decimal('waiting_charge', { precision: 10, scale: 2 }), // MDA charge
   forfaitDiscount: decimal('forfait_discount', { precision: 10, scale: 2 }), // savings from forfait
 
+  // Discount from driver (Manual)
+  discountPercentage: integer('discount_percentage'), // 5, 8, 12, etc.
+  discountAmount: decimal('discount_amount', { precision: 10, scale: 2 }),
+
+  // Comments/Feedback
+  customerComment: text('customer_comment'),
+
   // Final prices
   totalPriceHT: decimal('total_price_ht', { precision: 10, scale: 2 }).notNull(), // Hors Taxes
   totalPriceTTC: decimal('total_price_ttc', { precision: 10, scale: 2 }).notNull(), // Toutes Taxes Comprises

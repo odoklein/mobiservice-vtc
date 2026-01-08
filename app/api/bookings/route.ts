@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { completeBookingSchema } from '@/lib/validations/booking';
 import { Resend } from 'resend';
 import { DRIVER } from '@/lib/constants';
@@ -38,10 +38,8 @@ export async function POST(request: NextRequest) {
         distance: validatedData.distance ? parseFloat(validatedData.distance.toString()) : undefined,
         duration: validatedData.duration,
         hours: validatedData.hours,
-        airportType: validatedData.serviceType === 'airport' ? (validatedData.dropoffAddress?.toLowerCase().includes('lyon') ? 'lyon' : 'geneva') : undefined,
+        airportType: validatedData.dropoffAddress?.toLowerCase().includes('lyon') ? 'lyon' : (validatedData.dropoffAddress?.toLowerCase().includes('genev') || validatedData.dropoffAddress?.toLowerCase().includes('geneva') ? 'geneva' : undefined),
         pickupTime: pickupDateTime,
-        waitingMinutes: validatedData.waitingMinutes,
-        tollCost: validatedData.tollCost,
       });
     } catch (priceError) {
       console.error('[BOOKING] Error recalculating price:', priceError);
@@ -122,7 +120,7 @@ export async function POST(request: NextRequest) {
         priceBreakdown: serverCalculatedPrice.breakdown,
 
         notes: validatedData.notes,
-        status: 'pending', // Will be 'verified' after email OTP confirmation, then 'confirmed' after admin approval
+        status: 'quote_sent', // Changed from 'pending' to 'quote_sent' for Devis workflow
         paymentStatus: 'pending',
       })
       .returning();
@@ -136,7 +134,7 @@ export async function POST(request: NextRequest) {
         await resend.emails.send({
           from: `MobiService VTC <${fromEmail}>`,
           to: [DRIVER.email],
-          subject: `🚗 Nouvelle réservation #${booking.id} - ${validatedData.guestName}`,
+          subject: `📄 Nouvelle demande de devis #${booking.id} - ${validatedData.guestName}`,
           html: `<!DOCTYPE html>
             <html>
             <head>
@@ -147,11 +145,11 @@ export async function POST(request: NextRequest) {
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
               <div style="background: #0A0A0A; padding: 32px; text-align: center;">
                 <h1 style="color: #5CD85A; margin: 0; font-size: 28px;">MobiService VTC</h1>
-                <p style="color: #ffffff; margin: 8px 0 0 0; font-size: 16px;">Nouvelle réservation</p>
+                <p style="color: #ffffff; margin: 8px 0 0 0; font-size: 16px;">Nouvelle demande de devis</p>
               </div>
               <div style="padding: 32px;">
                 <p style="font-size: 18px; font-weight: bold; color: #0A0A0A; margin: 0 0 24px 0;">
-                  🚗 Nouvelle réservation #${booking.id}
+                  📄 Demande de devis #${booking.id}
                 </p>
                 
                 <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 24px 0;">
@@ -175,14 +173,14 @@ export async function POST(request: NextRequest) {
                 </div>
 
                 <div style="background: #e8f8e7; padding: 20px; border-radius: 8px; margin: 24px 0; text-align: center;">
-                  <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 16px;">💰 Montant</p>
+                  <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 16px;">💰 Estimation</p>
                   <p style="margin: 0; font-size: 24px; font-weight: bold; color: #0A0A0A;">${validatedData.totalPrice}€ TTC</p>
                   ${validatedData.rateType ? `<p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">${validatedData.rateType}</p>` : ''}
                 </div>
 
                 <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #ffc107;">
                   <p style="margin: 0; font-size: 14px; color: #856404;">
-                    <strong>⚠️ Statut :</strong> ${booking.status === 'pending' ? 'En attente de confirmation' : booking.status}
+                    <strong>⚠️ Statut :</strong> ${booking.status === 'quote_sent' ? 'Devis envoyé' : booking.status}
                   </p>
                   <p style="margin: 8px 0 0 0; font-size: 14px; color: #856404;">
                     <strong>💳 Paiement :</strong> ${booking.paymentStatus === 'pending' ? 'En attente' : booking.paymentStatus}
@@ -249,10 +247,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch bookings for the email
-    const userBookings = await db.query.bookings.findMany({
-      where: (bookings, { eq }) => eq(bookings.guestEmail, email),
-      orderBy: (bookings, { desc }) => [desc(bookings.createdAt)],
-    });
+    const userBookings = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.guestEmail, email))
+      .orderBy(desc(bookings.createdAt));
 
     return NextResponse.json({
       success: true,

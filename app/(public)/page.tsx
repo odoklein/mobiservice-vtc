@@ -6,207 +6,316 @@ import { ArrowRight, Star, Shield, Clock, Phone, MapPin, Users, Calendar, CheckC
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section - Clean Dark with Enhanced Contrast */}
-      <section className="relative h-screen bg-black overflow-hidden flex items-center">
-        {/* Background gradient overlay for better contrast */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/95 to-black/70 z-[1]"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/50 z-[1]"></div>
+      {/* Hero Section - Creative Design */}
+      <section className="relative min-h-screen bg-black overflow-hidden">
+        {/* Decorative Elements - Hidden on mobile */}
+        <div className="hidden md:block absolute top-0 right-0 w-[400px] lg:w-[600px] xl:w-[800px] h-[400px] lg:h-[600px] xl:h-[800px] opacity-30">
+          <div className="absolute top-10 lg:top-20 right-10 lg:right-20 w-48 lg:w-72 xl:w-96 h-48 lg:h-72 xl:h-96 rounded-full border border-[#00FF88]/20"></div>
+          <div className="absolute top-16 lg:top-32 right-16 lg:right-32 w-36 lg:w-56 xl:w-72 h-36 lg:h-56 xl:h-72 rounded-full border border-[#00FF88]/10"></div>
+          <div className="absolute top-22 lg:top-44 right-22 lg:right-44 w-24 lg:w-36 xl:w-48 h-24 lg:h-36 xl:h-48 rounded-full bg-[#00FF88]/5"></div>
+        </div>
 
-        <div className="container mx-auto px-6 md:px-12 lg:px-24 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {/* Left Content */}
-            <div className="space-y-8">
-              {/* Location Breadcrumb */}
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/80">
-                  🌍 Europe
-                </span>
-                <span className="text-white/40">›</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/80">
-                  🇫🇷 France
-                </span>
-                <span className="text-white/40">›</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/80">
-                  🏔️ Auvergne-Rhône-Alpes
-                </span>
-                <span className="text-white/40">›</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00FF88]/20 border border-[#00FF88]/40 text-[#00FF88] font-medium">
-                  Haute-Savoie
-                </span>
-              </div>
+        {/* Floating green accent line - Hidden on smaller screens */}
+        <div className="hidden xl:block absolute top-1/2 -translate-y-1/2 left-0 w-1 h-32 bg-gradient-to-b from-transparent via-[#00FF88] to-transparent"></div>
 
-              {/* Main Headline */}
-              <div className="space-y-4">
-                <h1 className="text-5xl font-bold leading-[1.1]">
-                  <span className="text-white drop-shadow-lg">L'Excellence du</span>
-                  <br />
-                  <span className="text-[#00FF88] drop-shadow-lg">Transport Privé avec Chauffeur</span>
-                </h1>
-                <p className="text-xl md:text-2xl text-white/90 max-w-lg leading-relaxed drop-shadow-md">
-                  Pour tous vos déplacements professionnels et/ou personnels, votre chauffeur privé en Haute-Savoie saura vous accompagner en répondant à vos attentes. Confort, ponctualité et discrétion, avec MobiService VTC découvrez la mobilité en toute sérénité.
+        {/* Content */}
+        <div className="relative z-10 min-h-screen flex items-center">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 py-20 sm:py-24 lg:py-12">
+            <div className="flex flex-col lg:flex-row items-center gap-8 sm:gap-10 lg:gap-6 xl:gap-10">
+
+              {/* Left - Text Content */}
+              <div className="w-full lg:w-1/2 xl:w-5/12 space-y-5 sm:space-y-6 lg:space-y-5 xl:space-y-7">
+                {/* Location Tag */}
+                <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#00FF88]/10 border border-[#00FF88]/20">
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#00FF88] animate-pulse"></div>
+                  <span className="text-[#00FF88] text-xs sm:text-sm font-medium">Haute-Savoie • France</span>
+                </div>
+
+                {/* Headline with creative styling */}
+                <div className="space-y-2 sm:space-y-3">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-4xl xl:text-6xl font-black leading-[0.95] tracking-tight">
+                    <span className="text-white block">L'Excellence du</span>
+                    <span className="text-white block"><span className="text-[#00FF88] relative inline-block">
+                      Transport
+                      <svg className="absolute -bottom-1 sm:-bottom-2 left-0 w-full" viewBox="0 0 200 8" fill="none">
+                        <path d="M0 4C50 0 150 8 200 4" stroke="#00FF88" strokeWidth="3" strokeLinecap="round" />
+                      </svg>
+                    </span> Privé</span>
+                    <span className="text-[#00FF88] block">avec Chauffeur</span>
+                  </h1>
+                </div>
+
+                {/* Description */}
+                <p className="text-sm sm:text-base lg:text-sm xl:text-lg text-white/60 leading-relaxed max-w-md">
+                  Pour tous vos déplacements professionnels et/ou personnels, votre chauffeur privé en Haute-Savoie saura vous accompagner en répondant à vos attentes. <span className="text-white/80 font-medium">Confort, ponctualité et discrétion</span>, avec MobiService VTC découvrez la mobilité en toute sérénité.
                 </p>
-              </div>
 
-              {/* Stats Row */}
-              <div className="flex items-center gap-8 py-4 bg-black/40 backdrop-blur-sm rounded-2xl px-6">
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-white">15<span className="text-[#00FF88]">+</span></div>
-                  <div className="text-sm text-white/70 mt-1">Années</div>
-                </div>
-                <div className="w-px h-12 bg-white/20"></div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-white flex items-center gap-1">
-                    5.0 <Star className="h-5 w-5 text-[#FFD700] fill-[#FFD700]" />
+                {/* Stats - Responsive cards */}
+                <div className="flex gap-2 sm:gap-3 lg:gap-2 xl:gap-4">
+                  <div className="flex-1 p-2.5 sm:p-3 lg:p-2.5 xl:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5">
+                    <div className="text-xl sm:text-2xl lg:text-xl xl:text-3xl font-black text-white">15<span className="text-[#00FF88]">+</span></div>
+                    <div className="text-[10px] sm:text-xs text-white/40 mt-0.5 sm:mt-1">ans d'exp.</div>
                   </div>
-                  <div className="text-sm text-white/70 mt-1">Avis clients</div>
-                </div>
-                <div className="w-px h-12 bg-white/20"></div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-white">24<span className="text-[#00FF88]">/7</span></div>
-                  <div className="text-sm text-white/70 mt-1">Disponible</div>
-                </div>
-              </div>
-
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  href="/reservation"
-                  className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#00FF88] text-black font-semibold text-lg rounded-2xl hover:bg-[#00CC6A] transition-all shadow-lg shadow-[#00FF88]/30"
-                >
-                  <span>Estimation de votre trajet</span>
-                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  href={`tel:${CONTACT.phone}`}
-                  className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-white/15 border border-white/30 text-white font-semibold text-lg rounded-2xl hover:bg-white/25 transition-all backdrop-blur-sm"
-                >
-                  <Phone className="h-5 w-5" />
-                  <span>Appeler</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Right - Driver Image */}
-            <div className="hidden lg:block relative">
-              <div className="relative aspect-[4/5] max-h-[70vh] rounded-3xl overflow-hidden shadow-2xl shadow-black/50">
-                {/* Image overlay for better card visibility */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-[1]"></div>
-                <Image
-                  src="/Gemini_Generated_Image_v3rrr3v3rrr3v3rr.png"
-                  alt={`${DRIVER.name}, votre chauffeur VTC`}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="50vw"
-                />
-              </div>
-
-              {/* Driver Info Card */}
-              <div className="absolute bottom-8 left-4 right-4 p-6 bg-black/60 backdrop-blur-xl rounded-2xl border border-white/20 z-[2]">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-[#00FF88]/20 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-[#00FF88]" />
+                  <div className="flex-1 p-2.5 sm:p-3 lg:p-2.5 xl:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5">
+                    <div className="text-xl sm:text-2xl lg:text-xl xl:text-3xl font-black text-white flex items-center gap-0.5 sm:gap-1">
+                      5.0 <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 lg:h-3.5 lg:w-3.5 xl:h-5 xl:w-5 text-[#00FF88] fill-[#00FF88]" />
+                    </div>
+                    <div className="text-[10px] sm:text-xs text-white/40 mt-0.5 sm:mt-1">avis</div>
                   </div>
-                  <div>
-                    <div className="text-white font-semibold text-lg">{DRIVER.name}</div>
-                    <div className="text-white/70 text-sm">{DRIVER.experience}</div>
-                  </div>
-                  <div className="ml-auto flex items-center gap-1">
-                    <Star className="h-4 w-4 text-[#FFD700] fill-[#FFD700]" />
-                    <span className="text-white font-medium">5.0</span>
+                  <div className="flex-1 p-2.5 sm:p-3 lg:p-2.5 xl:p-4 rounded-xl sm:rounded-2xl bg-[#00FF88]/10 border border-[#00FF88]/20">
+                    <div className="text-xl sm:text-2xl lg:text-xl xl:text-3xl font-black text-[#00FF88]">24/7</div>
+                    <div className="text-[10px] sm:text-xs text-[#00FF88]/60 mt-0.5 sm:mt-1">dispo</div>
                   </div>
                 </div>
+
+                {/* CTA */}
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4">
+                  <Link
+                    href="/reservation"
+                    className="group relative inline-flex items-center justify-center sm:justify-start gap-2 sm:gap-3 px-5 sm:px-6 lg:px-5 xl:px-8 py-3 sm:py-3.5 lg:py-3 xl:py-4 bg-[#00FF88] text-black font-bold text-sm sm:text-base lg:text-sm xl:text-lg rounded-full overflow-hidden transition-transform hover:scale-105"
+                  >
+                    <span className="relative z-10">Estimer mon trajet</span>
+                    <ArrowRight className="relative z-10 h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                  <Link
+                    href={`tel:${CONTACT.phone}`}
+                    className="inline-flex items-center justify-center sm:justify-start gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 text-white font-medium hover:text-[#00FF88] transition-colors"
+                  >
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/20 flex items-center justify-center">
+                      <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </div>
+                    <span className="text-sm sm:text-base">Appeler</span>
+                  </Link>
+                </div>
               </div>
+
+              {/* Right - Creative Image Composition */}
+              <div className="w-full lg:w-1/2 xl:w-7/12 relative mt-4 sm:mt-6 lg:mt-0">
+                {/* Main container */}
+                <div className="relative lg:ml-4 xl:ml-8">
+                  {/* Glow effect behind image - smaller on mobile */}
+                  <div className="absolute inset-0 bg-[#00FF88]/15 sm:bg-[#00FF88]/20 blur-2xl sm:blur-3xl scale-75 translate-x-4 sm:translate-x-8 translate-y-4 sm:translate-y-8"></div>
+
+                  {/* Main Car Image with creative frame */}
+                  <div className="relative mx-4 sm:mx-6 lg:mx-0">
+                    <div className="relative aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl sm:shadow-2xl shadow-black/50 lg:rotate-1 xl:rotate-2 transition-transform hover:rotate-0 duration-500">
+                      <Image
+                        src="/MG5-Electric-Black-Interior-1024x685 (1).jpg"
+                        alt="MG5 Electric Interior"
+                        fill
+                        className="object-cover"
+                        priority
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 50vw"
+                      />
+                      {/* Corner accent - smaller on mobile */}
+                      <div className="absolute top-0 right-0 w-16 sm:w-20 lg:w-16 xl:w-24 h-16 sm:h-20 lg:h-16 xl:h-24">
+                        <div className="absolute top-2 sm:top-3 lg:top-2 xl:top-4 right-2 sm:right-3 lg:right-2 xl:right-4 w-full h-full border-t-2 sm:border-t-3 lg:border-t-2 xl:border-t-4 border-r-2 sm:border-r-3 lg:border-r-2 xl:border-r-4 border-[#00FF88] rounded-tr-2xl sm:rounded-tr-3xl"></div>
+                      </div>
+                      <div className="absolute bottom-0 left-0 w-16 sm:w-20 lg:w-16 xl:w-24 h-16 sm:h-20 lg:h-16 xl:h-24">
+                        <div className="absolute bottom-2 sm:bottom-3 lg:bottom-2 xl:bottom-4 left-2 sm:left-3 lg:left-2 xl:left-4 w-full h-full border-b-2 sm:border-b-3 lg:border-b-2 xl:border-b-4 border-l-2 sm:border-l-3 lg:border-l-2 xl:border-l-4 border-[#00FF88] rounded-bl-2xl sm:rounded-bl-3xl"></div>
+                      </div>
+                    </div>
+
+                    {/* Driver 1 - Floating top left */}
+                    <div className="absolute -top-3 -left-1 sm:-top-4 sm:-left-2 lg:-top-4 lg:-left-4 xl:-top-6 xl:-left-8 z-20">
+                      <div className="relative">
+                        {/* Outer ring animation - hidden on very small screens */}
+                        <div className="hidden sm:block absolute -inset-1.5 lg:-inset-1.5 xl:-inset-2 rounded-full border sm:border-2 border-dashed border-[#00FF88]/30 animate-spin" style={{ animationDuration: '20s' }}></div>
+                        {/* Image container */}
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-18 lg:h-18 xl:w-24 xl:h-24 rounded-full overflow-hidden border-2 sm:border-3 lg:border-2 xl:border-4 border-[#00FF88] shadow-lg sm:shadow-xl shadow-[#00FF88]/20">
+                          <Image
+                            src="/IMG_0046 (2).jpeg"
+                            alt="Chauffeur professionnel"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        {/* Badge */}
+                        <div className="absolute -bottom-1 sm:-bottom-1.5 xl:-bottom-2 left-1/2 -translate-x-1/2 px-2 sm:px-2.5 xl:px-3 py-0.5 sm:py-1 bg-[#00FF88] rounded-full shadow-lg">
+                          <div className="flex items-center gap-0.5 sm:gap-1">
+                            <Star className="h-2 w-2 sm:h-2.5 sm:w-2.5 xl:h-3 xl:w-3 text-black fill-black" />
+                            <span className="text-[10px] sm:text-xs font-bold text-black">5.0</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Driver 2 - Floating bottom right */}
+                    <div className="absolute -bottom-3 -right-1 sm:-bottom-4 sm:-right-2 lg:-bottom-4 lg:-right-4 xl:-bottom-6 xl:-right-8 z-20">
+                      <div className="relative">
+                        {/* Outer ring - hidden on very small screens */}
+                        <div className="hidden sm:block absolute -inset-1.5 lg:-inset-1.5 xl:-inset-2 rounded-full border sm:border-2 border-dashed border-[#00FF88]/30 animate-spin" style={{ animationDuration: '25s', animationDirection: 'reverse' }}></div>
+                        {/* Image container */}
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-18 lg:h-18 xl:w-24 xl:h-24 rounded-full overflow-hidden border-2 sm:border-3 lg:border-2 xl:border-4 border-[#00FF88] shadow-lg sm:shadow-xl shadow-[#00FF88]/20">
+                          <Image
+                            src="/IMG_0047 (2).jpeg"
+                            alt="Chauffeur professionnel"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        {/* Badge */}
+                        <div className="absolute -top-1 sm:-top-1.5 xl:-top-2 left-1/2 -translate-x-1/2 px-2 sm:px-2.5 xl:px-3 py-0.5 sm:py-1 bg-black border sm:border-2 border-[#00FF88] rounded-full shadow-lg">
+                          <div className="flex items-center gap-0.5 sm:gap-1">
+                            <Shield className="h-2 w-2 sm:h-2.5 sm:w-2.5 xl:h-3 xl:w-3 text-[#00FF88]" />
+                            <span className="text-[10px] sm:text-xs font-bold text-[#00FF88]">PRO</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating info card - Only on larger screens */}
+                  <div className="absolute bottom-4 lg:bottom-6 xl:bottom-8 left-2 lg:-left-8 xl:-left-16 z-30 hidden md:block">
+                    <div className="p-2.5 sm:p-3 xl:p-4 bg-white/10 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/10 shadow-xl">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 xl:w-10 xl:h-10 rounded-full bg-[#00FF88]/20 flex items-center justify-center">
+                          <CheckCircle2 className="h-4 w-4 sm:h-4.5 sm:w-4.5 xl:h-5 xl:w-5 text-[#00FF88]" />
+                        </div>
+                        <div>
+                          <div className="text-white font-semibold text-xs sm:text-sm">100% Électrique</div>
+                          <div className="text-white/50 text-[10px] sm:text-xs">Véhicule MG5</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
       </section>
 
-      {/* Services Section */}
-      <section className="py-32 bg-gradient-to-b from-white via-[#F8FAFB] to-white relative overflow-hidden">
-        {/* Animated background elements */}
-        <div className="absolute top-20 right-10 w-[500px] h-[500px] bg-[#00FF88]/10 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-20 left-10 w-[400px] h-[400px] bg-[#00CC6A]/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-[#00FF88]/5 to-transparent rounded-full"></div>
+      {/* Services Section - Bento Grid */}
+      <section className="py-20 md:py-32 bg-[#0A0A0A] relative overflow-hidden">
+        {/* Background decorations */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#00FF88]/5 rounded-full blur-[150px]"></div>
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#3B82F6]/5 rounded-full blur-[120px]"></div>
 
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(0,0,0,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.1) 1px, transparent 1px)', backgroundSize: '50px 50px' }}></div>
-
-        <div className="container mx-auto px-6 md:px-12 lg:px-24 relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-24 relative z-10">
           {/* Header */}
-          <div className="text-center mb-20">
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0A0A0A]/5 border border-[#0A0A0A]/10 backdrop-blur-sm mb-8 hover:border-[#00FF88]/50 transition-colors">
+          <div className="text-center mb-12 md:mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6">
               <div className="w-2 h-2 rounded-full bg-[#00FF88] animate-pulse"></div>
-              <span className="text-sm font-medium text-[#0A0A0A]/80">Nos prestations</span>
+              <span className="text-sm font-medium text-white/70">Nos prestations</span>
             </div>
-            <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[#0A0A0A] mb-6 tracking-tight">
-              Nos services <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00CC6A] to-[#00FF88]">sur mesure</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
+              Nos services <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00FF88] to-[#3B82F6]">sur mesure</span>
             </h2>
-            <p className="text-xl md:text-2xl text-[#0A0A0A]/50 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-white/50 max-w-2xl mx-auto">
               Chaque trajet est une expérience unique, adaptée à vos besoins
             </p>
           </div>
 
-          {/* Services Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {SERVICES.map((service, index) => (
-              <Link
-                key={service.id}
-                href="/reservation"
-                className="group relative rounded-[2rem] bg-white shadow-xl shadow-black/5 border border-gray-100 hover:border-[#00FF88]/50 transition-all duration-700 overflow-hidden hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#00FF88]/20"
-              >
-                {/* Glow effect on hover */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#00FF88]/0 to-[#00FF88]/0 group-hover:from-[#00FF88]/5 group-hover:to-transparent transition-all duration-700 rounded-[2rem]"></div>
+          {/* Bento Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 max-w-6xl mx-auto">
 
-                {/* Card number indicator */}
-                <div className="absolute top-6 right-6 z-20 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 flex items-center justify-center text-[#0A0A0A]/30 text-sm font-medium group-hover:bg-[#00FF88]/10 group-hover:border-[#00FF88]/40 group-hover:text-[#00CC6A] transition-all duration-500 shadow-lg">
-                  0{index + 1}
+            {/* Card 1 - Transfert A/S & A/R (Green) */}
+            <Link href="/reservation" className="group relative rounded-3xl overflow-hidden aspect-[4/3] lg:aspect-[5/4]">
+              {/* Background Image */}
+              <Image
+                src="/90 (2).jpg"
+                alt="Transfert Aller Simple et Aller Retour"
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+
+              {/* Color Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
+              <div className="absolute inset-0 bg-[#00FF88]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+              {/* Logo Badge */}
+              <div className="absolute top-6 right-6 z-20">
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center p-2 group-hover:scale-110 group-hover:border-[#00FF88]/50 transition-all duration-500">
+                  <Image
+                    src="/cardlogogreen.png"
+                    alt="Logo vert"
+                    width={60}
+                    height={60}
+                    className="object-contain"
+                  />
                 </div>
+              </div>
 
-                <div className="flex flex-col">
-                  {/* Image Container */}
-                  <div className="relative w-full aspect-[4/3] overflow-hidden">
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent z-10"></div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent z-10"></div>
-
-                    <Image
-                      src={service.illustration}
-                      alt={service.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-                    />
-
-                    {/* Icon badge */}
-                    <div className="absolute bottom-4 left-4 z-20 w-14 h-14 rounded-2xl bg-white/90 backdrop-blur-md border border-gray-200 flex items-center justify-center text-3xl group-hover:scale-110 group-hover:bg-[#00FF88]/20 group-hover:border-[#00FF88]/40 transition-all duration-500 shadow-lg">
-                      {service.icon}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="relative z-10 p-8 pt-6">
-                    <h3 className="text-xl md:text-2xl font-bold text-[#0A0A0A] mb-3 group-hover:text-[#00CC6A] transition-colors duration-500 leading-tight">
-                      {service.name}
+              {/* Content - Glassmorphism */}
+              <div className="absolute inset-x-0 bottom-0 p-6 md:p-8">
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 md:p-6 border border-white/10 group-hover:border-[#00FF88]/30 transition-colors duration-500">
+                  <div className="flex flex-col gap-1 mb-4">
+                    <h3 className="text-xl md:text-2xl font-bold text-white">
+                      Transfert A/S <span className="text-white/60 font-normal">(Aller simple)</span>
                     </h3>
-                    <p className="text-[#0A0A0A]/60 mb-6 leading-relaxed group-hover:text-[#0A0A0A]/80 transition-colors duration-500">
-                      {service.description}
-                    </p>
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between pt-6 border-t border-gray-100 group-hover:border-[#00FF88]/30 transition-colors duration-500">
-                      <div className="flex flex-col">
-                        <span className="text-xs text-[#0A0A0A]/40 uppercase tracking-wider mb-1">Tarif</span>
-                        <span className="text-lg font-bold text-[#00CC6A]">{service.priceInfo}</span>
-                      </div>
-                      <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-[#0A0A0A]/5 border border-[#0A0A0A]/10 group-hover:bg-[#00FF88] group-hover:border-[#00FF88] transition-all duration-500">
-                        <span className="text-sm font-semibold text-[#0A0A0A] group-hover:text-white transition-colors duration-500">Réserver</span>
-                        <ArrowRight className="h-4 w-4 text-[#0A0A0A] group-hover:text-white group-hover:translate-x-1 transition-all duration-500" />
-                      </div>
+                    <h3 className="text-xl md:text-2xl font-bold text-white">
+                      Transfert A/R <span className="text-white/60 font-normal">(Aller retour)</span>
+                    </h3>
+                  </div>
+                  <p className="text-white/60 text-sm md:text-base mb-5 leading-relaxed">
+                    Transfert direct de votre point de départ à votre destination
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">À partir de</span>
+                      <div className="text-2xl font-bold text-[#00FF88]">33€ TTC</div>
+                    </div>
+                    <div className="flex items-center gap-2 px-5 py-3 rounded-full bg-[#00FF88] text-black font-semibold text-sm group-hover:shadow-lg group-hover:shadow-[#00FF88]/30 transition-all duration-500">
+                      <span>Demander une estimation</span>
+                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 </div>
-              </Link>
-            ))}
+              </div>
+            </Link>
+
+            {/* Card 2 - Transfert Forfaitaire (Blue) */}
+            <Link href="/reservation" className="group relative rounded-3xl overflow-hidden aspect-[4/3] lg:aspect-[5/4]">
+              {/* Background Image */}
+              <Image
+                src="/Gemini_Generated_Image_aimpniaimpniaimp.png"
+                alt="Transfert Forfaitaire"
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+
+              {/* Color Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
+              <div className="absolute inset-0 bg-[#3B82F6]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+              {/* Logo Badge */}
+              <div className="absolute top-6 right-6 z-20">
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center p-2 group-hover:scale-110 group-hover:border-[#3B82F6]/50 transition-all duration-500">
+                  <Image
+                    src="/cardbluelogo.png"
+                    alt="Logo bleu"
+                    width={60}
+                    height={60}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+
+              {/* Content - Glassmorphism */}
+              <div className="absolute inset-x-0 bottom-0 p-6 md:p-8">
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 md:p-6 border border-white/10 group-hover:border-[#3B82F6]/30 transition-colors duration-500">
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">
+                    Transfert Forfaitaire
+                  </h3>
+                  <p className="text-white/60 text-sm md:text-base mb-5 leading-relaxed">
+                    Chauffeur à disposition pour vos déplacements multiples. Forfaits de 2H à 8H disponibles, de jour comme de nuit.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Demandez votre</span>
+                      <div className="text-2xl font-bold text-[#3B82F6]">Devis</div>
+                    </div>
+                    <div className="flex items-center gap-2 px-5 py-3 rounded-full bg-[#3B82F6] text-white font-semibold text-sm group-hover:shadow-lg group-hover:shadow-[#3B82F6]/30 transition-all duration-500">
+                      <span>Demander une estimation</span>
+                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
           </div>
         </div>
       </section>
