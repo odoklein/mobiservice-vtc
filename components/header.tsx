@@ -41,20 +41,20 @@ export function Header() {
 
         {/* CTA Buttons */}
         <div className="hidden md:flex md:items-center md:gap-3">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            asChild 
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
             className="border-2 border-[#E8E8E8] hover:border-[#5CD85A] hover:bg-[#5CD85A]/5 text-[#0A0A0A] transition-all duration-300 rounded-xl px-4"
           >
             <a href={`tel:${CONTACT.phone}`}>
               <Phone className="mr-2 h-4 w-4" />
-              Appeler
+              Appeler : <span className="font-bold ml-1">{CONTACT.phone}</span>
             </a>
           </Button>
-          <Button 
-            size="sm" 
-            asChild 
+          <Button
+            size="sm"
+            asChild
             className="bg-gradient-to-r from-[#5CD85A] to-[#4BC449] hover:from-[#4BC449] hover:to-[#5CD85A] text-[#0A0A0A] font-semibold shadow-lg shadow-[#5CD85A]/20 hover:shadow-xl hover:shadow-[#5CD85A]/30 transition-all duration-300 rounded-xl px-5 border-0"
           >
             <Link href="/reservation" className="flex items-center gap-2">
@@ -93,20 +93,20 @@ export function Header() {
               </Link>
             ))}
             <div className="flex flex-col gap-3 pt-4 mt-2 border-t border-[#E8E8E8]">
-              <Button 
-                variant="outline" 
-                size="lg" 
-                asChild 
+              <Button
+                variant="outline"
+                size="lg"
+                asChild
                 className="w-full border-2 border-[#E8E8E8] hover:border-[#5CD85A] text-[#0A0A0A] rounded-xl"
               >
                 <a href={`tel:${CONTACT.phone}`}>
                   <Phone className="mr-2 h-4 w-4" />
-                  Appeler
+                  Appeler : <span className="font-bold ml-1">{CONTACT.phone}</span>
                 </a>
               </Button>
-              <Button 
-                size="lg" 
-                asChild 
+              <Button
+                size="lg"
+                asChild
                 className="w-full bg-gradient-to-r from-[#5CD85A] to-[#4BC449] text-[#0A0A0A] font-semibold rounded-xl shadow-lg shadow-[#5CD85A]/20 border-0"
               >
                 <Link href="/reservation" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2">

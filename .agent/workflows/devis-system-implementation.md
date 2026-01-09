@@ -2,240 +2,548 @@
 description: Implementation Plan - Devis (Quote) System with Approval Workflow
 ---
 
-# Implementation Plan: Devis (Quote) System
+# 📋 Analyse Système Devis - MobiService VTC
 
-## Overview
-Transform the current booking system into a quotation-based workflow where customers receive a devis (quote) that can be:
-- Accepted or Refused by the customer
-- Commented on by the customer
-- Modified by the driver with discounts (5%, 8%, or 12%)
-- Approved/Rejected by the driver
+## Table des Matières
+1. [Flux Actuel (Problématique)](#flux-actuel)
+2. [Pages et Routes Existantes](#pages-et-routes)
+3. [Emails Envoyés Actuellement](#emails-actuels)
+4. [Problèmes Identifiés](#problemes)
+5. [Nouveau Flux Simplifié](#nouveau-flux)
+6. [Plan d'Implémentation](#implementation)
 
-## Current Progress ✅
+---
 
-### Phase 1: Database & Backend (COMPLETED)
-1. ✅ Updated `schema.ts` to add:
-   - `discountPercentage` field (5, 8, 12)
-   - `discountAmount` field
-   - `customerComment` field
-   
-2. ✅ Modified booking creation API (`/api/bookings/route.ts`):
-   - Changed initial status from `pending` to `quote_sent`
-   - Updated email notifications to reflect "Devis" terminology
-   
-3. ✅ Updated OTP verification (`/api/bookings/verify-otp/route.ts`):
-   - Changed status to `quote_sent` after verification
-   - Updated email to send quote link instead of booking confirmation
-   - Redirect to `/quote/{bookingId}` instead of success page
+## 1. Flux Actuel (Problématique) {#flux-actuel}
 
-4. ✅ Updated reservation page UI:
-   - Changed "Réservation" to "Devis" terminology
-   - Updated button texts to "Demander mon devis"
+### Séquence Actuelle Complète
 
-## Remaining Work 🚧
-
-### Phase 2: Quote Management Page (PRIORITY)
-
-#### Step 1: Create Quote Detail Page
-**File**: `app/(public)/quote/[id]/page.tsx`
-
-Create a customer-facing quote page with:
-- Quote details display (similar to uploaded image style)
-- Trip information (pickup, dropoff, date, time)
-- Price breakdown (HT, TVA, TTC)
-- Current status indicator
-- Action buttons based on status:
-  - **If `quote_sent`**: Accept / Refuse / Add Comment
-  - **If `quote_accepted`**: Show "Accepted" status
-  - **If `quote_refused`**: Show "Refused" status
-  - **If `quote_modified`**: Show new price with discount applied
-
-**Design Requirements**:
-- Clean, professional layout matching the uploaded "BON DE RÉSERVATION" style
-- Show company info (MobiService VTC)
-- Display legal references (Billet Collectif, Ordre de Mission)
-- Show driver info
-- Clear pricing with discount if applied
-- Comment section for customer feedback
-
-#### Step 2: Create Quote API Endpoints
-
-**File**: `app/api/quote/[id]/route.ts`
-```typescript
-GET /api/quote/[id]
-- Fetch quote details by ID
-- Return booking data with status
-
-POST /api/quote/[id]/accept
-- Update status to 'quote_accepted'
-- Send confirmation email to customer
-- Notify driver
-
-POST /api/quote/[id]/refuse
-- Update status to 'quote_refused'
-- Send notification to driver
-- Optional: Ask for refusal reason
-
-POST /api/quote/[id]/comment
-- Save customer comment
-- Notify driver of new comment
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 1: CLIENT REMPLIT LE FORMULAIRE                                      │
+│  📍 Page: /reservation                                                       │
+│                                                                             │
+│  - Choix service (transfer/hourly)                                          │
+│  - Adresses départ/arrivée                                                  │
+│  - Date, heure, passagers                                                   │
+│  - Calcul prix automatique                                                  │
+│  - Saisie nom, email, téléphone                                             │
+│  - Envoi OTP par email                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ⬇️
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 2: VÉRIFICATION OTP                                                  │
+│  📍 API: /api/bookings/verify-otp                                           │
+│                                                                             │
+│  - Client entre le code 6 chiffres reçu par email                           │
+│  - Status: quote_sent                                                       │
+│  - 📧 Email #1 au DRIVER: "Nouvelle demande de devis"                       │
+│  - 📧 Email #2 au CLIENT: "Votre Devis" avec lien /quote/[id]               │
+│  - Redirection vers /quote/[id]                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ⬇️
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 3: PAGE DEVIS CLIENT                                                 │
+│  📍 Page: /quote/[id]                                                        │
+│                                                                             │
+│  ❌ PROBLÈME: Le CLIENT peut faire des actions qui devraient être DRIVER    │
+│                                                                             │
+│  Boutons actuels (INCORRECTS):                                              │
+│  - ✅ "Accepter" → appelle /api/quote/[id]/accept                           │
+│  - ❌ "Refuser" → appelle /api/quote/[id]/refuse                            │
+│  - 💬 "Ajouter un commentaire" → appelle /api/quote/[id]/comment            │
+│                                                                             │
+│  Statuts possibles:                                                         │
+│  - quote_sent (initial)                                                     │
+│  - quote_modified (après remise)                                            │
+│  - quote_accepted (client accepte)                                          │
+│  - quote_refused (client refuse)                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ⬇️
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 4: DRIVER DANS L'ADMIN                                               │
+│  📍 Page: /admin/bookings/[id]                                              │
+│                                                                             │
+│  Actions disponibles (CONFUSES):                                            │
+│  - Boutons remise: -5%, -8%, -12%                                           │
+│     → Appelle /api/admin/bookings/[id]/apply-discount                       │
+│     → Status: quote_modified                                                │
+│     → 📧 Email au CLIENT: "Remise appliquée"                                │
+│                                                                             │
+│  - Bouton "Confirmer le Devis" (acceptQuote)                                │
+│     → Status: confirmed                                                     │
+│     → AUCUN EMAIL!                                                          │
+│                                                                             │
+│  - Bouton "Refuser" (refuseQuote)                                           │
+│     → Status: quote_refused                                                 │
+│     → AUCUN EMAIL!                                                          │
+│                                                                             │
+│  - Bouton "Approuver" (approveBooking)                                      │
+│     → Seulement si status = "verified"                                      │
+│     → Status: confirmed                                                     │
+│     → 📧 Email au CLIENT: "Réservation confirmée"                           │
+│     → 📧 Email au DRIVER: "Confirmation réservation"                        │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Phase 3: Admin/Driver Dashboard Updates
+---
 
-#### Step 1: Update Admin Bookings List
-**File**: `app/admin/bookings/page.tsx`
+## 2. Pages et Routes Existantes {#pages-et-routes}
 
-Add status filters:
-- Quote Sent (quote_sent)
-- Quote Accepted (quote_accepted)
-- Quote Refused (quote_refused)
-- Quote Modified (quote_modified)
-- Confirmed (confirmed)
+### Pages Client (Public)
 
-#### Step 2: Create Quote Management Interface
-**File**: `app/admin/bookings/[id]/page.tsx`
+| Page | Chemin | Rôle |
+|------|--------|------|
+| Réservation | `/reservation` | Formulaire de demande de devis |
+| Devis | `/quote/[id]` | Affichage du devis (avec boutons client ❌) |
+| Confirmation | `/booking-confirmed` | Page après confirmation réservation |
 
-Add driver actions:
-- View customer comments
-- Apply discount dropdown (5%, 8%, 12%)
-- Recalculate price with discount
-- Send modified quote to customer
-- Approve quote → Convert to confirmed booking
-- Reject quote with reason
+### Pages Admin (Driver)
 
-**File**: `app/api/admin/bookings/[id]/apply-discount/route.ts`
-```typescript
-POST /api/admin/bookings/[id]/apply-discount
-- Calculate new price with discount
-- Update discountPercentage and discountAmount
-- Update totalPriceTTC
-- Change status to 'quote_modified'
-- Send email to customer with new quote
+| Page | Chemin | Rôle |
+|------|--------|------|
+| Liste | `/admin/bookings` | Liste de toutes les réservations |
+| Détail | `/admin/bookings/[id]` | Détail d'une réservation/devis |
+| Nouveau | `/admin/bookings/new` | Créer manuellement une réservation |
+
+### Routes API - Quote (Actions CLIENT)
+
+| Route | Méthode | Action | Email Envoyé |
+|-------|---------|--------|--------------|
+| `/api/quote/[id]` | GET | Récupérer le devis | ❌ |
+| `/api/quote/[id]/accept` | POST | Client accepte | ✅ Client + Driver |
+| `/api/quote/[id]/refuse` | POST | Client refuse | ✅ Client + Driver |
+| `/api/quote/[id]/comment` | POST | Client commente | ✅ Driver |
+
+### Routes API - Admin (Actions DRIVER)
+
+| Route | Méthode | Action | Email Envoyé |
+|-------|---------|--------|--------------|
+| `/api/admin/bookings/[id]` | GET/PATCH/DELETE | CRUD booking | ❌ |
+| `/api/admin/bookings/[id]/apply-discount` | POST | Appliquer remise | ✅ Client |
+| `/api/admin/bookings/[id]/approve` | POST | Approuver (verified→confirmed) | ✅ Client + Driver |
+| `/api/admin/bookings/[id]/reject` | POST | Rejeter | ✅ Client |
+
+### Routes API - Booking Creation
+
+| Route | Méthode | Action | Email Envoyé |
+|-------|---------|--------|--------------|
+| `/api/bookings` | POST | Créer réservation | ✅ Driver |
+| `/api/bookings/send-otp` | POST | Envoyer OTP | ✅ Client |
+| `/api/bookings/verify-otp` | POST | Vérifier OTP + créer devis | ✅ Client |
+
+---
+
+## 3. Emails Envoyés Actuellement {#emails-actuels}
+
+### Flux Complet avec Tous les Emails
+
+```
+                         CRÉATION DEVIS
+                              │
+       ┌──────────────────────┼──────────────────────┐
+       ▼                      ▼                      ▼
+📧 1. OTP Email         📧 2. Nouveau Devis    📧 3. Votre Devis
+   → Client                → Driver               → Client
+                              │
+                              ▼
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+   Driver applique       Driver confirme      Driver refuse
+     remise (-X%)           direct             direct
+        │                     │                     │
+        ▼                     ▼                     ▼
+📧 4. Remise !           (aucun email)        (aucun email)
+   → Client                   │                     │
+        │                     │                     │
+        ▼                     ▼                     ▼
+   Client voit page       Status:               Status:
+   avec nouveau prix      confirmed           quote_refused
+        │
+        ▼
+   Client peut:
+   ├── Accepter
+   │   ├── 📧 5. Devis Accepté → Client
+   │   └── 📧 6. Notification → Driver
+   │
+   ├── Refuser
+   │   ├── 📧 7. Devis Refusé → Client
+   │   └── 📧 8. Notification → Driver
+   │
+   └── Commenter
+       └── 📧 9. Nouveau Commentaire → Driver
+
+TOTAL POSSIBLE: 9 EMAILS pour une seule réservation!
 ```
 
-### Phase 4: Email Templates
+### Tableau Récapitulatif des Emails
 
-#### Template 1: Quote Sent (COMPLETED ✅)
-- Subject: "📄 Votre Devis - MobiService VTC"
-- Link to quote page
-- Estimated price
+| # | Moment | Destinataire | Sujet | Route |
+|---|--------|--------------|-------|-------|
+| 1 | OTP envoyé | Client | "Votre code de vérification" | `/api/bookings/send-otp` |
+| 2 | Booking créé | Driver | "Nouvelle demande de devis" | `/api/bookings` (POST) |
+| 3 | OTP vérifié | Client | "Votre Devis" | `/api/bookings/verify-otp` |
+| 4 | Remise appliquée | Client | "Remise de X%" | `/api/admin/.../apply-discount` |
+| 5 | Client accepte | Client | "Devis Accepté" | `/api/quote/[id]/accept` |
+| 6 | Client accepte | Driver | "Devis Accepté par X" | `/api/quote/[id]/accept` |
+| 7 | Client refuse | Client | "Devis Refusé" | `/api/quote/[id]/refuse` |
+| 8 | Client refuse | Driver | "Devis Refusé par X" | `/api/quote/[id]/refuse` |
+| 9 | Client commente | Driver | "Nouveau commentaire" | `/api/quote/[id]/comment` |
+| 10 | Admin approuve | Client | "Réservation confirmée" | `/api/admin/.../approve` |
+| 11 | Admin approuve | Driver | "Réservation confirmée" | `/api/admin/.../approve` |
+| 12 | Admin rejette | Client | "Réservation non disponible" | `/api/admin/.../reject` |
 
-#### Template 2: Quote Modified with Discount
-**File**: `lib/email/templates/quote-modified.tsx`
-- Subject: "🎉 Votre Devis Modifié - Remise Appliquée"
-- Show original price
-- Show discount percentage
-- Show new price
-- Link to accept/refuse
+---
 
-#### Template 3: Quote Accepted
-**File**: `lib/email/templates/quote-accepted.tsx`
-- Subject: "✅ Devis Accepté - Réservation Confirmée"
-- Confirmation details
-- Payment instructions
-- Driver contact info
+## 4. Problèmes Identifiés {#problemes}
 
-#### Template 4: Quote Refused
-**File**: `lib/email/templates/quote-refused.tsx`
-- Subject: "Devis Refusé - Merci de votre intérêt"
-- Thank you message
-- Invitation to request new quote
+### ❌ Problème 1: Confusion des Rôles
 
-### Phase 5: Database Migration
+```
+ACTUEL:                              ATTENDU:
+Client peut:                         Client peut:
+- Accepter le devis ❌               - Voir le devis ✅
+- Refuser le devis ❌                - Voir le statut ✅
+- Ajouter commentaire ❌             - Contacter driver ✅
 
-Create migration file to add new columns:
+Driver peut:                         Driver peut:
+- Appliquer remise ✅                - Appliquer remise ✅
+- Confirmer le devis ✅              - Accepter la demande ✅
+- Refuser le devis ✅                - Refuser la demande ✅
+```
+
+### ❌ Problème 2: Trop d'Emails
+
+| Scénario | Emails Actuels | Emails Attendus |
+|----------|----------------|-----------------|
+| Devis simple accepté | 6 emails | 2 emails |
+| Devis avec remise accepté | 8 emails | 2 emails |
+| Devis refusé | 4 emails | 2 emails |
+
+### ❌ Problème 3: Incohérence des Textes (Page Client `/quote/[id]`)
+
+| Élément | Texte Actuel | Problème |
+|---------|--------------|----------|
+| Titre | "BON DE RÉSERVATION" | C'est un DEVIS, pas une réservation |
+| Bouton | "Accepter" | Client ne devrait pas accepter |
+| Message après "Accepter" | "Notre équipe va confirmer" | Pourquoi confirmer si déjà accepté? |
+| Statut | "Devis accepté" | Confusion avec confirmation |
+
+### ❌ Problème 4: Incohérence des Textes (Page Admin `/admin/bookings/[id]`)
+
+| Élément | Texte Actuel | Problème |
+|---------|--------------|----------|
+| Message status quote_sent | "Le client a demandé un devis. Vous pouvez appliquer une remise ou confirmer directement." | Peu clair |
+| Message status quote_accepted | "Le client a accepté le devis. Confirmez pour créer la réservation." | Double confirmation inutile |
+| Bouton | "Confirmer le Devis" | Devrait être "Accepter la demande" |
+| 2ème Bouton | "Approuver" | Doublon de "Confirmer le Devis" |
+
+### ❌ Problème 5: Multiples Statuts Confus
+
+```
+Statuts Actuels:
+- pending
+- quote_sent
+- quote_modified  
+- quote_accepted
+- quote_refused
+- verified
+- confirmed
+- in_progress
+- completed
+- cancelled
+
+Statuts Nécessaires:
+- quote_pending (demande reçue)
+- confirmed (accepté par driver)
+- refused (refusé par driver)
+- completed (course terminée)
+- cancelled (annulé)
+```
+
+---
+
+## 5. Nouveau Flux Simplifié {#nouveau-flux}
+
+### Flux Cible
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 1: CLIENT REMPLIT LE FORMULAIRE                                      │
+│  📍 Page: /reservation                                                       │
+│                                                                             │
+│  - Mêmes champs qu'avant                                                    │
+│  - Vérification OTP par email                                               │
+│  - Status: quote_pending                                                    │
+│  - 📧 Email UNIQUE au DRIVER: "Nouvelle demande de devis"                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ⬇️
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 2: CLIENT VOIT SA DEMANDE (PASSIVE)                                  │
+│  📍 Page: /quote/[id]                                                        │
+│                                                                             │
+│  Affichage UNIQUEMENT:                                                      │
+│  - Détails du trajet                                                        │
+│  - Prix estimé                                                              │
+│  - Statut: "En attente de confirmation"                                     │
+│  - Coordonnées pour contact                                                 │
+│                                                                             │
+│  ❌ Pas de boutons Accepter/Refuser                                         │
+│  ❌ Pas de formulaire commentaire                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ⬇️
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 3: DRIVER TRAITE LA DEMANDE                                          │
+│  📍 Page: /admin/bookings/[id]                                              │
+│                                                                             │
+│  Options:                                                                   │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │ OPTION A: Accepter                                                    │  │
+│  │ - Bouton vert: "Accepter la demande"                                  │  │
+│  │ - Status → confirmed                                                  │  │
+│  │ - 📧 Email au CLIENT: "Réservation confirmée - XXX€"                  │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │ OPTION B: Appliquer remise + Accepter                                 │  │
+│  │ - Clic sur -5%, -8%, ou -12%                                          │  │
+│  │ - Puis "Accepter avec remise"                                         │  │
+│  │ - Status → confirmed                                                  │  │
+│  │ - 📧 Email au CLIENT: "Réservation confirmée - XXX€ (-X%)"            │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │ OPTION C: Refuser                                                     │  │
+│  │ - Bouton rouge: "Refuser la demande"                                  │  │
+│  │ - Modal: raison obligatoire                                           │  │
+│  │ - Status → refused                                                    │  │
+│  │ - 📧 Email au CLIENT: "Demande non disponible - Raison"               │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ⬇️
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 4: CLIENT REÇOIT LA DÉCISION                                         │
+│  📍 Page: /quote/[id] (mise à jour automatique)                             │
+│                                                                             │
+│  Si ACCEPTÉ:                                                                │
+│  - Bandeau vert: "Réservation confirmée!"                                   │
+│  - Prix final affiché (avec remise si applicable)                           │
+│  - Informations chauffeur                                                   │
+│  - Récapitulatif trajet                                                     │
+│                                                                             │
+│  Si REFUSÉ:                                                                 │
+│  - Bandeau rouge: "Demande non disponible"                                  │
+│  - Raison affichée                                                          │
+│  - Lien vers nouvelle demande                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Comparaison Emails
+
+| Scénario | Avant | Après |
+|----------|-------|-------|
+| Demande créée | 3 emails | **1 email** (Driver) |
+| Driver accepte | +2 emails | **+1 email** (Client) |
+| Driver + remise + accepte | +3 emails | **+1 email** (Client) |
+| Driver refuse | +2 emails | **+1 email** (Client) |
+| **TOTAL MAX** | **8 emails** | **2 emails** |
+
+---
+
+## 6. Plan d'Implémentation {#implementation}
+
+### Phase 1: Mise à jour des Statuts
+
+```diff
+// lib/db/schema.ts - Simplifier les statuts
+
+- status: 'pending' | 'verified' | 'quote_sent' | 'quote_modified' | 'quote_accepted' | 'quote_refused' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
++ status: 'quote_pending' | 'confirmed' | 'refused' | 'in_progress' | 'completed' | 'cancelled'
+```
+
+### Phase 2: Modifier la création de booking
+
+**Fichier**: `app/api/bookings/route.ts`
+
+```diff
+- status: 'quote_sent'
++ status: 'quote_pending'
+```
+
+**Fichier**: `app/api/bookings/verify-otp/route.ts`
+
+```diff
+- status: 'quote_sent'
++ status: 'quote_pending'
+
+- // Email "Votre Devis" au client avec lien d'action
++ // Email simple "Demande reçue" au client (sans CTA)
+```
+
+### Phase 3: Supprimer les routes client
+
+**À SUPPRIMER**:
+- `app/api/quote/[id]/accept/route.ts`
+- `app/api/quote/[id]/refuse/route.ts`
+- `app/api/quote/[id]/comment/route.ts`
+
+**À GARDER**:
+- `app/api/quote/[id]/route.ts` (GET uniquement)
+
+### Phase 4: Créer route admin unifiée
+
+**Nouveau fichier**: `app/api/admin/bookings/[id]/accept-quote/route.ts`
+
+```typescript
+// Logique:
+// 1. Vérifier authentification admin
+// 2. Récupérer booking
+// 3. Appliquer remise si demandée
+// 4. Mettre à jour status → 'confirmed'
+// 5. Envoyer UN SEUL email au client avec prix final
+```
+
+**Modifier**: `app/api/admin/bookings/[id]/reject/route.ts`
+
+```diff
+- if (!['verified', 'pending'].includes(booking.status))
++ if (!['quote_pending'].includes(booking.status))
+
+- status: 'cancelled'
++ status: 'refused'
+```
+
+### Phase 5: Refondre la page client
+
+**Fichier**: `app/(public)/quote/[id]/page.tsx`
+
+```diff
+- // Boutons Accepter/Refuser/Commenter
+- {canTakeAction && (
+-   <div className="space-y-4">
+-     <Button onClick={handleAccept}>Accepter</Button>
+-     <Button onClick={handleRefuse}>Refuser</Button>
+-     <Button onClick={handleComment}>Commenter</Button>
+-   </div>
+- )}
+
++ // Affichage statut uniquement
++ {quote.status === 'quote_pending' && (
++   <StatusBanner type="pending" message="Votre demande est en cours de traitement" />
++ )}
++ {quote.status === 'confirmed' && (
++   <StatusBanner type="success" message="Réservation confirmée!" />
++ )}
++ {quote.status === 'refused' && (
++   <StatusBanner type="error" message="Demande non disponible" reason={quote.rejectionReason} />
++ )}
+```
+
+### Phase 6: Simplifier la page admin
+
+**Fichier**: `app/admin/bookings/[id]/page.tsx`
+
+```diff
+// Texte du bandeau quote
+- {booking.status === 'quote_sent' && 'Le client a demandé un devis...'}
++ {booking.status === 'quote_pending' && 'Nouvelle demande de devis en attente de votre décision.'}
+
+// Boutons d'action
+- <Button onClick={acceptQuote}>Confirmer le Devis</Button>
+- <Button onClick={refuseQuote}>Refuser</Button>
++ <Button onClick={acceptWithDiscount} className="bg-green-600">
++   {selectedDiscount ? `Accepter avec -${selectedDiscount}%` : 'Accepter'}
++ </Button>
++ <Button onClick={() => setShowRefuseModal(true)} variant="destructive">
++   Refuser
++ </Button>
+
+// Supprimer les anciens boutons
+- <Button onClick={approveBooking}>Approuver</Button>
+```
+
+### Phase 7: Simplifier les emails
+
+**Templates nécessaires (2 seulement)**:
+
+1. **Email Driver - Nouvelle demande**
+```
+Sujet: 📄 Nouvelle demande de devis #XXX
+Corps: Client, trajet, prix estimé, lien admin
+```
+
+2. **Email Client - Décision**
+```
+Si accepté:
+Sujet: ✅ Réservation confirmée - MobiService VTC
+Corps: Récap trajet, prix final (avec remise si applicable), contact
+
+Si refusé:
+Sujet: ❌ Demande non disponible - MobiService VTC  
+Corps: Raison, invitation nouvelle demande
+```
+
+---
+
+## Checklist d'Implémentation
+
+### À SUPPRIMER
+- [ ] `app/api/quote/[id]/accept/route.ts`
+- [ ] `app/api/quote/[id]/refuse/route.ts`
+- [ ] `app/api/quote/[id]/comment/route.ts`
+
+### À CRÉER
+- [ ] `app/api/admin/bookings/[id]/accept-quote/route.ts`
+
+### À MODIFIER
+- [ ] `app/api/bookings/route.ts` - Status initial
+- [ ] `app/api/bookings/verify-otp/route.ts` - Email simplifié
+- [ ] `app/api/admin/bookings/[id]/apply-discount/route.ts` - Ne pas changer status
+- [ ] `app/api/admin/bookings/[id]/reject/route.ts` - Nouveau status
+- [ ] `app/(public)/quote/[id]/page.tsx` - Vue passive
+- [ ] `app/admin/bookings/[id]/page.tsx` - UX simplifiée
+- [ ] `lib/db/schema.ts` - Statuts simplifiés (migration)
+
+### TESTS
+- [ ] Créer demande depuis /reservation
+- [ ] Vérifier page /quote/[id] sans boutons
+- [ ] Driver accepte sans remise → email correct
+- [ ] Driver accepte avec remise → email correct
+- [ ] Driver refuse → email correct
+- [ ] Client voit mise à jour statut
+
+---
+
+## Notes Importantes
+
+### Rétrocompatibilité des Statuts
+
+Pour les réservations existantes avec anciens statuts:
 ```sql
--- Add discount and comment fields
-ALTER TABLE bookings 
-ADD COLUMN discount_percentage INTEGER,
-ADD COLUMN discount_amount DECIMAL(10, 2),
-ADD COLUMN customer_comment TEXT;
-
--- Update existing bookings status if needed
-UPDATE bookings 
-SET status = 'quote_sent' 
-WHERE status = 'pending' AND otp_verified = true;
+UPDATE bookings SET status = 'quote_pending' WHERE status IN ('quote_sent', 'quote_modified', 'pending');
+UPDATE bookings SET status = 'confirmed' WHERE status IN ('quote_accepted', 'verified');
+UPDATE bookings SET status = 'refused' WHERE status = 'quote_refused';
 ```
 
-### Phase 6: Status Flow Diagram
+### Emails Supprimés
+
+Les emails suivants ne seront PLUS envoyés:
+- "Votre Devis" au client (remplacé par vue page)
+- "Devis Accepté" (supprimé - client ne décide plus)
+- "Devis Refusé par client" (supprimé)
+- "Nouveau commentaire" (supprimé)
+- "Remise appliquée" (intégré dans email confirmation)
+
+### Comportement Attendu Final
 
 ```
-Customer Request → quote_sent
-                     ↓
-         ┌───────────┴───────────┐
-         ↓                       ↓
-    Customer Accept         Customer Refuse
-         ↓                       ↓
-    quote_accepted         quote_refused
-         ↓                       
-    Driver Review               
-         ↓                       
-    ┌────┴────┐                 
-    ↓         ↓                 
-  Approve   Apply Discount      
-    ↓         ↓                 
-confirmed  quote_modified       
-              ↓                 
-         (back to customer)     
+1. Client soumet demande
+   → Driver reçoit 1 email
+   → Client voit page "En attente"
+
+2. Driver prend décision (avec ou sans remise)
+   → Client reçoit 1 email de confirmation OU refus
+   → Page client mise à jour automatiquement
+
+TOTAL: 2 EMAILS MAX par réservation
 ```
-
-### Phase 7: UI Components to Create
-
-1. **QuoteStatusBadge** (`components/quote/status-badge.tsx`)
-   - Color-coded status indicators
-   - Icons for each status
-
-2. **QuoteActions** (`components/quote/quote-actions.tsx`)
-   - Accept/Refuse buttons
-   - Comment form
-   - Conditional rendering based on status
-
-3. **DiscountSelector** (`components/admin/discount-selector.tsx`)
-   - Dropdown with 5%, 8%, 12% options
-   - Price preview with discount
-   - Apply button
-
-4. **QuotePriceBreakdown** (`components/quote/price-breakdown.tsx`)
-   - Original price
-   - Discount (if applied)
-   - Final price
-   - TVA breakdown
-
-## Implementation Order (Recommended)
-
-1. ✅ Database schema updates (DONE)
-2. ✅ Backend API updates (DONE)
-3. ✅ Reservation page terminology (DONE)
-4. 🚧 Create Quote Detail Page (`/quote/[id]`)
-5. 🚧 Create Quote API endpoints
-6. 🚧 Update Admin Dashboard
-7. 🚧 Add Discount functionality
-8. 🚧 Create Email Templates
-9. 🚧 Run database migration
-10. 🚧 Testing & Validation
-
-## Testing Checklist
-
-- [ ] Customer can request a quote
-- [ ] Customer receives quote email with link
-- [ ] Customer can view quote details
-- [ ] Customer can accept quote
-- [ ] Customer can refuse quote
-- [ ] Customer can add comments
-- [ ] Driver can see quote requests
-- [ ] Driver can apply 5% discount
-- [ ] Driver can apply 8% discount
-- [ ] Driver can apply 12% discount
-- [ ] Modified quote email sent correctly
-- [ ] Customer can accept modified quote
-- [ ] Quote converts to confirmed booking
-- [ ] All emails are sent correctly
-
-## Notes
-
-- Keep existing booking flow for backward compatibility
-- Ensure all prices recalculate correctly with discounts
-- Add validation to prevent negative prices
-- Log all status changes for audit trail
-- Consider adding expiration date to quotes (e.g., 5 days)

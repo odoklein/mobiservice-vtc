@@ -41,7 +41,12 @@ export default function Home() {
                         <path d="M0 4C50 0 150 8 200 4" stroke="#00FF88" strokeWidth="3" strokeLinecap="round" />
                       </svg>
                     </span> Privé</span>
-                    <span className="text-[#00FF88] block">avec Chauffeur</span>
+                    <span className="text-[#00FF88] block relative inline-block">
+                      avec Chauffeur
+                      <svg className="absolute -bottom-1 sm:-bottom-2 left-0 w-full" viewBox="0 0 200 8" fill="none">
+                        <path d="M0 4C50 0 150 8 200 4" stroke="#00FF88" strokeWidth="3" strokeLinecap="round" />
+                      </svg>
+                    </span>
                   </h1>
                 </div>
 
@@ -84,7 +89,7 @@ export default function Home() {
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/20 flex items-center justify-center">
                       <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
-                    <span className="text-sm sm:text-base">Appeler</span>
+                    <span className="text-sm sm:text-base">Appeler :<br></br> <span className="font-bold">{CONTACT.phone}</span></span>
                   </Link>
                 </div>
               </div>
@@ -107,6 +112,61 @@ export default function Home() {
                         priority
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 50vw"
                       />
+
+                      {/* Subtle glowing serpentine road effect */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+                        <svg
+                          viewBox="0 0 400 150"
+                          className="w-full h-auto max-h-full opacity-60"
+                          preserveAspectRatio="xMidYMid meet"
+                        >
+                          {/* Glow filter */}
+                          <defs>
+                            <filter id="roadGlow" x="-50%" y="-50%" width="200%" height="200%">
+                              <feGaussianBlur stdDeviation="3" result="blur" />
+                              <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                              </feMerge>
+                            </filter>
+                            <linearGradient id="roadGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="#00FF88" stopOpacity="0" />
+                              <stop offset="20%" stopColor="#00FF88" stopOpacity="0.4" />
+                              <stop offset="50%" stopColor="#00FF88" stopOpacity="0.6" />
+                              <stop offset="80%" stopColor="#00FF88" stopOpacity="0.4" />
+                              <stop offset="100%" stopColor="#00FF88" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+
+                          {/* Serpentine road path - S-curve */}
+                          <path
+                            d="M 0 75 
+                               C 50 75, 80 30, 130 30 
+                               S 200 120, 270 120 
+                               S 350 50, 400 75"
+                            fill="none"
+                            stroke="url(#roadGradient)"
+                            strokeWidth="4"
+                            strokeLinecap="round"
+                            filter="url(#roadGlow)"
+                          />
+
+                          {/* Dashed center line */}
+                          <path
+                            d="M 0 75 
+                               C 50 75, 80 30, 130 30 
+                               S 200 120, 270 120 
+                               S 350 50, 400 75"
+                            fill="none"
+                            stroke="#00FF88"
+                            strokeWidth="1.5"
+                            strokeDasharray="8 12"
+                            strokeLinecap="round"
+                            opacity="0.5"
+                          />
+                        </svg>
+                      </div>
+
                       {/* Corner accent - smaller on mobile */}
                       <div className="absolute top-0 right-0 w-16 sm:w-20 lg:w-16 xl:w-24 h-16 sm:h-20 lg:h-16 xl:h-24">
                         <div className="absolute top-2 sm:top-3 lg:top-2 xl:top-4 right-2 sm:right-3 lg:right-2 xl:right-4 w-full h-full border-t-2 sm:border-t-3 lg:border-t-2 xl:border-t-4 border-r-2 sm:border-r-3 lg:border-r-2 xl:border-r-4 border-[#00FF88] rounded-tr-2xl sm:rounded-tr-3xl"></div>
@@ -114,67 +174,63 @@ export default function Home() {
                       <div className="absolute bottom-0 left-0 w-16 sm:w-20 lg:w-16 xl:w-24 h-16 sm:h-20 lg:h-16 xl:h-24">
                         <div className="absolute bottom-2 sm:bottom-3 lg:bottom-2 xl:bottom-4 left-2 sm:left-3 lg:left-2 xl:left-4 w-full h-full border-b-2 sm:border-b-3 lg:border-b-2 xl:border-b-4 border-l-2 sm:border-l-3 lg:border-l-2 xl:border-l-4 border-[#00FF88] rounded-bl-2xl sm:rounded-bl-3xl"></div>
                       </div>
-                    </div>
 
-                    {/* Driver 1 - Floating top left */}
-                    <div className="absolute -top-3 -left-1 sm:-top-4 sm:-left-2 lg:-top-4 lg:-left-4 xl:-top-6 xl:-left-8 z-20">
-                      <div className="relative">
-                        {/* Outer ring animation - hidden on very small screens */}
-                        <div className="hidden sm:block absolute -inset-1.5 lg:-inset-1.5 xl:-inset-2 rounded-full border sm:border-2 border-dashed border-[#00FF88]/30 animate-spin" style={{ animationDuration: '20s' }}></div>
-                        {/* Image container */}
-                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-18 lg:h-18 xl:w-24 xl:h-24 rounded-full overflow-hidden border-2 sm:border-3 lg:border-2 xl:border-4 border-[#00FF88] shadow-lg sm:shadow-xl shadow-[#00FF88]/20">
-                          <Image
-                            src="/IMG_0046 (2).jpeg"
-                            alt="Chauffeur professionnel"
-                            fill
-                            className="object-cover"
-                          />
+                      {/* Driver 1 - Top left ON TOP of border - Using IMG_0047 */}
+                      <div className="absolute -top-8 -left-6 sm:-top-10 sm:-left-8 lg:-top-12 lg:-left-10 xl:-top-14 xl:-left-12 z-30">
+                        <div className="relative">
+                          {/* Image container */}
+                          <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-22 lg:h-22 xl:w-24 xl:h-24 rounded-full overflow-hidden border-3 sm:border-4 xl:border-[5px] border-[#00FF88] shadow-xl shadow-[#00FF88]/30">
+                            <Image
+                              src="/IMG_0047 (2).jpeg"
+                              alt="Chauffeur professionnel"
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          {/* Badge */}
+                          <div className="absolute -bottom-1.5 sm:-bottom-2 xl:-bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 sm:px-3 xl:px-4 py-1 sm:py-1.5 bg-black border-2 border-[#00FF88] rounded-full shadow-xl">
+                            <div className="flex items-center gap-1 sm:gap-1.5">
+                              <Shield className="h-2.5 w-2.5 sm:h-3 sm:w-3 xl:h-3.5 xl:w-3.5 text-[#00FF88]" />
+                              <span className="text-xs sm:text-sm font-bold text-[#00FF88]">PRO</span>
+                            </div>
+                          </div>
                         </div>
-                        {/* Badge */}
-                        <div className="absolute -bottom-1 sm:-bottom-1.5 xl:-bottom-2 left-1/2 -translate-x-1/2 px-2 sm:px-2.5 xl:px-3 py-0.5 sm:py-1 bg-[#00FF88] rounded-full shadow-lg">
-                          <div className="flex items-center gap-0.5 sm:gap-1">
-                            <Star className="h-2 w-2 sm:h-2.5 sm:w-2.5 xl:h-3 xl:w-3 text-black fill-black" />
-                            <span className="text-[10px] sm:text-xs font-bold text-black">5.0</span>
+                      </div>
+
+                      {/* Driver Image - Inside bottom right */}
+                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-8 lg:right-8 xl:bottom-10 xl:right-10 z-20">
+                        <div className="relative">
+                          {/* Image container - Bigger */}
+                          <div className="relative w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 xl:w-40 xl:h-40 rounded-full overflow-hidden border-4 sm:border-[5px] xl:border-[6px] border-[#00FF88] shadow-2xl shadow-[#00FF88]/40">
+                            <Image
+                              src="/IMG_0046 (2).jpeg"
+                              alt="Chauffeur professionnel"
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          {/* Badge */}
+                          <div className="absolute -top-2 sm:-top-3 xl:-top-4 left-1/2 -translate-x-1/2 px-3 sm:px-4 xl:px-5 py-1 sm:py-1.5 xl:py-2 bg-[#00FF88] rounded-full shadow-xl">
+                            <div className="flex items-center gap-1 sm:gap-1.5">
+                              <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 xl:h-5 xl:w-5 text-black fill-black" />
+                              <span className="text-sm sm:text-base xl:text-lg font-bold text-black">5.0</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Driver 2 - Floating bottom right */}
-                    <div className="absolute -bottom-3 -right-1 sm:-bottom-4 sm:-right-2 lg:-bottom-4 lg:-right-4 xl:-bottom-6 xl:-right-8 z-20">
-                      <div className="relative">
-                        {/* Outer ring - hidden on very small screens */}
-                        <div className="hidden sm:block absolute -inset-1.5 lg:-inset-1.5 xl:-inset-2 rounded-full border sm:border-2 border-dashed border-[#00FF88]/30 animate-spin" style={{ animationDuration: '25s', animationDirection: 'reverse' }}></div>
-                        {/* Image container */}
-                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-18 lg:h-18 xl:w-24 xl:h-24 rounded-full overflow-hidden border-2 sm:border-3 lg:border-2 xl:border-4 border-[#00FF88] shadow-lg sm:shadow-xl shadow-[#00FF88]/20">
-                          <Image
-                            src="/IMG_0047 (2).jpeg"
-                            alt="Chauffeur professionnel"
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        {/* Badge */}
-                        <div className="absolute -top-1 sm:-top-1.5 xl:-top-2 left-1/2 -translate-x-1/2 px-2 sm:px-2.5 xl:px-3 py-0.5 sm:py-1 bg-black border sm:border-2 border-[#00FF88] rounded-full shadow-lg">
-                          <div className="flex items-center gap-0.5 sm:gap-1">
-                            <Shield className="h-2 w-2 sm:h-2.5 sm:w-2.5 xl:h-3 xl:w-3 text-[#00FF88]" />
-                            <span className="text-[10px] sm:text-xs font-bold text-[#00FF88]">PRO</span>
+                    {/* Floating info card - Only on larger screens */}
+                    <div className="absolute bottom-4 lg:bottom-6 xl:bottom-8 left-2 lg:-left-8 xl:-left-16 z-30 hidden md:block">
+                      <div className="p-2.5 sm:p-3 xl:p-4 bg-white/10 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/10 shadow-xl">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-8 h-8 sm:w-9 sm:h-9 xl:w-10 xl:h-10 rounded-full bg-[#00FF88]/20 flex items-center justify-center">
+                            <CheckCircle2 className="h-4 w-4 sm:h-4.5 sm:w-4.5 xl:h-5 xl:w-5 text-[#00FF88]" />
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Floating info card - Only on larger screens */}
-                  <div className="absolute bottom-4 lg:bottom-6 xl:bottom-8 left-2 lg:-left-8 xl:-left-16 z-30 hidden md:block">
-                    <div className="p-2.5 sm:p-3 xl:p-4 bg-white/10 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/10 shadow-xl">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-8 h-8 sm:w-9 sm:h-9 xl:w-10 xl:h-10 rounded-full bg-[#00FF88]/20 flex items-center justify-center">
-                          <CheckCircle2 className="h-4 w-4 sm:h-4.5 sm:w-4.5 xl:h-5 xl:w-5 text-[#00FF88]" />
-                        </div>
-                        <div>
-                          <div className="text-white font-semibold text-xs sm:text-sm">100% Électrique</div>
-                          <div className="text-white/50 text-[10px] sm:text-xs">Véhicule MG5</div>
+                          <div>
+                            <div className="text-white font-semibold text-xs sm:text-sm">100% Électrique</div>
+                            <div className="text-white/50 text-[10px] sm:text-xs">Véhicule MG5</div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -209,57 +265,64 @@ export default function Home() {
           </div>
 
           {/* Bento Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 max-w-6xl mx-auto pb-24 sm:pb-28 md:pb-32">
 
             {/* Card 1 - Transfert A/S & A/R (Green) */}
-            <Link href="/reservation" className="group relative rounded-3xl overflow-hidden aspect-[3/4] sm:aspect-[4/3] lg:aspect-[5/4]">
-              {/* Background Image */}
-              <Image
-                src="/90 (2).jpg"
-                alt="Transfert Aller Simple et Aller Retour"
-                fill
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
-              />
-
-              {/* Color Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
-              <div className="absolute inset-0 bg-[#00FF88]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-              {/* Logo Badge */}
-              <div className="absolute top-6 right-6 z-20">
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center p-2 group-hover:scale-110 group-hover:border-[#00FF88]/50 transition-all duration-500">
-                  <Image
-                    src="/cardlogogreen.png"
-                    alt="Logo vert"
-                    width={60}
-                    height={60}
-                    className="object-contain"
-                  />
-                </div>
+            <Link href="/reservation" className="group relative rounded-3xl overflow-visible aspect-[2/3] sm:aspect-[4/3] lg:aspect-[5/4]">
+              {/* Image Container with rounded corners */}
+              <div className="absolute inset-0 rounded-3xl overflow-hidden">
+                <Image
+                  src="/90 (2).jpg"
+                  alt="Transfert Aller Simple et Aller Retour"
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                {/* Color Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
+                <div className="absolute inset-0 bg-[#00FF88]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </div>
 
-              {/* Content - Glassmorphism */}
-              <div className="absolute inset-x-0 bottom-0 p-6 md:p-8">
-                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 md:p-6 border border-white/10 group-hover:border-[#00FF88]/30 transition-colors duration-500">
-                  <div className="flex flex-col gap-1 mb-4">
-                    <h3 className="text-xl md:text-2xl font-bold text-white">
-                      Transfert A/S <span className="text-white/60 font-normal">(Aller simple)</span>
-                    </h3>
-                    <h3 className="text-xl md:text-2xl font-bold text-white">
-                      Transfert A/R <span className="text-white/60 font-normal">(Aller retour)</span>
-                    </h3>
-                  </div>
-                  <p className="text-white/60 text-sm md:text-base mb-5 leading-relaxed">
-                    Transfert direct de votre point de départ à votre destination
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-white/40 uppercase tracking-wider">À partir de</span>
-                      <div className="text-2xl font-bold text-[#00FF88]">33€ TTC</div>
+              {/* Content - Glassmorphism with Logo - Half centered on bottom edge */}
+              <div className="absolute inset-x-0 bottom-0 translate-y-1/2 px-4 sm:px-6 md:px-8">
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 sm:p-5 md:p-6 border border-white/20 group-hover:border-[#00FF88]/30 transition-colors duration-500 shadow-xl">
+                  <div className="flex flex-row justify-between items-end gap-4">
+                    {/* Text Content - Left */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col gap-0.5 mb-3">
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white leading-tight">
+                          Transfert A/S <span className="text-white/60 font-normal text-sm sm:text-base md:text-lg">(Aller simple)</span>
+                        </h3>
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white leading-tight">
+                          Transfert A/R <span className="text-white/60 font-normal text-sm sm:text-base md:text-lg">(Aller retour)</span>
+                        </h3>
+                      </div>
+                      <p className="text-white/60 text-xs sm:text-sm md:text-base mb-4 leading-relaxed hidden sm:block">
+                        Transfert direct de votre point de départ à votre destination
+                      </p>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div>
+                          <span className="text-[10px] sm:text-xs text-white/40 uppercase tracking-wider">À partir de</span>
+                          <div className="text-xl sm:text-2xl font-bold text-[#00FF88]">33€ TTC</div>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-[#00FF88] text-black font-semibold text-xs sm:text-sm group-hover:shadow-lg group-hover:shadow-[#00FF88]/30 transition-all duration-500">
+                          <span className="hidden sm:inline">Demander une estimation</span>
+                          <span className="sm:hidden">Estimer</span>
+                          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 px-5 py-3 rounded-full bg-[#00FF88] text-black font-semibold text-sm group-hover:shadow-lg group-hover:shadow-[#00FF88]/30 transition-all duration-500">
-                      <span>Demander une estimation</span>
-                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+
+                    {/* Logo - Right */}
+                    <div className="flex-shrink-0">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center p-1.5 sm:p-2 group-hover:scale-110 group-hover:border-[#00FF88]/50 transition-all duration-500">
+                        <Image
+                          src="/cardlogogreen.png"
+                          alt="Logo vert"
+                          width={60}
+                          height={60}
+                          className="object-contain"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -267,49 +330,56 @@ export default function Home() {
             </Link>
 
             {/* Card 2 - Transfert Forfaitaire (Blue) */}
-            <Link href="/reservation" className="group relative rounded-3xl overflow-hidden aspect-[3/4] sm:aspect-[4/3] lg:aspect-[5/4]">
-              {/* Background Image */}
-              <Image
-                src="/Gemini_Generated_Image_aimpniaimpniaimp.png"
-                alt="Transfert Forfaitaire"
-                fill
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
-              />
-
-              {/* Color Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
-              <div className="absolute inset-0 bg-[#3B82F6]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-              {/* Logo Badge */}
-              <div className="absolute top-6 right-6 z-20">
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center p-2 group-hover:scale-110 group-hover:border-[#3B82F6]/50 transition-all duration-500">
-                  <Image
-                    src="/cardbluelogo.png"
-                    alt="Logo bleu"
-                    width={60}
-                    height={60}
-                    className="object-contain"
-                  />
-                </div>
+            <Link href="/reservation" className="group relative rounded-3xl overflow-visible aspect-[2/3] sm:aspect-[4/3] lg:aspect-[5/4]">
+              {/* Image Container with rounded corners */}
+              <div className="absolute inset-0 rounded-3xl overflow-hidden">
+                <Image
+                  src="/Gemini_Generated_Image_aimpniaimpniaimp.png"
+                  alt="Transfert Forfaitaire"
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                {/* Color Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
+                <div className="absolute inset-0 bg-[#3B82F6]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </div>
 
-              {/* Content - Glassmorphism */}
-              <div className="absolute inset-x-0 bottom-0 p-6 md:p-8">
-                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 md:p-6 border border-white/10 group-hover:border-[#3B82F6]/30 transition-colors duration-500">
-                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">
-                    Transfert Forfaitaire
-                  </h3>
-                  <p className="text-white/60 text-sm md:text-base mb-5 leading-relaxed">
-                    Chauffeur à disposition pour vos déplacements multiples. Forfaits de 2H à 8H disponibles, de jour comme de nuit.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-white/40 uppercase tracking-wider">Demandez votre</span>
-                      <div className="text-2xl font-bold text-[#3B82F6]">Devis</div>
+              {/* Content - Glassmorphism with Logo - Half centered on bottom edge */}
+              <div className="absolute inset-x-0 bottom-0 translate-y-1/2 px-4 sm:px-6 md:px-8">
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 sm:p-5 md:p-6 border border-white/20 group-hover:border-[#3B82F6]/30 transition-colors duration-500 shadow-xl">
+                  <div className="flex flex-row justify-between items-end gap-4">
+                    {/* Text Content - Left */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2 leading-tight">
+                        Transfert Forfaitaire
+                      </h3>
+                      <p className="text-white/60 text-xs sm:text-sm md:text-base mb-4 leading-relaxed hidden sm:block">
+                        Chauffeur à disposition pour vos déplacements multiples. Forfaits de 2H à 8H disponibles.
+                      </p>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div>
+                          <span className="text-[10px] sm:text-xs text-white/40 uppercase tracking-wider">Demandez votre</span>
+                          <div className="text-xl sm:text-2xl font-bold text-[#3B82F6]">Devis</div>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-[#3B82F6] text-white font-semibold text-xs sm:text-sm group-hover:shadow-lg group-hover:shadow-[#3B82F6]/30 transition-all duration-500">
+                          <span className="hidden sm:inline">Demander une estimation</span>
+                          <span className="sm:hidden">Estimer</span>
+                          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 px-5 py-3 rounded-full bg-[#3B82F6] text-white font-semibold text-sm group-hover:shadow-lg group-hover:shadow-[#3B82F6]/30 transition-all duration-500">
-                      <span>Demander une estimation</span>
-                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+
+                    {/* Logo - Right */}
+                    <div className="flex-shrink-0">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center p-1.5 sm:p-2 group-hover:scale-110 group-hover:border-[#3B82F6]/50 transition-all duration-500">
+                        <Image
+                          src="/cardbluelogo.png"
+                          alt="Logo bleu"
+                          width={60}
+                          height={60}
+                          className="object-contain"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -318,10 +388,10 @@ export default function Home() {
 
           </div>
         </div>
-      </section>
+      </section >
 
       {/* Values Section */}
-      <section className="py-32 bg-[#0A0A0A]">
+      < section className="py-32 bg-[#0A0A0A]" >
         <div className="container mx-auto px-6 md:px-12 lg:px-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
             {/* Left */}
@@ -384,10 +454,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* CTA Section */}
-      <section className="py-32 bg-white">
+      < section className="py-32 bg-white" >
         <div className="container mx-auto px-6 md:px-12 lg:px-24">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-4xl md:text-6xl font-bold text-[#0A0A0A] mb-6">
@@ -439,7 +509,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
-    </div>
+      </section >
+    </div >
   );
 }

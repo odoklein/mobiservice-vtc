@@ -183,25 +183,15 @@ export async function POST(request: NextRequest) {
               <div style="padding: 32px;">
                 <p style="font-size: 16px; color: #333;">Bonjour <strong>${booking.guestName}</strong>,</p>
                 <p style="font-size: 16px; color: #333; line-height: 1.6;">
-                  Vous avez choisi de payer en especes. Pour confirmer votre reservation, veuillez entrer le code ci-dessous :
+                  Voici votre code de vérification pour confirmer votre demande sur MobiService VTC :
                 </p>
                 <div style="text-align: center; margin: 32px 0; padding: 32px; background: #0A0A0A; border-radius: 12px;">
-                  <p style="color: rgba(255,255,255,0.7); margin: 0 0 12px 0; font-size: 14px;">Votre code de verification</p>
+                  <p style="color: rgba(255,255,255,0.7); margin: 0 0 12px 0; font-size: 14px;">Votre code de vérification</p>
                   <p style="color: #5CD85A; font-size: 48px; font-weight: bold; letter-spacing: 12px; margin: 0; font-family: monospace;">${otpCode}</p>
                   <p style="color: rgba(255,255,255,0.5); margin: 12px 0 0 0; font-size: 13px;">Ce code expire dans 10 minutes</p>
                 </div>
-                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 24px 0;">
-                  <p style="margin: 0 0 12px 0; font-weight: bold; font-size: 14px;">Recapitulatif</p>
-                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Date :</strong> ${booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString('fr-FR') : ''}</p>
-                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Heure :</strong> ${booking.pickupTime}</p>
-                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>De :</strong> ${booking.pickupAddress}</p>
-                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>A :</strong> ${booking.dropoffAddress}</p>
-                  <p style="margin: 16px 0 0 0; text-align: center; background: #e8f8e7; padding: 12px; border-radius: 6px; font-size: 16px;">
-                    <strong>Montant : ${booking.totalPrice} EUR</strong> (especes)
-                  </p>
-                </div>
                 <p style="color: #666; text-align: center; font-size: 13px;">
-                  Si vous n'avez pas demande ce code, ignorez cet email.
+                  Si vous n'avez pas demandé ce code, ignorez cet email.
                 </p>
               </div>
               <div style="padding: 24px; text-align: center; border-top: 1px solid #e6ebf1; background: #f9f9f9;">

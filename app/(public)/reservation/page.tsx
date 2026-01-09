@@ -557,7 +557,7 @@ export default function ReservationPage() {
         {[
           { num: 1, label: 'Trajet', icon: IconRoute },
           { num: 2, label: 'Estimation', icon: IconSparkles },
-          { num: 3, label: 'Demande', icon: IconCheck },
+          { num: 3, label: 'Coordonnées', icon: IconCheck },
         ].map((s, i) => (
           <div key={s.num} className="flex items-center">
             <div className="flex flex-col items-center">
@@ -669,54 +669,92 @@ export default function ReservationPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        {SERVICES.map((service) => {
-                          const isSelected = step1Data.serviceType === service.id;
-                          const IconComponent = service.id === 'transfer' ? IconCar : IconRoute;
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Transfer Service Card */}
+                        <button
+                          type="button"
+                          onClick={() => setValueStep1('serviceType', 'transfer')}
+                          className={`
+                            relative p-6 rounded-3xl text-left transition-all duration-150 flex flex-col h-full
+                            ${step1Data.serviceType === 'transfer'
+                              ? 'bg-gradient-to-br from-[#5CD85A] to-[#4BC449] text-[#0A0A0A] shadow-xl shadow-[#5CD85A]/30'
+                              : 'bg-white border-2 border-slate-100 hover:border-[#5CD85A]/30 text-slate-600 hover:bg-slate-50'
+                            }
+                          `}
+                        >
+                          <div className={`
+                            w-14 h-14 rounded-2xl mb-5 flex items-center justify-center transition-all duration-150
+                            ${step1Data.serviceType === 'transfer' ? 'bg-white/20' : 'bg-[#5CD85A]/10 text-[#5CD85A]'}
+                          `}>
+                            <IconCar className="h-8 w-8" />
+                          </div>
+                          <div className="flex-grow">
+                            <h3 className={`text-xl font-bold mb-2 leading-tight ${step1Data.serviceType === 'transfer' ? 'text-[#0A0A0A]' : 'text-slate-900'}`}>
+                              Transfert Aller Simple (A/S) et Aller Retour (A/R)
+                            </h3>
+                            <p className={`text-sm leading-relaxed ${step1Data.serviceType === 'transfer' ? 'text-[#0A0A0A]/80' : 'text-slate-500'}`}>
+                              Transfert direct de votre point de départ à votre destination finale en toute sérénité.
+                            </p>
+                          </div>
+                          <div className="mt-6 flex items-center justify-between">
+                            <span className={`text-sm font-bold ${step1Data.serviceType === 'transfer' ? 'text-[#0A0A0A]' : 'text-[#5CD85A]'}`}>
+                              À partir de 33€
+                            </span>
+                            {step1Data.serviceType === 'transfer' && (
+                              <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center backdrop-blur-sm">
+                                <IconCheck className="h-5 w-5 text-[#0A0A0A]" />
+                              </div>
+                            )}
+                          </div>
+                        </button>
 
-                          return (
-                            <button
-                              key={service.id}
-                              type="button"
-                              onClick={() => setValueStep1('serviceType', service.id as any)}
-                              className={`
-                                relative p-5 rounded-2xl text-left transition-all duration-300
-                                ${isSelected
-                                  ? 'bg-gradient-to-br from-[#5CD85A] to-[#4BC449] shadow-lg shadow-[#5CD85A]/20'
-                                  : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent hover:border-gray-200'
-                                }
-                              `}
-                            >
-                              <div className={`
-                                w-12 h-12 rounded-xl mb-4 flex items-center justify-center transition-colors
-                                ${isSelected ? 'bg-white/20 text-[#0A0A0A]' : 'bg-gray-200 text-gray-500'}
-                              `}>
-                                <IconComponent className="h-6 w-6" />
+                        {/* Hourly Service Card */}
+                        <button
+                          type="button"
+                          onClick={() => setValueStep1('serviceType', 'hourly')}
+                          className={`
+                            relative p-6 rounded-3xl text-left transition-all duration-150 flex flex-col h-full
+                            ${step1Data.serviceType === 'hourly'
+                              ? 'bg-gradient-to-br from-[#3B82F6] to-[#2563EB] text-white shadow-xl shadow-blue-500/30'
+                              : 'bg-white border-2 border-slate-100 hover:border-blue-500/30 text-slate-600 hover:bg-slate-50'
+                            }
+                          `}
+                        >
+                          <div className={`
+                            w-14 h-14 rounded-2xl mb-5 flex items-center justify-center transition-all duration-150
+                            ${step1Data.serviceType === 'hourly' ? 'bg-white/20' : 'bg-blue-50 text-blue-500'}
+                          `}>
+                            <IconClockHour4 className="h-8 w-8" />
+                          </div>
+                          <div className="flex-grow">
+                            <h3 className={`text-xl font-bold mb-2 leading-tight ${step1Data.serviceType === 'hourly' ? 'text-white' : 'text-slate-900'}`}>
+                              Transfert Forfaitaire (Mise à disposition Chauffeur)
+                            </h3>
+                            <p className={`text-sm leading-relaxed ${step1Data.serviceType === 'hourly' ? 'text-white/80' : 'text-slate-500'}`}>
+                              Chauffeur à disposition de 2h à 8h (paliers de 30min) pour vos besoins spécifiques.
+                            </p>
+                          </div>
+                          <div className="mt-6 flex items-center justify-between">
+                            <span className={`text-sm font-bold ${step1Data.serviceType === 'hourly' ? 'text-white' : 'text-blue-500'}`}>
+                              Forfaits sur mesure
+                            </span>
+                            {step1Data.serviceType === 'hourly' && (
+                              <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center backdrop-blur-sm">
+                                <IconCheck className="h-5 w-5 text-white" />
                               </div>
-                              <div className={`font-semibold ${isSelected ? 'text-[#0A0A0A]' : 'text-gray-900'}`}>
-                                {service.name}
-                              </div>
-                              <div className={`text-sm mt-1 ${isSelected ? 'text-[#0A0A0A]/70' : 'text-gray-500'}`}>
-                                {service.priceInfo}
-                              </div>
-                              {isSelected && (
-                                <div className="absolute top-3 right-3">
-                                  <IconCheck className="h-5 w-5 text-[#0A0A0A]" />
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
+                            )}
+                          </div>
+                        </button>
                       </div>
 
                       {/* Trip Type for Transfer */}
                       {step1Data.serviceType === 'transfer' && (
-                        <div className="mt-6 pt-6 border-t border-gray-100">
-                          <Label className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                        <div className="mt-6 pt-6 border-t border-slate-100">
+                          <Label className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                             <IconArrowsExchange className="h-4 w-4 text-[#5CD85A]" />
                             Type de trajet
                           </Label>
-                          <div className="grid grid-cols-2 gap-3 mt-3">
+                          <div className="grid grid-cols-2 gap-3">
                             {[
                               { value: 'one-way', label: 'Aller Simple', sub: 'Trajet unique' },
                               { value: 'round-trip', label: 'Aller-Retour', sub: 'Même jour' },
@@ -726,52 +764,83 @@ export default function ReservationPage() {
                                 type="button"
                                 onClick={() => setValueStep1('tripType', option.value as any)}
                                 className={`
-                                  p-4 rounded-xl text-left transition-all duration-200 border-2
+                                  p-4 rounded-2xl text-left transition-all duration-150 border-2
                                   ${(step1Data.tripType || 'one-way') === option.value
-                                    ? 'border-[#5CD85A] bg-[#5CD85A]/5'
-                                    : 'border-gray-100 hover:border-gray-200'
+                                    ? 'border-[#5CD85A] bg-[#5CD85A]/5 shadow-sm'
+                                    : 'border-slate-100 hover:border-slate-200 bg-white'
                                   }
                                 `}
                               >
-                                <div className="font-medium text-sm text-gray-900">{option.label}</div>
-                                <div className="text-xs text-gray-500 mt-0.5">{option.sub}</div>
+                                <div className="font-semibold text-sm text-slate-900">{option.label}</div>
+                                <div className="text-xs text-slate-500 mt-1">{option.sub}</div>
                               </button>
                             ))}
                           </div>
+
+                          {/* Waiting Duration for Round Trip */}
+                          {(step1Data.tripType || 'one-way') === 'round-trip' && (
+                            <div className="mt-4 p-4 bg-amber-50/50 border border-amber-100 rounded-2xl">
+                              <Label className="text-xs font-semibold text-amber-900 mb-2 flex items-center gap-2">
+                                <IconClock className="h-3.5 w-3.5" />
+                                Durée d'attente (MAD)
+                              </Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="480"
+                                step="15"
+                                placeholder="Minutes d'attente"
+                                className="h-11 rounded-xl border-amber-200 focus:border-amber-400 bg-white text-sm"
+                                {...registerStep1('waitingMinutes', { valueAsNumber: true })}
+                              />
+                              <p className="text-[10px] text-amber-700 mt-1.5 leading-relaxed">
+                                Temps d'attente estimé entre l'aller et le retour (10 premières minutes gratuites)
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
 
                       {/* Hours selection for Hourly service */}
                       {step1Data.serviceType === 'hourly' && (
-                        <div className="mt-6 pt-6 border-t border-gray-100">
-                          <Label className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                            <IconClock className="h-4 w-4 text-[#5CD85A]" />
+                        <div className="mt-6 pt-6 border-t border-slate-100">
+                          <Label className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                            <IconClock className="h-4 w-4 text-blue-500" />
                             Durée de mise à disposition
                           </Label>
-                          <div className="grid grid-cols-4 md:grid-cols-6 gap-2 mt-3">
-                            {[2, 3, 4, 5, 6, 7, 8].map((h) => {
-                              const forfait = FORFAITS.find(f => f.hours === h);
-                              const isSelected = (step1Data.hours || 2) === h;
+                          <p className="text-xs text-slate-500 mb-3">Paliers de 30 minutes disponibles</p>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                            {FORFAITS.map((f) => {
+                              const isSelected = (step1Data.hours || 2) === f.hours;
+                              const hLabel = f.hours.toString().includes('.') ? f.hours.toString().replace('.5', 'h30') : `${f.hours}h`;
+
                               return (
                                 <button
-                                  key={h}
+                                  key={f.hours}
                                   type="button"
-                                  onClick={() => setValueStep1('hours', h)}
+                                  onClick={() => setValueStep1('hours', f.hours)}
                                   className={`
-                                    p-3 rounded-xl text-center transition-all duration-200 border-2
+                                    p-3 rounded-2xl text-center transition-all duration-150 border-2 flex flex-col justify-center items-center gap-1
                                     ${isSelected
-                                      ? 'border-[#5CD85A] bg-[#5CD85A]/10'
-                                      : 'border-gray-100 hover:border-gray-200'
+                                      ? 'border-blue-500 bg-blue-50 shadow-sm'
+                                      : 'border-slate-100 bg-white hover:bg-slate-50 hover:border-slate-200'
                                     }
                                   `}
                                 >
-                                  <div className="font-bold text-sm">{h}H</div>
-                                  {forfait && (
-                                    <div className="text-xs text-gray-500">{forfait.day}€</div>
-                                  )}
+                                  <div className={`font-bold text-sm ${isSelected ? 'text-blue-700' : 'text-slate-700'}`}>
+                                    {hLabel}
+                                  </div>
+                                  <div className={`text-[10px] font-medium ${isSelected ? 'text-blue-500' : 'text-slate-400'}`}>
+                                    {f.day}€
+                                  </div>
                                 </button>
                               );
                             })}
+                          </div>
+                          <div className="mt-4 p-3 bg-blue-50/30 border border-blue-100 rounded-xl">
+                            <p className="text-[10px] text-blue-700 leading-relaxed">
+                              💡 Les forfaits incluent la distance et le temps indiqué. Tout dépassement sera facturé au tarif en vigueur.
+                            </p>
                           </div>
                         </div>
                       )}
@@ -893,32 +962,173 @@ export default function ReservationPage() {
                             )}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                <IconUsers className="h-4 w-4" />
-                                Passagers
-                              </Label>
-                              <Input
-                                type="number"
-                                min="1"
-                                max="4"
-                                className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg font-medium text-center"
-                                {...registerStep1('passengers', { valueAsNumber: true })}
-                              />
+                          {/* Detailed Passenger Selection */}
+                          <div className="bg-gradient-to-br from-slate-50 to-white rounded-3xl p-6 border-2 border-slate-100 shadow-sm">
+                            <div className="flex items-center gap-2 mb-5">
+                              <IconUsers className="h-5 w-5 text-[#5CD85A]" />
+                              <h3 className="text-base font-bold text-slate-900">Détails des passagers</h3>
                             </div>
-                            <div>
-                              <Label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                <IconLuggage className="h-4 w-4" />
-                                Bagages
-                              </Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                max="5"
-                                className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg font-medium text-center"
-                                {...registerStep1('luggage', { valueAsNumber: true })}
-                              />
+
+                            <div className="space-y-3">
+                              {/* Adults */}
+                              <div className="bg-white rounded-2xl p-4 border border-slate-100">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <div className="font-semibold text-sm text-slate-900">Adultes</div>
+                                    <div className="text-xs text-slate-500 mt-0.5">13 ans et plus</div>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const current = watchStep1().adults || 1;
+                                        if (current > 1) {
+                                          setValueStep1('adults', current - 1);
+                                          setValueStep1('passengers', (current - 1) + (watchStep1().children || 0) + (watchStep1().babies || 0));
+                                        }
+                                      }}
+                                      className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-[#5CD85A] hover:text-white flex items-center justify-center transition-all duration-150 font-bold text-slate-600"
+                                    >
+                                      −
+                                    </button>
+                                    <span className="w-8 text-center font-bold text-lg text-slate-900">{watchStep1().adults || 1}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const total = (watchStep1().adults || 1) + (watchStep1().children || 0) + (watchStep1().babies || 0);
+                                        if (total < 4) {
+                                          setValueStep1('adults', (watchStep1().adults || 1) + 1);
+                                          setValueStep1('passengers', total + 1);
+                                        }
+                                      }}
+                                      className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-[#5CD85A] hover:text-white flex items-center justify-center transition-all duration-150 font-bold text-slate-600"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Children */}
+                              <div className="bg-white rounded-2xl p-4 border border-slate-100">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <div className="font-semibold text-sm text-slate-900">Enfants</div>
+                                    <div className="text-xs text-slate-500 mt-0.5">2 à 12 ans</div>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const current = watchStep1().children || 0;
+                                        if (current > 0) {
+                                          setValueStep1('children', current - 1);
+                                          setValueStep1('passengers', (watchStep1().adults || 1) + (current - 1) + (watchStep1().babies || 0));
+                                        }
+                                      }}
+                                      className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-blue-500 hover:text-white flex items-center justify-center transition-all duration-150 font-bold text-slate-600"
+                                    >
+                                      −
+                                    </button>
+                                    <span className="w-8 text-center font-bold text-lg text-slate-900">{watchStep1().children || 0}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const total = (watchStep1().adults || 1) + (watchStep1().children || 0) + (watchStep1().babies || 0);
+                                        if (total < 4) {
+                                          setValueStep1('children', (watchStep1().children || 0) + 1);
+                                          setValueStep1('passengers', total + 1);
+                                        }
+                                      }}
+                                      className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-blue-500 hover:text-white flex items-center justify-center transition-all duration-150 font-bold text-slate-600"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Babies */}
+                              <div className="bg-white rounded-2xl p-4 border border-slate-100">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <div className="font-semibold text-sm text-slate-900">Bébés</div>
+                                    <div className="text-xs text-slate-500 mt-0.5">Moins de 2 ans</div>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const current = watchStep1().babies || 0;
+                                        if (current > 0) {
+                                          setValueStep1('babies', current - 1);
+                                          setValueStep1('passengers', (watchStep1().adults || 1) + (watchStep1().children || 0) + (current - 1));
+                                        }
+                                      }}
+                                      className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-blue-500 hover:text-white flex items-center justify-center transition-all duration-150 font-bold text-slate-600"
+                                    >
+                                      −
+                                    </button>
+                                    <span className="w-8 text-center font-bold text-lg text-slate-900">{watchStep1().babies || 0}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const total = (watchStep1().adults || 1) + (watchStep1().children || 0) + (watchStep1().babies || 0);
+                                        if (total < 4) {
+                                          setValueStep1('babies', (watchStep1().babies || 0) + 1);
+                                          setValueStep1('passengers', total + 1);
+                                        }
+                                      }}
+                                      className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-blue-500 hover:text-white flex items-center justify-center transition-all duration-150 font-bold text-slate-600"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Bagages */}
+                              <div className="bg-white rounded-2xl p-4 border border-slate-100">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1 flex items-center gap-2">
+                                    <IconLuggage className="h-4 w-4 text-slate-400" />
+                                    <div className="font-semibold text-sm text-slate-900">Bagages</div>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const current = watchStep1().luggage || 0;
+                                        if (current > 0) setValueStep1('luggage', current - 1);
+                                      }}
+                                      className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-700 hover:text-white flex items-center justify-center transition-all duration-150 font-bold text-slate-600"
+                                    >
+                                      −
+                                    </button>
+                                    <span className="w-8 text-center font-bold text-lg text-slate-900">{watchStep1().luggage || 0}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const current = watchStep1().luggage || 0;
+                                        if (current < 5) setValueStep1('luggage', current + 1);
+                                      }}
+                                      className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-700 hover:text-white flex items-center justify-center transition-all duration-150 font-bold text-slate-600"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Total Summary */}
+                            <div className="mt-4 p-3 bg-[#5CD85A]/10 border border-[#5CD85A]/20 rounded-xl">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-slate-700">Total passagers</span>
+                                <span className="text-sm font-bold text-[#5CD85A]">
+                                  {(watchStep1().adults || 1) + (watchStep1().children || 0) + (watchStep1().babies || 0)} / 4
+                                </span>
+                              </div>
                             </div>
                           </div>
 
@@ -950,7 +1160,7 @@ export default function ReservationPage() {
                         </>
                       ) : (
                         <>
-                          Calculer mon estimation
+                          Voir l'estimation
                           <IconArrowRight className="ml-3 h-6 w-6" />
                         </>
                       )}
@@ -1038,17 +1248,27 @@ export default function ReservationPage() {
                         )}
 
                         {/* Info grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                           {[
                             { label: 'Distance', value: `${Math.round(bookingData.distance)} km`, icon: IconRoute },
                             { label: 'Durée', value: `~${Math.round(bookingData.duration)} min`, icon: IconClock },
                             { label: 'Date', value: bookingData.pickupDate?.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }), icon: IconCalendar },
                             { label: 'Heure', value: bookingData.pickupTime, icon: IconClock },
+                            {
+                              label: 'Passagers',
+                              value: (
+                                <div className="text-[10px] leading-tight flex flex-col items-center">
+                                  <span className="text-sm font-bold">{bookingData.passengers} Total</span>
+                                  <span>{bookingData.adults || 0} Ad • {bookingData.children || 0} Enf • {bookingData.babies || 0} Béb</span>
+                                </div>
+                              ),
+                              icon: IconUsers
+                            },
                           ].map((item) => (
-                            <div key={item.label} className="bg-gray-50 rounded-2xl p-4 text-center">
+                            <div key={item.label} className="bg-gray-50 rounded-2xl p-4 text-center flex flex-col justify-center">
                               <item.icon className="h-5 w-5 text-[#5CD85A] mx-auto mb-2" />
                               <p className="text-xs text-gray-500 mb-1">{item.label}</p>
-                              <p className="font-bold text-gray-900">{item.value}</p>
+                              <div className="font-bold text-gray-900 leading-tight">{item.value}</div>
                             </div>
                           ))}
                         </div>
@@ -1079,16 +1299,16 @@ export default function ReservationPage() {
                       <Button
                         variant="outline"
                         onClick={() => setStep(1)}
-                        className="flex-1 h-14 rounded-2xl border-2 border-gray-200 hover:border-gray-300 font-semibold"
+                        className="flex-1 h-14 rounded-2xl border-2 border-slate-200 hover:border-slate-300 font-semibold transition-all duration-150"
                       >
                         <IconArrowLeft className="mr-2 h-5 w-5" />
                         Modifier
                       </Button>
                       <Button
                         onClick={() => setStep(3)}
-                        className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-[#5CD85A] to-[#4BC449] hover:from-[#4BC449] hover:to-[#3AB338] text-[#0A0A0A] font-bold shadow-lg shadow-[#5CD85A]/25"
+                        className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-[#5CD85A] to-[#4BC449] hover:from-[#4BC449] hover:to-[#3AB338] text-[#0A0A0A] font-bold shadow-lg shadow-[#5CD85A]/25 transition-all duration-150"
                       >
-                        Estimer votre course
+                        Continuer la demande
                         <IconArrowRight className="ml-2 h-5 w-5" />
                       </Button>
                     </div>
@@ -1098,10 +1318,10 @@ export default function ReservationPage() {
                       type="button"
                       onClick={() => setDebugMode(!debugMode)}
                       className={`
-                        w-full flex items-center justify-between p-4 rounded-xl transition-all duration-300
+                        w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150
                         ${debugMode
                           ? 'bg-orange-50 border-2 border-orange-200'
-                          : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                          : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
                         }
                       `}
                     >
@@ -1118,11 +1338,11 @@ export default function ReservationPage() {
                         </div>
                       </div>
                       <div className={`
-                        w-12 h-6 rounded-full transition-colors duration-300 relative
-                        ${debugMode ? 'bg-orange-500' : 'bg-gray-300'}
+                        w-12 h-6 rounded-full transition-colors duration-150 relative
+                        ${debugMode ? 'bg-orange-500' : 'bg-slate-300'}
                       `}>
                         <div className={`
-                          absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-300
+                          absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-150
                           ${debugMode ? 'translate-x-7' : 'translate-x-1'}
                         `} />
                       </div>
@@ -1151,10 +1371,10 @@ export default function ReservationPage() {
                       <form onSubmit={handleSubmitStep3(onStep3Submit)} className="space-y-5">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="md:col-span-2">
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Nom complet</Label>
+                            <Label className="text-sm font-semibold text-slate-700 mb-2 block">Nom complet</Label>
                             <Input
                               placeholder="Jean Dupont"
-                              className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg"
+                              className="h-14 rounded-2xl border-2 border-slate-100 focus:border-[#5CD85A] text-base transition-all duration-150"
                               {...registerStep3('guestName')}
                             />
                             {errorsStep3.guestName && (
@@ -1162,11 +1382,11 @@ export default function ReservationPage() {
                             )}
                           </div>
                           <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Email</Label>
+                            <Label className="text-sm font-semibold text-slate-700 mb-2 block">Email</Label>
                             <Input
                               type="email"
                               placeholder="jean@exemple.com"
-                              className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A]"
+                              className="h-14 rounded-2xl border-2 border-slate-100 focus:border-[#5CD85A] transition-all duration-150"
                               {...registerStep3('guestEmail')}
                             />
                             {errorsStep3.guestEmail && (
@@ -1174,11 +1394,11 @@ export default function ReservationPage() {
                             )}
                           </div>
                           <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Téléphone</Label>
+                            <Label className="text-sm font-semibold text-slate-700 mb-2 block">Téléphone</Label>
                             <Input
                               type="tel"
                               placeholder="+33 6 00 00 00 00"
-                              className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A]"
+                              className="h-14 rounded-2xl border-2 border-slate-100 focus:border-[#5CD85A] transition-all duration-150"
                               {...registerStep3('guestPhone')}
                             />
                             {errorsStep3.guestPhone && (
@@ -1187,26 +1407,97 @@ export default function ReservationPage() {
                           </div>
                         </div>
 
-                        {/* Payment Info - Cash Only */}
-                        <div className="pt-6 border-t border-gray-100">
-                          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6">
-                            <div className="flex items-start gap-4">
-                              <div className="w-14 h-14 rounded-2xl bg-amber-600 flex items-center justify-center flex-shrink-0">
-                                <IconCash className="h-7 w-7 text-white" />
-                              </div>
-                              <div className="flex-1">
-                                <h3 className="text-lg font-bold text-amber-900 mb-2">Mode de paiement</h3>
-                                <p className="text-amber-800 leading-relaxed">
-                                  <strong>Paiement sur place avec le chauffeur</strong>
-                                </p>
-                                <p className="text-sm text-amber-700 mt-3 leading-relaxed">
-                                  Vous pourrez régler votre course directement auprès du chauffeur à l'issue du trajet,
-                                  en espèces ou par carte bancaire.
-                                </p>
-                                <div className="mt-4 p-3 bg-white/70 rounded-xl">
-                                  <p className="text-xs text-amber-800">
-                                    <strong>Note :</strong> Un code de vérification sera envoyé par email pour confirmer votre réservation.
+                        {/* Payment Info */}
+                        <div className="pt-6 border-t border-slate-100">
+                          <div className="space-y-4">
+                            {/* Payment Methods Card */}
+                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-3xl p-6 shadow-sm">
+                              <div className="flex items-start gap-4 mb-4">
+                                <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center flex-shrink-0">
+                                  <IconCash className="h-6 w-6 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="text-base font-bold text-emerald-900 mb-1">Modes de paiement acceptés</h3>
+                                  <p className="text-sm text-emerald-700 leading-relaxed">
+                                    Nos prestations sont payables à la réservation (minimum 50%) et à la prise en charge.
                                   </p>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-emerald-100">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <IconCash className="h-5 w-5 text-emerald-600" />
+                                    <span className="font-semibold text-sm text-slate-900">Espèces</span>
+                                  </div>
+                                  <p className="text-xs text-slate-600">Paiement direct</p>
+                                </div>
+
+                                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-emerald-100">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <IconCreditCard className="h-5 w-5 text-emerald-600" />
+                                    <span className="font-semibold text-sm text-slate-900">Carte Bancaire</span>
+                                  </div>
+                                  <p className="text-xs text-slate-600">Ou lien de paiement</p>
+                                </div>
+
+                                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-emerald-100">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <IconShieldCheck className="h-5 w-5 text-emerald-600" />
+                                    <span className="font-semibold text-sm text-slate-900">Virement</span>
+                                  </div>
+                                  <p className="text-xs text-slate-600">Bancaire</p>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 p-3 bg-white/60 rounded-xl border border-emerald-100">
+                                <p className="text-xs text-emerald-800 leading-relaxed">
+                                  <strong>📄 Facture :</strong> Une facture vous sera remise obligatoirement pour tout paiement supérieur ou égal à 33€.
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Cancellation Policy Card */}
+                            <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-3xl p-6 shadow-sm">
+                              <div className="flex items-start gap-4 mb-4">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-600 flex items-center justify-center flex-shrink-0">
+                                  <IconClock className="h-6 w-6 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="text-base font-bold text-amber-900 mb-1">Politique d'annulation</h3>
+                                  <p className="text-sm text-amber-700 leading-relaxed">
+                                    Il est de votre devoir de prévenir MobiService VTC en cas de problème le plus rapidement possible.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="space-y-3">
+                                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-amber-100">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                      <span className="text-sm font-bold text-green-700">✓</span>
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-semibold text-sm text-slate-900 mb-1">Annulation gratuite</p>
+                                      <p className="text-xs text-slate-600 leading-relaxed">
+                                        Plus de <strong>96 heures (4 jours)</strong> avant la prestation : Remboursement intégral moins 50€ de frais de dossier si le montant TTC est supérieur à 50€, ou totalité si inférieur.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-amber-100">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                      <span className="text-sm font-bold text-orange-700">!</span>
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-semibold text-sm text-slate-900 mb-1">Annulation tardive</p>
+                                      <p className="text-xs text-slate-600 leading-relaxed">
+                                        Moins de <strong>96 heures</strong> avant la prestation : Remboursement de <strong>50% seulement</strong> du montant total.
+                                      </p>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1271,7 +1562,7 @@ export default function ReservationPage() {
                               </>
                             ) : (
                               <>
-                                Demander mon devis
+                                Envoyer ma demande
                                 <IconArrowRight className="ml-2 h-5 w-5" />
                               </>
                             )}
@@ -1340,7 +1631,7 @@ export default function ReservationPage() {
                           </>
                         ) : (
                           <>
-                            Valider ma demande de Devis
+                            Confirmer ma demande
                             <IconCheck className="ml-2 h-5 w-5" />
                           </>
                         )}

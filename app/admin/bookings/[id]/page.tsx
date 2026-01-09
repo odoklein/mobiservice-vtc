@@ -290,71 +290,68 @@ export default function BookingDetailPage() {
         }
     };
 
-    const applyDiscount = async (discountPercent: number) => {
-        if (!booking) return;
-        if (!confirm(`Appliquer une remise de ${discountPercent}% ? Un email sera envoyé au client.`)) return;
-        setApplyingDiscount(true);
-        try {
-            const response = await fetch(`/api/admin/bookings/${bookingId}/apply-discount`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ discountPercentage: discountPercent }),
-            });
-            const data = await response.json();
-            if (!response.ok || !data?.success) {
-                throw new Error(data?.error || "Erreur lors de l'application de la remise");
-            }
-            alert(`Remise de ${discountPercent}% appliquée avec succès ! Un email a été envoyé au client.`);
-            fetchBooking();
-        } catch (error) {
-            console.error('Error applying discount:', error);
-            alert(error instanceof Error ? error.message : "Erreur lors de l'application de la remise");
-        } finally {
-            setApplyingDiscount(false);
-        }
-    };
+    // State for selected discount (before accepting)
+    const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
 
-    const acceptQuote = async () => {
-        if (!confirm('Confirmer le devis et créer la réservation ?')) return;
+    const acceptQuoteWithDiscount = async (discountPercent?: number) => {
+        if (!booking) return;
+        const message = discountPercent
+            ? `Accepter la demande avec ${discountPercent}% de remise ? Un email sera envoyé au client.`
+            : 'Accepter la demande ? Un email sera envoyé au client.';
+        if (!confirm(message)) return;
         setApproving(true);
         try {
-            const response = await fetch(`/api/admin/bookings/${bookingId}`, {
-                method: 'PATCH',
+            const response = await fetch(`/api/admin/bookings/${bookingId}/accept-quote`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'confirmed' }),
+                body: JSON.stringify({
+                    discountPercentage: discountPercent,
+                    notes: adminNotes || undefined
+                }),
             });
             const data = await response.json();
             if (!response.ok || !data?.success) {
-                throw new Error(data?.message || 'Erreur lors de la confirmation');
+                throw new Error(data?.message || "Erreur lors de l'acceptation");
             }
-            alert('Devis confirmé ! La réservation est maintenant active.');
+            alert(discountPercent
+                ? `Demande acceptée avec ${discountPercent}% de remise ! Email envoyé au client.`
+                : 'Demande acceptée ! Email envoyé au client.');
+            setSelectedDiscount(null);
             fetchBooking();
         } catch (error) {
             console.error('Error accepting quote:', error);
-            alert('Erreur lors de la confirmation');
+            alert(error instanceof Error ? error.message : "Erreur lors de l'acceptation");
         } finally {
             setApproving(false);
         }
     };
 
-    const refuseQuote = async () => {
-        if (!confirm('Refuser ce devis ?')) return;
+    const refuseQuoteWithReason = async () => {
+        if (!rejectionReason || rejectionReason.length < 10) {
+            setShowRejectDialog(true);
+            return;
+        }
         setRejecting(true);
         try {
-            const response = await fetch(`/api/admin/bookings/${bookingId}`, {
-                method: 'PATCH',
+            const response = await fetch(`/api/admin/bookings/${bookingId}/reject`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'quote_refused' }),
+                body: JSON.stringify({
+                    reason: rejectionReason,
+                    notes: adminNotes || undefined
+                }),
             });
             const data = await response.json();
             if (!response.ok || !data?.success) {
                 throw new Error(data?.message || 'Erreur lors du refus');
             }
-            alert('Devis refusé.');
+            alert('Demande refusée. Email envoyé au client.');
+            setShowRejectDialog(false);
+            setRejectionReason('');
             fetchBooking();
         } catch (error) {
             console.error('Error refusing quote:', error);
-            alert('Erreur lors du refus');
+            alert(error instanceof Error ? error.message : 'Erreur lors du refus');
         } finally {
             setRejecting(false);
         }
@@ -363,10 +360,12 @@ export default function BookingDetailPage() {
     // Status configuration
     const getStatusConfig = (statusValue: string) => {
         const configs: Record<string, { label: string; color: string; icon: React.ElementType; bgColor: string }> = {
-            quote_sent: { label: 'Devis Envoyé', color: 'text-purple-700', icon: Send, bgColor: 'bg-purple-100' },
-            quote_modified: { label: 'Remise Appliquée', color: 'text-indigo-700', icon: Percent, bgColor: 'bg-indigo-100' },
+            quote_pending: { label: 'Nouvelle Demande', color: 'text-amber-700', icon: Clock, bgColor: 'bg-amber-100' },
+            quote_sent: { label: 'Demande en Attente', color: 'text-purple-700', icon: Send, bgColor: 'bg-purple-100' },
+            quote_modified: { label: 'Remise Sélectionnée', color: 'text-indigo-700', icon: Percent, bgColor: 'bg-indigo-100' },
             quote_accepted: { label: 'Devis Accepté', color: 'text-emerald-700', icon: BadgeCheck, bgColor: 'bg-emerald-100' },
-            quote_refused: { label: 'Devis Refusé', color: 'text-rose-700', icon: XCircle, bgColor: 'bg-rose-100' },
+            quote_refused: { label: 'Refusé', color: 'text-rose-700', icon: XCircle, bgColor: 'bg-rose-100' },
+            refused: { label: 'Refusé', color: 'text-rose-700', icon: XCircle, bgColor: 'bg-rose-100' },
             pending: { label: 'En Attente', color: 'text-amber-700', icon: Clock, bgColor: 'bg-amber-100' },
             verified: { label: 'Vérifié', color: 'text-blue-700', icon: BadgeCheck, bgColor: 'bg-blue-100' },
             confirmed: { label: 'Confirmé', color: 'text-green-700', icon: Check, bgColor: 'bg-green-100' },
@@ -395,7 +394,7 @@ export default function BookingDetailPage() {
 
     const statusConfig = getStatusConfig(booking.status);
     const StatusIcon = statusConfig.icon;
-    const isQuoteStatus = ['quote_sent', 'quote_modified', 'quote_accepted'].includes(booking.status);
+    const isQuoteStatus = ['quote_pending', 'quote_sent', 'quote_modified', 'quote_accepted'].includes(booking.status);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -434,73 +433,78 @@ export default function BookingDetailPage() {
             </div>
 
             <div className="p-4 md:p-6 max-w-7xl mx-auto">
-                {/* Quote Action Banner - Only for quote statuses */}
-                {['quote_sent', 'quote_modified', 'quote_accepted'].includes(booking.status) && (
-                    <Card className="mb-6 border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 overflow-hidden">
+                {/* Quote Action Banner - Only for pending quote statuses */}
+                {['quote_pending', 'quote_sent', 'quote_modified'].includes(booking.status) && (
+                    <Card className="mb-6 border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 overflow-hidden">
                         <CardContent className="p-6">
-                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                            <div className="flex flex-col gap-6">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-purple-600 flex items-center justify-center flex-shrink-0">
+                                    <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center flex-shrink-0">
                                         <Receipt className="h-7 w-7 text-white" />
                                     </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold text-gray-900">Gestion du Devis</h2>
+                                    <div className="flex-1">
+                                        <h2 className="text-xl font-bold text-gray-900">Nouvelle Demande de Devis</h2>
                                         <p className="text-gray-600 mt-1">
-                                            {booking.status === 'quote_sent' && 'Le client a demandé un devis. Vous pouvez appliquer une remise ou confirmer directement.'}
-                                            {booking.status === 'quote_modified' && 'Une remise a été appliquée. En attente de la réponse du client.'}
-                                            {booking.status === 'quote_accepted' && 'Le client a accepté le devis. Confirmez pour créer la réservation.'}
+                                            Le client attend votre réponse. Vous pouvez accepter la demande (avec ou sans remise) ou la refuser.
                                         </p>
-                                        {booking.discountPercentage && (
+                                        {(selectedDiscount || booking.discountPercentage) && (
                                             <div className="mt-2 inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                                                 <Percent className="h-4 w-4" />
-                                                Remise de {booking.discountPercentage}% appliquée (-{booking.discountAmount}€)
+                                                Remise de {selectedDiscount || booking.discountPercentage}% sélectionnée
                                             </div>
                                         )}
                                     </div>
                                 </div>
 
-                                <div className="flex flex-wrap gap-3">
-                                    {/* Discount Buttons */}
-                                    {booking.status !== 'quote_accepted' && (
-                                        <div className="flex gap-2">
+                                {/* Action Row */}
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4 border-t border-amber-200">
+                                    {/* Discount Selection */}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-gray-600">Remise :</span>
+                                        <div className="flex gap-1">
+                                            <Button
+                                                variant={selectedDiscount === null ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setSelectedDiscount(null)}
+                                                className={selectedDiscount === null ? "bg-gray-800 text-white" : ""}
+                                            >
+                                                Aucune
+                                            </Button>
                                             {[5, 8, 12].map((percent) => (
                                                 <Button
                                                     key={percent}
-                                                    variant={booking.discountPercentage === percent ? "default" : "outline"}
+                                                    variant={selectedDiscount === percent ? "default" : "outline"}
                                                     size="sm"
-                                                    onClick={() => applyDiscount(percent)}
-                                                    disabled={applyingDiscount}
-                                                    className={booking.discountPercentage === percent
-                                                        ? "bg-purple-600 hover:bg-purple-700 text-white"
-                                                        : "border-purple-300 text-purple-700 hover:bg-purple-50"}
+                                                    onClick={() => setSelectedDiscount(percent)}
+                                                    className={selectedDiscount === percent
+                                                        ? "bg-green-600 hover:bg-green-700 text-white"
+                                                        : "border-green-300 text-green-700 hover:bg-green-50"}
                                                 >
-                                                    {applyingDiscount ? '...' : `-${percent}%`}
+                                                    -{percent}%
                                                 </Button>
                                             ))}
                                         </div>
-                                    )}
+                                    </div>
 
                                     {/* Accept/Refuse Buttons */}
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 sm:ml-auto">
                                         <Button
-                                            onClick={acceptQuote}
+                                            onClick={() => acceptQuoteWithDiscount(selectedDiscount || undefined)}
                                             disabled={approving}
                                             className="bg-green-600 hover:bg-green-700 text-white gap-2"
                                         >
                                             <Check className="h-4 w-4" />
-                                            {approving ? 'Confirmation...' : 'Confirmer le Devis'}
+                                            {approving ? 'Confirmation...' : selectedDiscount ? `Accepter (-${selectedDiscount}%)` : 'Accepter'}
                                         </Button>
-                                        {booking.status !== 'quote_accepted' && (
-                                            <Button
-                                                variant="outline"
-                                                onClick={refuseQuote}
-                                                disabled={rejecting}
-                                                className="border-red-300 text-red-600 hover:bg-red-50 gap-2"
-                                            >
-                                                <X className="h-4 w-4" />
-                                                {rejecting ? 'Refus...' : 'Refuser'}
-                                            </Button>
-                                        )}
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setShowRejectDialog(true)}
+                                            disabled={rejecting}
+                                            className="border-red-300 text-red-600 hover:bg-red-50 gap-2"
+                                        >
+                                            <X className="h-4 w-4" />
+                                            Refuser
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
@@ -846,7 +850,7 @@ export default function BookingDetailPage() {
             <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Refuser la réservation</DialogTitle>
+                        <DialogTitle>Refuser la demande</DialogTitle>
                         <DialogDescription>
                             Veuillez fournir une raison de refus. Cette raison sera envoyée au client par email.
                         </DialogDescription>
@@ -857,15 +861,16 @@ export default function BookingDetailPage() {
                             <Textarea
                                 value={rejectionReason}
                                 onChange={(e) => setRejectionReason(e.target.value)}
-                                placeholder="Ex: Pas de disponibilité à cette date..."
+                                placeholder="Ex: Pas de disponibilité à cette date, véhicule réservé..."
                                 className="mt-2 min-h-[100px]"
                             />
+                            <p className="text-sm text-gray-500 mt-1">Minimum 10 caractères</p>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Annuler</Button>
-                        <Button onClick={rejectBooking} disabled={rejecting || rejectionReason.length < 10} variant="destructive">
-                            {rejecting ? 'Refus...' : 'Refuser'}
+                        <Button onClick={refuseQuoteWithReason} disabled={rejecting || rejectionReason.length < 10} variant="destructive">
+                            {rejecting ? 'Envoi...' : 'Refuser et envoyer email'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

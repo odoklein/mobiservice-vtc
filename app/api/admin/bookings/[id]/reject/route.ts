@@ -45,10 +45,11 @@ export async function POST(
             );
         }
 
-        // Check if booking can be rejected (should be verified or pending)
-        if (!['verified', 'pending'].includes(booking.status)) {
+        // Check if booking can be rejected (quote_pending, quote_sent, quote_modified, verified, pending)
+        const rejectableStatuses = ['quote_pending', 'quote_sent', 'quote_modified', 'verified', 'pending'];
+        if (!rejectableStatuses.includes(booking.status)) {
             return NextResponse.json(
-                { message: `Cette réservation ne peut pas être refusée. Statut actuel: ${booking.status}` },
+                { message: `Cette demande ne peut pas être refusée. Statut actuel: ${booking.status}` },
                 { status: 400 }
             );
         }
@@ -59,7 +60,7 @@ export async function POST(
         const [updatedBooking] = await db
             .update(bookings)
             .set({
-                status: 'cancelled',
+                status: 'refused',
                 rejectionReason: reason,
                 adminNotes: notes || booking.adminNotes,
                 updatedAt: now,

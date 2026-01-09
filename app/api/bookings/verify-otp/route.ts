@@ -82,43 +82,44 @@ export async function POST(request: NextRequest) {
         await resend.emails.send({
           from: `MobiService VTC <${fromEmail}>`,
           to: [booking.guestEmail!],
-          subject: '📄 Votre Devis - MobiService VTC',
+          subject: '📩 Demande reçue - MobiService VTC',
           html: `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background: #0A0A0A; padding: 32px; text-align: center;">
                 <h1 style="color: #5CD85A; margin: 0;">MobiService VTC</h1>
-                <p style="color: white; margin: 8px 0 0 0;">📄 Votre Devis</p>
+                <p style="color: white; margin: 8px 0 0 0;">📩 Demande de Devis Reçue</p>
               </div>
               <div style="padding: 32px;">
-                <div style="text-align: center; margin: 24px 0; padding: 24px; background: #e8f8e7; border-radius: 12px; border-left: 4px solid #5CD85A;">
+                <div style="text-align: center; margin: 24px 0; padding: 24px; background: #e8f8e7; border-radius: 12px;">
                   <p style="font-size: 48px; margin: 0;">✅</p>
-                  <p style="font-size: 20px; font-weight: bold; margin: 8px 0 0 0;">Voici votre devis</p>
+                  <p style="font-size: 20px; font-weight: bold; margin: 8px 0 0 0;">Demande bien reçue !</p>
                 </div>
                 <p>Bonjour <strong>${booking.guestName}</strong>,</p>
-                <p>Suite à votre demande, voici votre devis pour le transport demandé.</p>
+                <p>Nous avons bien reçu votre demande de transport. Notre chauffeur va l'étudier et vous recevrez une confirmation par email sous 24h.</p>
                 
                 <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 24px 0;">
-                  <p style="margin: 0 0 12px 0; font-weight: bold;">📋 Détails du trajet</p>
-                  <p style="margin: 4px 0;"><strong>Date :</strong> ${booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString('fr-FR') : ''}</p>
+                  <p style="margin: 0 0 12px 0; font-weight: bold;">📋 Récapitulatif de votre trajet</p>
+                  <p style="margin: 4px 0;"><strong>N°</strong> ${booking.id}</p>
+                  <p style="margin: 4px 0;"><strong>Date :</strong> ${booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}</p>
                   <p style="margin: 4px 0;"><strong>Heure :</strong> ${booking.pickupTime}</p>
                   <p style="margin: 4px 0;"><strong>Départ :</strong> ${booking.pickupAddress}</p>
                   <p style="margin: 4px 0;"><strong>Arrivée :</strong> ${booking.dropoffAddress}</p>
                 </div>
                 
                 <div style="background: #fff; padding: 20px; border: 1px solid #eee; border-radius: 8px; margin: 24px 0; text-align: center;">
-                   <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">Montant Total Estimé</p>
+                   <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">Montant Estimé</p>
                    <p style="margin: 0; font-size: 32px; font-weight: bold; color: #0A0A0A;">${booking.totalPrice}€ TTC</p>
                 </div>
 
                 <div style="text-align: center; margin: 32px 0;">
                   <a href="${quoteUrl}" 
                      style="display: inline-block; background: #5CD85A; color: #0A0A0A; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                    Consulter et Gérer mon Devis
+                    Suivre ma demande
                   </a>
                 </div>
                 
                 <p style="text-align: center; color: #666; font-size: 14px;">
-                  Vous pouvez accepter, refuser ou commenter ce devis directement via le lien ci-dessus.
+                  Vous recevrez un email de confirmation dès que votre chauffeur aura validé votre trajet.
                 </p>
 
               </div>
