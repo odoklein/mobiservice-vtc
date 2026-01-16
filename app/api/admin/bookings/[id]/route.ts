@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings } from '@/lib/db/schema';
+import { bookings, otpVerifications, reviews } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
 import { adminBookingUpdateSchema } from '@/lib/validations/admin-booking';
@@ -168,6 +168,33 @@ export async function DELETE(
             return NextResponse.json({ message: 'ID invalide' }, { status: 400 });
         }
 
+        // First, check if the booking exists
+        const [existingBooking] = await db
+            .select()
+            .from(bookings)
+            .where(eq(bookings.id, bookingId))
+            .limit(1);
+
+        if (!existingBooking) {
+            return NextResponse.json(
+                { message: 'Réservation introuvable' },
+                { status: 404 }
+            );
+        }
+
+        // Delete related records first to avoid foreign key constraint violations
+
+        // Delete OTP verifications
+        await db
+            .delete(otpVerifications)
+            .where(eq(otpVerifications.bookingId, bookingId));
+
+        // Delete reviews
+        await db
+            .delete(reviews)
+            .where(eq(reviews.bookingId, bookingId));
+
+        // Now delete the booking
         const [deleted] = await db
             .delete(bookings)
             .where(eq(bookings.id, bookingId))
@@ -175,8 +202,8 @@ export async function DELETE(
 
         if (!deleted) {
             return NextResponse.json(
-                { message: 'Réservation introuvable' },
-                { status: 404 }
+                { message: 'Erreur lors de la suppression' },
+                { status: 500 }
             );
         }
 
@@ -184,7 +211,7 @@ export async function DELETE(
     } catch (error) {
         console.error('Error deleting booking:', error);
         return NextResponse.json(
-            { message: 'Erreur serveur' },
+            { message: 'Erreur serveur', error: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
         );
     }

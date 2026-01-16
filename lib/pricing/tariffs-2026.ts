@@ -213,6 +213,7 @@ export interface PricingDebugInfo {
  * TVA DIFFÉRENCIÉE:
  * - 10% sur le transport (courses)
  * - 20% sur les péages d'autoroute
+ * - 20% sur la mise à disposition (MAD - temps d'attente)
  * 
  * @param distanceCA_out Distance dépôt → pickup (km)
  * @param distanceTP Distance pickup → dropoff (km)
@@ -220,6 +221,7 @@ export interface PricingDebugInfo {
  * @param tripType 'one-way' ou 'round-trip' (affecte TP x2 et péages x2 pour A/R)
  * @param pickupTime Date/heure de prise en charge
  * @param tollCost Coût des péages (€ TTC) - UNIQUEMENT sur trajet client (pickup→dropoff)
+ * @param waitingMinutes Durée d'attente en minutes (pour A/R uniquement) - 15 premières minutes gratuites
  */
 export function calculateTransferPrice(
   distanceCA_out: number,
@@ -227,7 +229,8 @@ export function calculateTransferPrice(
   distanceCA_return: number,
   tripType: 'one-way' | 'round-trip',
   pickupTime: Date,
-  tollCost: number = 0
+  tollCost: number = 0,
+  waitingMinutes: number = 0
 ): {
   totalTTC: number;
   totalHT: number;
@@ -373,6 +376,37 @@ export function calculateTransferPrice(
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // MISE À DISPOSITION (MAD) - Temps d'attente pour A/R
+  // ═══════════════════════════════════════════════════════════════
+
+  let madTTC = 0;
+  let explicationMAD = '';
+  const FREE_MINUTES = 15; // 15 premières minutes gratuites
+  const MAD_RATE_DAY = 1.20; // €/min jour
+  const MAD_RATE_NIGHT = 1.80; // €/min nuit
+
+  if (tripType === 'round-trip' && waitingMinutes > 0) {
+    const chargeableMinutes = Math.max(0, waitingMinutes - FREE_MINUTES);
+    if (chargeableMinutes > 0) {
+      const ratePerMinute = night ? MAD_RATE_NIGHT : MAD_RATE_DAY;
+      madTTC = chargeableMinutes * ratePerMinute;
+
+      explicationMAD = `Temps d'attente: ${waitingMinutes} min (${FREE_MINUTES} min gratuites) = ${chargeableMinutes} min × ${ratePerMinute.toFixed(2)}€/min = ${madTTC.toFixed(2)}€`;
+
+      etapesCalcul.push({
+        numero: etapeNum++,
+        description: `Mise à disposition (temps d'attente)`,
+        calcul: explicationMAD,
+        montant: madTTC,
+      });
+    } else {
+      explicationMAD = `Temps d'attente: ${waitingMinutes} min (gratuit car ≤ ${FREE_MINUTES} min)`;
+    }
+  } else if (tripType === 'round-trip') {
+    explicationMAD = 'Pas de temps d attente';
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // CALCUL TVA DIFFÉRENCIÉE
   // ═══════════════════════════════════════════════════════════════
 
@@ -384,10 +418,14 @@ export function calculateTransferPrice(
   const peageHT = Math.round((peageTotal / (1 + TVA_RATE_TOLL)) * 100) / 100;
   const tvaPeages = Math.round((peageTotal - peageHT) * 100) / 100;
 
+  // TVA MAD: 20%
+  const madHT = Math.round((madTTC / (1 + TVA_RATE_MDA)) * 100) / 100;
+  const tvaMAD = Math.round((madTTC - madHT) * 100) / 100;
+
   // Totaux
-  const totalTTC = Math.round((transportTTC + peageTotal) * 100) / 100;
-  const totalHT = Math.round((transportHT + peageHT) * 100) / 100;
-  const tvaTotale = Math.round((tvaTransport + tvaPeages) * 100) / 100;
+  const totalTTC = Math.round((transportTTC + peageTotal + madTTC) * 100) / 100;
+  const totalHT = Math.round((transportHT + peageHT + madHT) * 100) / 100;
+  const tvaTotale = Math.round((tvaTransport + tvaPeages + tvaMAD) * 100) / 100;
 
   // ═══════════════════════════════════════════════════════════════
   // CONSTRUCTION DU DEBUG INFO (format lisible)

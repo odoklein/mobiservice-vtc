@@ -100,7 +100,7 @@ async function loadPricingFromDatabase(): Promise<PricingConfig | null> {
   }
 
   const database = await getDb();
-  
+
   if (!database || !pricingRules || !eq) {
     return null;
   }
@@ -147,7 +147,7 @@ async function loadPricingFromDatabase(): Promise<PricingConfig | null> {
       mdaRates: {
         day: 1.20,
         night: 1.80,
-        freeMinutes: 10,
+        freeMinutes: 15,
       },
       airportRates: {
         geneva: { day: 116, night: 130 },
@@ -323,7 +323,7 @@ function getHardcodedPricing(): PricingConfig {
     mdaRates: {
       day: 1.20,
       night: 1.80,
-      freeMinutes: 10,
+      freeMinutes: 15,
     },
     airportRates: {
       geneva: { day: 116, night: 130 },

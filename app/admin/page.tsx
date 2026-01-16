@@ -301,13 +301,13 @@ export default async function AdminDashboard() {
                 )}
 
                 {/* Stats Grid - Clickable Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Link href="/admin/bookings" className="group">
-                        <Card className="border-0 shadow-md bg-white hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Link href="/admin/bookings" className="group block touch-target">
+                        <Card className="border-0 shadow-md bg-white hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer touch-ripple h-full">
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle className="text-sm font-medium text-slate-600">Aujourd'hui</CardTitle>
                                 <div className="p-2 rounded-lg bg-sky-50 group-hover:bg-sky-100 transition-colors">
-                                    <Calendar className="h-4 w-4 text-sky-600" />
+                                    <Calendar className="h-5 w-5 text-sky-600" />
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -320,12 +320,12 @@ export default async function AdminDashboard() {
                         </Card>
                     </Link>
 
-                    <Link href="/admin/bookings?status=verified" className="group">
-                        <Card className={`border-0 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer ${stats.verified > 0 ? 'border-2 border-blue-300 bg-blue-50 hover:bg-blue-100' : 'bg-white'}`}>
+                    <Link href="/admin/bookings?status=verified" className="group block touch-target">
+                        <Card className={`border-0 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer touch-ripple h-full ${stats.verified > 0 ? 'border-2 border-blue-300 bg-blue-50 hover:bg-blue-100' : 'bg-white'}`}>
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle className="text-sm font-medium text-slate-600">À approuver</CardTitle>
                                 <div className={`p-2 rounded-lg transition-colors ${stats.verified > 0 ? 'bg-blue-100 group-hover:bg-blue-200' : 'bg-slate-100 group-hover:bg-slate-200'}`}>
-                                    <CheckCircle className={`h-4 w-4 ${stats.verified > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                    <CheckCircle className={`h-5 w-5 ${stats.verified > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -340,12 +340,12 @@ export default async function AdminDashboard() {
                         </Card>
                     </Link>
 
-                    <Link href="/admin/bookings?payment=cash" className="group">
-                        <Card className="border-0 shadow-md bg-white hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer">
+                    <Link href="/admin/bookings?payment=cash" className="group block touch-target">
+                        <Card className="border-0 shadow-md bg-white hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer touch-ripple h-full">
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle className="text-sm font-medium text-slate-600">Paiement espèces</CardTitle>
                                 <div className="p-2 rounded-lg bg-orange-50 group-hover:bg-orange-100 transition-colors">
-                                    <AlertCircle className="h-4 w-4 text-orange-600" />
+                                    <AlertCircle className="h-5 w-5 text-orange-600" />
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -358,11 +358,11 @@ export default async function AdminDashboard() {
                         </Card>
                     </Link>
 
-                    <Card className="border-0 shadow-md bg-gradient-to-br from-slate-800 to-slate-900">
+                    <Card className="border-0 shadow-md bg-gradient-to-br from-slate-800 to-slate-900 h-full">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium text-slate-300">Chiffre d'affaires</CardTitle>
                             <div className="p-2 rounded-lg bg-white/10">
-                                <Euro className="h-4 w-4 text-emerald-400" />
+                                <Euro className="h-5 w-5 text-emerald-400" />
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -375,52 +375,52 @@ export default async function AdminDashboard() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="grid gap-3 md:grid-cols-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <Link
                         href="/admin/bookings/new"
-                        className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-sky-300 group"
+                        className="flex items-center gap-4 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-sky-300 group touch-ripple min-h-[80px]"
                     >
-                        <div className="p-2 rounded-lg bg-sky-50 group-hover:bg-sky-100 transition-colors">
-                            <Calendar className="h-5 w-5 text-sky-600" />
+                        <div className="p-3 rounded-lg bg-sky-50 group-hover:bg-sky-100 transition-colors">
+                            <Calendar className="h-6 w-6 text-sky-600" />
                         </div>
                         <div>
-                            <p className="font-semibold text-slate-800 text-sm">Nouvelle réservation</p>
+                            <p className="font-bold text-slate-800 text-sm">Nouvelle réservation</p>
                             <p className="text-xs text-slate-500">Créer manuellement</p>
                         </div>
                     </Link>
                     <Link
                         href="/admin/settings/invoices"
-                        className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-emerald-300 group"
+                        className="flex items-center gap-4 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-emerald-300 group touch-ripple min-h-[80px]"
                     >
-                        <div className="p-2 rounded-lg bg-emerald-50 group-hover:bg-emerald-100 transition-colors">
-                            <TrendingUp className="h-5 w-5 text-emerald-600" />
+                        <div className="p-3 rounded-lg bg-emerald-50 group-hover:bg-emerald-100 transition-colors">
+                            <TrendingUp className="h-6 w-6 text-emerald-600" />
                         </div>
                         <div>
-                            <p className="font-semibold text-slate-800 text-sm">Factures & Devis</p>
+                            <p className="font-bold text-slate-800 text-sm">Factures & Devis</p>
                             <p className="text-xs text-slate-500">Gérer les documents</p>
                         </div>
                     </Link>
                     <Link
                         href="/admin/settings/pricing"
-                        className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-amber-300 group"
+                        className="flex items-center gap-4 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-amber-300 group touch-ripple min-h-[80px]"
                     >
-                        <div className="p-2 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors">
-                            <Euro className="h-5 w-5 text-amber-600" />
+                        <div className="p-3 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors">
+                            <Euro className="h-6 w-6 text-amber-600" />
                         </div>
                         <div>
-                            <p className="font-semibold text-slate-800 text-sm">Mes tarifs</p>
+                            <p className="font-bold text-slate-800 text-sm">Mes tarifs</p>
                             <p className="text-xs text-slate-500">Modifier les prix</p>
                         </div>
                     </Link>
                     <Link
                         href="/admin/help"
-                        className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-purple-300 group"
+                        className="flex items-center gap-4 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-purple-300 group touch-ripple min-h-[80px]"
                     >
-                        <div className="p-2 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
-                            <Settings className="h-5 w-5 text-purple-600" />
+                        <div className="p-3 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
+                            <Settings className="h-6 w-6 text-purple-600" />
                         </div>
                         <div>
-                            <p className="font-semibold text-slate-800 text-sm">Besoin d'aide ?</p>
+                            <p className="font-bold text-slate-800 text-sm">Besoin d'aide ?</p>
                             <p className="text-xs text-slate-500">Guides et FAQ</p>
                         </div>
                     </Link>

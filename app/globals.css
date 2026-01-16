@@ -102,7 +102,7 @@
   /* ======================================== */
   /* ADMIN DASHBOARD DESIGN TOKENS           */
   /* ======================================== */
-  
+
   /* Admin Color Palette */
   --admin-header-bg: var(--black);
   --admin-sidebar-bg: var(--black);
@@ -110,13 +110,13 @@
   --admin-card-bg: var(--white);
   --admin-border: #e2e8f0;
   --admin-border-light: #f1f5f9;
-  
+
   /* Admin Primary Actions */
   --admin-primary: #0ea5e9;
   --admin-primary-hover: #0284c7;
   --admin-secondary: #1e293b;
   --admin-secondary-hover: #0f172a;
-  
+
   /* Admin Status Colors */
   --admin-status-pending-bg: #fef3c7;
   --admin-status-pending-text: #92400e;
@@ -133,14 +133,14 @@
   --admin-status-cancelled-bg: #fee2e2;
   --admin-status-cancelled-text: #991b1b;
   --admin-status-cancelled-border: #fca5a5;
-  
+
   /* Admin Spacing Scale */
   --admin-page-padding: 1.5rem;
   --admin-header-padding-y: 1.5rem;
   --admin-card-padding: 1.5rem;
   --admin-section-gap: 1.5rem;
   --admin-content-gap: 1rem;
-  
+
   /* Admin Typography */
   --admin-heading-xl: 1.875rem;
   --admin-heading-lg: 1.5rem;
@@ -149,7 +149,7 @@
   --admin-text-base: 0.875rem;
   --admin-text-sm: 0.8125rem;
   --admin-text-xs: 0.75rem;
-  
+
   /* Admin Component Sizes */
   --admin-input-height: 2.75rem;
   --admin-button-height: 2.5rem;
@@ -158,7 +158,7 @@
   --admin-icon-size: 1.25rem;
   --admin-icon-size-sm: 1rem;
   --admin-icon-size-lg: 1.5rem;
-  
+
   /* Admin Border Radius */
   --admin-radius-sm: 0.5rem;
   --admin-radius-md: 0.75rem;
@@ -204,6 +204,8 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   body {
@@ -213,6 +215,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
 
   h1,
   h2,
@@ -487,6 +490,11 @@
   box-shadow: 0 4px 12px rgba(92, 216, 90, 0.2);
 }
 
+.btn-premium:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(92, 216, 90, 0.1);
+}
+
 .btn-premium-outline {
   position: relative;
   background: transparent;
@@ -517,4 +525,13 @@
   outline: none;
   border-color: var(--brand-green);
   box-shadow: 0 0 0 3px rgba(92, 216, 90, 0.1);
+}
+
+/* Touch Ripple Utilities */
+.touch-ripple {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.touch-ripple:active {
+  transform: scale(0.98);
 }

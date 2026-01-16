@@ -16,6 +16,7 @@ import {
 import { Search, Download, Plus, Loader2, Calendar } from 'lucide-react';
 import { formatPrice } from '@/lib/pricing';
 import type { Booking } from '@/lib/db/schema';
+import { cn } from '@/lib/utils';
 
 export default function AdminBookingsPage() {
     const [bookings, setBookings] = useState<Booking[]>([]);
@@ -108,7 +109,7 @@ export default function AdminBookingsPage() {
             />
 
             <AdminPageContainer>
-                <Card className="border-0 shadow-md bg-white">
+                <Card className="border-0 shadow-md bg-white overflow-hidden">
                     <CardHeader className="border-b border-slate-100 pb-4">
                         <div className="flex flex-col md:flex-row gap-4">
                             <div className="flex-1 relative">
@@ -117,7 +118,7 @@ export default function AdminBookingsPage() {
                                     placeholder="Rechercher par nom, email, ID..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10 border-slate-200 focus:border-sky-500 focus:ring-sky-500"
+                                    className="pl-10 border-slate-200 focus:border-sky-500 focus:ring-sky-500 min-h-[44px]"
                                 />
                             </div>
                             <div className="flex gap-2 flex-wrap">
@@ -127,7 +128,10 @@ export default function AdminBookingsPage() {
                                         variant={statusFilter === filter.key ? 'default' : 'outline'}
                                         onClick={() => setStatusFilter(filter.key)}
                                         size="sm"
-                                        className={statusFilter === filter.key ? filter.activeClass : 'border-slate-200 text-slate-600 hover:bg-slate-50'}
+                                        className={cn(
+                                            "touch-target flex-1 sm:flex-none justify-center",
+                                            statusFilter === filter.key ? filter.activeClass : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        )}
                                     >
                                         {filter.label}
                                     </Button>
@@ -152,12 +156,12 @@ export default function AdminBookingsPage() {
                                     <Link
                                         key={booking.id}
                                         href={`/admin/bookings/${booking.id}`}
-                                        className={`block p-4 transition-colors ${booking.status === 'verified'
+                                        className={`block p-4 transition-colors active:bg-slate-100 ${booking.status === 'verified'
                                             ? 'bg-blue-50/50 hover:bg-blue-50'
                                             : 'hover:bg-slate-50'
                                             }`}
                                     >
-                                        <div className="flex items-start justify-between gap-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                                     <span className="font-bold text-slate-900">#{booking.id}</span>
@@ -172,21 +176,31 @@ export default function AdminBookingsPage() {
                                                     )}
                                                 </div>
                                                 <div className="text-sm font-semibold text-slate-900 mb-1">
-                                                    {booking.guestName} - {booking.guestEmail}
+                                                    {booking.guestName}
                                                 </div>
-                                                <div className="text-sm text-slate-600 mb-1">
-                                                    📍 {booking.pickupAddress} → {booking.dropoffAddress}
+                                                <div className="text-sm text-slate-600 mb-2 sm:mb-1">
+                                                    📍 <span className="inline-block align-bottom max-w-[120px] sm:max-w-none truncate">{booking.pickupAddress}</span>
+                                                    <span className="mx-1">→</span>
+                                                    <span className="inline-block align-bottom max-w-[120px] sm:max-w-none truncate">{booking.dropoffAddress}</span>
                                                 </div>
-                                                <div className="text-xs text-slate-500">
-                                                    📅 {new Date(booking.pickupDate).toLocaleDateString('fr-FR')} à {booking.pickupTime} •
-                                                    {booking.passengers} passager(s) • {booking.serviceType}
+                                                <div className="text-xs text-slate-500 flex flex-wrap gap-x-3 gap-y-1">
+                                                    <span>📅 {new Date(booking.pickupDate).toLocaleDateString('fr-FR')} à {booking.pickupTime}</span>
+                                                    <span>👥 {booking.passengers} pax</span>
+                                                    <span className="capitalize">🚗 {booking.serviceType}</span>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="font-bold text-lg text-slate-900">
-                                                    {formatPrice(parseFloat(booking.totalPrice))}
+                                            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                                                <div>
+                                                    <div className="font-bold text-lg text-slate-900 text-right">
+                                                        {formatPrice(parseFloat(booking.totalPrice))}
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 mt-0.5 text-right hidden sm:block">
+                                                        {booking.paymentMethod}
+                                                    </div>
                                                 </div>
-                                                <div className="text-xs text-slate-500 mt-1">{booking.paymentMethod}</div>
+                                                <div className="text-xs text-slate-500 sm:hidden">
+                                                    {booking.paymentMethod}
+                                                </div>
                                             </div>
                                         </div>
                                     </Link>

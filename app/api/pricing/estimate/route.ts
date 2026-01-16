@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       pickupTime, // HH:mm format
       tripType = 'one-way', // 'one-way' | 'round-trip'
       tollCost = 0, // Coût péages estimé (€ TTC) - optionnel
+      waitingMinutes = 0, // Durée d'attente en minutes (pour A/R) - optionnel
     } = body;
 
     // Validation
@@ -148,7 +149,8 @@ export async function POST(request: NextRequest) {
       distanceCA_return,
       tripType,
       pickupDateTime,
-      autoDetectedTollCost  // Utiliser le coût détecté automatiquement
+      autoDetectedTollCost,  // Utiliser le coût détecté automatiquement
+      waitingMinutes  // Ajouter le temps d'attente
     );
 
     // Préparer la réponse

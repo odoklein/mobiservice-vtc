@@ -188,12 +188,11 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                 <IconClock className="h-4 w-4" />
                 DÉTERMINATION TARIF JOUR/NUIT
               </div>
-              
-              <div className={`rounded-2xl p-4 border-2 ${
-                debugInfo.rateType.isNight 
-                  ? 'bg-indigo-500/10 border-indigo-500/30' 
+
+              <div className={`rounded-2xl p-4 border-2 ${debugInfo.rateType.isNight
+                  ? 'bg-indigo-500/10 border-indigo-500/30'
                   : 'bg-amber-500/10 border-amber-500/30'
-              }`}>
+                }`}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-3xl">
                     {debugInfo.rateType.isNight ? '🌙' : '☀️'}
@@ -205,7 +204,7 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                     <div className="text-sm text-white/70">{debugInfo.rateType.reason}</div>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-3 gap-2 text-xs font-mono">
                   <div className={`p-2 rounded-lg ${debugInfo.rateType.details.isNightHours ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-white/40'}`}>
                     <div className="font-bold">Heure: {debugInfo.rateType.details.hour}h</div>
@@ -230,7 +229,7 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
               <IconRoute className="h-4 w-4" />
               SEGMENTS DE DISTANCE (Règle n°1)
             </div>
-            
+
             <div className="bg-black/30 rounded-2xl p-4 space-y-3 font-mono text-sm">
               {/* CA Aller */}
               <div className="flex items-center justify-between">
@@ -257,7 +256,7 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                   <div>
                     <span className="text-white/60">Départ → Arrivée</span>
                     <div className="text-xs text-white/40">
-                      Trajet Principal 
+                      Trajet Principal
                       {bookingData.tripType === 'round-trip' && (
                         <span className="text-yellow-400 ml-1">(×2 pour A/R)</span>
                       )}
@@ -294,14 +293,22 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                 <div className="flex items-center justify-between text-lg">
                   <span className="text-white/80 font-semibold">Distance totale A/R</span>
                   <span className="text-white font-bold">
-                    {(debugInfo?.distances?.totalRoundTrip ?? 
+                    {(debugInfo?.distances?.totalRoundTrip ??
                       ((bookingData.distanceCA || 0) + (bookingData.distanceTP || bookingData.distance || 0) + (bookingData.distanceReturn || 0))
                     ).toFixed(1)} km
                   </span>
                 </div>
-                {debugInfo?.distances?.explanation && (
-                  <div className="text-xs text-white/50 mt-1">{debugInfo.distances.explanation}</div>
-                )}
+                <div className="text-xs text-white/50 mt-2">
+                  {bookingData.tripType === 'round-trip' ? (
+                    <div className="space-y-1">
+                      <div>CA aller ({(debugInfo?.distances?.ca_out ?? bookingData.distanceCA)?.toFixed(1)} km) + TP ×1 ({(debugInfo?.distances?.tp ?? bookingData.distanceTP ?? bookingData.distance)?.toFixed(1)} km) + CA retour ({(debugInfo?.distances?.ca_return ?? bookingData.distanceReturn)?.toFixed(1)} km)</div>
+                      <div className="text-yellow-400">⚠️ Note: Le TP est facturé ×2 ({(((debugInfo?.distances?.tp ?? bookingData.distanceTP ?? bookingData.distance) || 0) * 2).toFixed(1)} km) mais n'est parcouru qu'une fois</div>
+                    </div>
+                  ) : (
+                    debugInfo?.distances?.explanation ||
+                    `CA aller + TP + CA retour = ${((bookingData.distanceCA || 0) + (bookingData.distanceTP || bookingData.distance || 0) + (bookingData.distanceReturn || 0)).toFixed(1)} km`
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -321,20 +328,19 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                 </div>
                 <div className="text-xs text-white/50">{debugInfo.bracket.reason}</div>
                 <div className="text-xs text-white/40">Paliers disponibles: {debugInfo.bracket.thresholds}</div>
-                
+
                 {/* Show all CA rates for context */}
                 {debugInfo.rates && (
                   <div className="mt-3 pt-3 border-t border-white/10">
                     <div className="text-xs text-white/60 mb-2">Grille {debugInfo.rates.rateTableUsed}:</div>
                     <div className="grid grid-cols-5 gap-1 text-xs">
                       {Object.entries(debugInfo.rates.allCARates).map(([bracket, rate]) => (
-                        <div 
-                          key={bracket} 
-                          className={`p-1.5 rounded text-center ${
-                            bracket === debugInfo.bracket.value 
-                              ? 'bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/50' 
+                        <div
+                          key={bracket}
+                          className={`p-1.5 rounded text-center ${bracket === debugInfo.bracket.value
+                              ? 'bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/50'
                               : 'bg-white/5 text-white/50'
-                          }`}
+                            }`}
                         >
                           <div className="font-bold">{bracket}</div>
                           <div>{rate.toFixed(2)}€</div>
@@ -358,13 +364,12 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
               <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-2xl p-5 border border-orange-500/20">
                 <div className="space-y-3 font-mono text-sm">
                   {debugInfo.calculation.steps.map((step, i) => (
-                    <div 
-                      key={i} 
-                      className={`flex items-start gap-3 p-3 rounded-xl ${
-                        i === debugInfo.calculation.steps.length - 1 
-                          ? 'bg-emerald-500/10 border border-emerald-500/20' 
+                    <div
+                      key={i}
+                      className={`flex items-start gap-3 p-3 rounded-xl ${i === debugInfo.calculation.steps.length - 1
+                          ? 'bg-emerald-500/10 border border-emerald-500/20'
                           : 'bg-white/5'
-                      }`}
+                        }`}
                     >
                       <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-xs shrink-0">
                         {step.step}
@@ -374,17 +379,16 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                         <div className="text-xs text-white/50 mt-1">{step.formula}</div>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className={`font-bold ${
-                          i === debugInfo.calculation.steps.length - 1 
-                            ? 'text-emerald-400 text-lg' 
+                        <span className={`font-bold ${i === debugInfo.calculation.steps.length - 1
+                            ? 'text-emerald-400 text-lg'
                             : 'text-white'
-                        }`}>
+                          }`}>
                           {step.result.toFixed(2)} €
                         </span>
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* Final Total */}
                   <div className="border-t border-white/10 pt-4 mt-4">
                     <div className="flex justify-between items-center text-xl">
@@ -399,11 +403,10 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
 
           {/* Forfait Agglomeration Info */}
           {debugInfo?.forfaitAgglomeration && (
-            <div className={`rounded-2xl p-4 ${
-              debugInfo.forfaitAgglomeration.applied 
-                ? 'bg-emerald-500/10 border border-emerald-500/20' 
+            <div className={`rounded-2xl p-4 ${debugInfo.forfaitAgglomeration.applied
+                ? 'bg-emerald-500/10 border border-emerald-500/20'
                 : 'bg-white/5 border border-white/10'
-            }`}>
+              }`}>
               <div className="flex items-center gap-2 mb-2">
                 <span className={`font-bold ${debugInfo.forfaitAgglomeration.applied ? 'text-emerald-400' : 'text-white/60'}`}>
                   {debugInfo.forfaitAgglomeration.applied ? '✓ Forfait agglomération APPLIQUÉ' : '✗ Forfait agglomération NON applicable'}
@@ -432,42 +435,42 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
                 Cliquer pour afficher/masquer les données complètes...
               </summary>
               <pre className="mt-3 bg-black/50 rounded-xl p-4 text-xs text-green-400 overflow-x-auto max-h-96 overflow-y-auto">
-{JSON.stringify({
-  debugInfo: debugInfo,
-  legacy: {
-    distances: {
-      CA_aller: bookingData.distanceCA,
-      TP: bookingData.distanceTP || bookingData.distance,
-      CA_retour: bookingData.distanceReturn,
-      total_AR: (bookingData.distanceCA || 0) + (bookingData.distanceTP || bookingData.distance || 0) + (bookingData.distanceReturn || 0),
-    },
-    tarification: {
-      isNightRate: bookingData.isNightRate,
-      rateType: bookingData.rateType,
-      tripType: bookingData.tripType,
-      bracket: breakdown?.bracket,
-      isForfaitAgglomeration: breakdown?.isForfaitAgglomeration,
-    },
-    prix: {
-      costCA_out: breakdown?.costCA_out,
-      costTP: breakdown?.costTP,
-      costCA_return: breakdown?.costCA_return,
-      tollCost: breakdown?.tollCost,
-      pricePerKmCA: breakdown?.pricePerKmCA,
-      pricePerKmTP: breakdown?.pricePerKmTP,
-      totalHT: bookingData.totalPriceHT,
-      tva: bookingData.tvaAmount,
-      totalTTC: bookingData.totalPrice,
-    },
-    metadata: {
-      pickupDate: bookingData.pickupDate instanceof Date ? bookingData.pickupDate.toISOString() : bookingData.pickupDate,
-      pickupTime: bookingData.pickupTime,
-      duration: bookingData.duration,
-      passengers: bookingData.passengers,
-      luggage: bookingData.luggage,
-    }
-  }
-}, null, 2)}
+                {JSON.stringify({
+                  debugInfo: debugInfo,
+                  legacy: {
+                    distances: {
+                      CA_aller: bookingData.distanceCA,
+                      TP: bookingData.distanceTP || bookingData.distance,
+                      CA_retour: bookingData.distanceReturn,
+                      total_AR: (bookingData.distanceCA || 0) + (bookingData.distanceTP || bookingData.distance || 0) + (bookingData.distanceReturn || 0),
+                    },
+                    tarification: {
+                      isNightRate: bookingData.isNightRate,
+                      rateType: bookingData.rateType,
+                      tripType: bookingData.tripType,
+                      bracket: breakdown?.bracket,
+                      isForfaitAgglomeration: breakdown?.isForfaitAgglomeration,
+                    },
+                    prix: {
+                      costCA_out: breakdown?.costCA_out,
+                      costTP: breakdown?.costTP,
+                      costCA_return: breakdown?.costCA_return,
+                      tollCost: breakdown?.tollCost,
+                      pricePerKmCA: breakdown?.pricePerKmCA,
+                      pricePerKmTP: breakdown?.pricePerKmTP,
+                      totalHT: bookingData.totalPriceHT,
+                      tva: bookingData.tvaAmount,
+                      totalTTC: bookingData.totalPrice,
+                    },
+                    metadata: {
+                      pickupDate: bookingData.pickupDate instanceof Date ? bookingData.pickupDate.toISOString() : bookingData.pickupDate,
+                      pickupTime: bookingData.pickupTime,
+                      duration: bookingData.duration,
+                      passengers: bookingData.passengers,
+                      luggage: bookingData.luggage,
+                    }
+                  }
+                }, null, 2)}
               </pre>
             </details>
           </div>
@@ -487,11 +490,11 @@ export function PricingDebugPanel({ bookingData }: PricingDebugPanelProps) {
 /**
  * Debug Toggle Button Component
  */
-export function DebugModeToggle({ 
-  debugMode, 
-  onToggle 
-}: { 
-  debugMode: boolean; 
+export function DebugModeToggle({
+  debugMode,
+  onToggle
+}: {
+  debugMode: boolean;
   onToggle: () => void;
 }) {
   return (
@@ -500,8 +503,8 @@ export function DebugModeToggle({
       onClick={onToggle}
       className={`
         w-full flex items-center justify-between p-4 rounded-xl transition-all duration-300
-        ${debugMode 
-          ? 'bg-orange-50 border-2 border-orange-200' 
+        ${debugMode
+          ? 'bg-orange-50 border-2 border-orange-200'
           : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
         }
       `}

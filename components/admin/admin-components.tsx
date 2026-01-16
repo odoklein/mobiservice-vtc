@@ -9,6 +9,10 @@ import { LucideIcon } from 'lucide-react';
 // Admin Page Header
 // ============================================
 
+// ============================================
+// Admin Page Header
+// ============================================
+
 interface AdminPageHeaderProps {
     title: string;
     description?: string;
@@ -23,8 +27,8 @@ export function AdminPageHeader({
     className
 }: AdminPageHeaderProps) {
     return (
-        <div className={cn("bg-slate-900 text-white px-6 py-6", className)}>
-            <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className={cn("bg-slate-900 text-white px-4 py-4 md:px-6 md:py-6", className)}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
                     {description && (
@@ -32,7 +36,7 @@ export function AdminPageHeader({
                     )}
                 </div>
                 {actions && (
-                    <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
                         {actions}
                     </div>
                 )}
@@ -55,7 +59,7 @@ export function AdminPageContainer({
     className
 }: AdminPageContainerProps) {
     return (
-        <div className={cn("p-6 space-y-6", className)}>
+        <div className={cn("p-4 md:p-6 space-y-4 md:space-y-6", className)}>
             {children}
         </div>
     );
@@ -87,13 +91,13 @@ export function AdminCard({
     noPadding = false,
 }: AdminCardProps) {
     return (
-        <Card className={cn("border-0 shadow-md bg-white", className)}>
+        <Card className={cn("border-0 shadow-md bg-white overflow-hidden", className)}>
             {(title || actions) && (
                 <CardHeader className="border-b border-slate-100 pb-4">
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                             {Icon && (
-                                <div className="p-2 rounded-lg bg-slate-50">
+                                <div className="p-2 rounded-lg bg-slate-50 flex-shrink-0">
                                     <Icon className={cn("h-5 w-5", iconColor)} />
                                 </div>
                             )}
@@ -116,7 +120,7 @@ export function AdminCard({
                     </div>
                 </CardHeader>
             )}
-            <CardContent className={cn(noPadding ? "p-0" : "p-6")}>
+            <CardContent className={cn(noPadding ? "p-0" : "p-4 md:p-6")}>
                 {children}
             </CardContent>
         </Card>
@@ -143,7 +147,7 @@ export function AdminEmptyState({
     className
 }: AdminEmptyStateProps) {
     return (
-        <div className={cn("text-center py-12", className)}>
+        <div className={cn("text-center py-8 md:py-12 px-4", className)}>
             <Icon className="h-12 w-12 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-600 font-medium">{title}</p>
             {description && (

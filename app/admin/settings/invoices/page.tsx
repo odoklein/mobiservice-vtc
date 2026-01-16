@@ -297,7 +297,7 @@ export default function InvoiceSettingsPage() {
       {/* ============================================ */}
       <div className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
         <div className="px-6 md:px-10">
-          <nav className="flex gap-2 py-4">
+          <nav className="flex gap-2 py-4 overflow-x-auto touch-pan-x scrollbar-hide">
             <button
               onClick={() => setActiveTab('documents')}
               className={`
@@ -570,8 +570,8 @@ export default function InvoiceSettingsPage() {
           {message && (
             <div
               className={`p-5 rounded-xl flex items-start gap-4 ${message.type === 'success'
-                  ? 'bg-emerald-50 border-2 border-emerald-300'
-                  : 'bg-red-50 border-2 border-red-300'
+                ? 'bg-emerald-50 border-2 border-emerald-300'
+                : 'bg-red-50 border-2 border-red-300'
                 }`}
             >
               {message.type === 'success' ? (

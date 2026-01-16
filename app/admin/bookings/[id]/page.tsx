@@ -47,6 +47,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 export default function BookingDetailPage() {
     const params = useParams();
@@ -399,19 +400,19 @@ export default function BookingDetailPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
                 <div className="p-4 md:p-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Link href="/admin/bookings">
-                                <Button variant="ghost" size="sm" className="gap-2">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                            <Link href="/admin/bookings" className="self-start sm:self-center">
+                                <Button variant="ghost" size="sm" className="gap-2 -ml-2 sm:ml-0">
                                     <ArrowLeft className="h-4 w-4" />
                                     Retour
                                 </Button>
                             </Link>
                             <div>
-                                <div className="flex items-center gap-3">
-                                    <h1 className="text-2xl font-bold text-gray-900">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                                         {isQuoteStatus ? 'Devis' : 'Réservation'} #{booking.id}
                                     </h1>
                                     <Badge className={`${statusConfig.bgColor} ${statusConfig.color} gap-1 px-3 py-1`}>
@@ -424,7 +425,7 @@ export default function BookingDetailPage() {
                                 </p>
                             </div>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+                        <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)} className="w-full sm:w-auto mt-2 sm:mt-0">
                             <Edit className="h-4 w-4 mr-2" />
                             Modifier
                         </Button>
@@ -436,20 +437,20 @@ export default function BookingDetailPage() {
                 {/* Quote Action Banner - Only for pending quote statuses */}
                 {['quote_pending', 'quote_sent', 'quote_modified'].includes(booking.status) && (
                     <Card className="mb-6 border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 overflow-hidden">
-                        <CardContent className="p-6">
+                        <CardContent className="p-4 md:p-6">
                             <div className="flex flex-col gap-6">
-                                <div className="flex items-start gap-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center flex-shrink-0">
-                                        <Receipt className="h-7 w-7 text-white" />
+                                <div className="flex flex-col sm:flex-row items-start gap-4">
+                                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-amber-500 flex items-center justify-center flex-shrink-0">
+                                        <Receipt className="h-6 w-6 md:h-7 md:w-7 text-white" />
                                     </div>
                                     <div className="flex-1">
-                                        <h2 className="text-xl font-bold text-gray-900">Nouvelle Demande de Devis</h2>
-                                        <p className="text-gray-600 mt-1">
+                                        <h2 className="text-lg md:text-xl font-bold text-gray-900">Nouvelle Demande de Devis</h2>
+                                        <p className="text-sm md:text-base text-gray-600 mt-1">
                                             Le client attend votre réponse. Vous pouvez accepter la demande (avec ou sans remise) ou la refuser.
                                         </p>
                                         {(selectedDiscount || booking.discountPercentage) && (
-                                            <div className="mt-2 inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-                                                <Percent className="h-4 w-4" />
+                                            <div className="mt-2 inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs md:text-sm font-medium">
+                                                <Percent className="h-3 w-3 md:h-4 md:w-4" />
                                                 Remise de {selectedDiscount || booking.discountPercentage}% sélectionnée
                                             </div>
                                         )}
@@ -457,16 +458,19 @@ export default function BookingDetailPage() {
                                 </div>
 
                                 {/* Action Row */}
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4 border-t border-amber-200">
+                                <div className="flex flex-col gap-4 pt-4 border-t border-amber-200">
                                     {/* Discount Selection */}
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-gray-600">Remise :</span>
-                                        <div className="flex gap-1">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                                        <span className="text-sm font-medium text-gray-700">Remise :</span>
+                                        <div className="grid grid-cols-4 gap-2 w-full sm:w-auto">
                                             <Button
                                                 variant={selectedDiscount === null ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => setSelectedDiscount(null)}
-                                                className={selectedDiscount === null ? "bg-gray-800 text-white" : ""}
+                                                className={cn(
+                                                    "h-10 md:h-9",
+                                                    selectedDiscount === null ? "bg-gray-800 text-white" : ""
+                                                )}
                                             >
                                                 Aucune
                                             </Button>
@@ -476,9 +480,12 @@ export default function BookingDetailPage() {
                                                     variant={selectedDiscount === percent ? "default" : "outline"}
                                                     size="sm"
                                                     onClick={() => setSelectedDiscount(percent)}
-                                                    className={selectedDiscount === percent
-                                                        ? "bg-green-600 hover:bg-green-700 text-white"
-                                                        : "border-green-300 text-green-700 hover:bg-green-50"}
+                                                    className={cn(
+                                                        "h-10 md:h-9",
+                                                        selectedDiscount === percent
+                                                            ? "bg-green-600 hover:bg-green-700 text-white"
+                                                            : "border-green-300 text-green-700 hover:bg-green-50"
+                                                    )}
                                                 >
                                                     -{percent}%
                                                 </Button>
@@ -487,22 +494,22 @@ export default function BookingDetailPage() {
                                     </div>
 
                                     {/* Accept/Refuse Buttons */}
-                                    <div className="flex gap-2 sm:ml-auto">
+                                    <div className="flex flex-col sm:flex-row gap-3 sm:ml-auto w-full sm:w-auto">
                                         <Button
                                             onClick={() => acceptQuoteWithDiscount(selectedDiscount || undefined)}
                                             disabled={approving}
-                                            className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                                            className="h-12 md:h-10 w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white gap-2 text-base md:text-sm"
                                         >
-                                            <Check className="h-4 w-4" />
+                                            <Check className="h-5 w-5 md:h-4 md:w-4" />
                                             {approving ? 'Confirmation...' : selectedDiscount ? `Accepter (-${selectedDiscount}%)` : 'Accepter'}
                                         </Button>
                                         <Button
                                             variant="outline"
                                             onClick={() => setShowRejectDialog(true)}
                                             disabled={rejecting}
-                                            className="border-red-300 text-red-600 hover:bg-red-50 gap-2"
+                                            className="h-12 md:h-10 w-full sm:w-auto border-red-300 text-red-600 hover:bg-red-50 gap-2 text-base md:text-sm"
                                         >
-                                            <X className="h-4 w-4" />
+                                            <X className="h-5 w-5 md:h-4 md:w-4" />
                                             Refuser
                                         </Button>
                                     </div>
@@ -532,34 +539,34 @@ export default function BookingDetailPage() {
                     <div className="lg:col-span-2 space-y-6">
                         {/* Trip Details Card */}
                         <Card className="overflow-hidden">
-                            <CardHeader className="bg-gray-50 border-b border-gray-100">
+                            <CardHeader className="bg-gray-50 border-b border-gray-100 p-4 md:p-6">
                                 <CardTitle className="flex items-center gap-2 text-lg">
                                     <Route className="h-5 w-5 text-[#5CD85A]" />
                                     Détails du Trajet
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="p-6">
+                            <CardContent className="p-4 md:p-6">
                                 {/* Route visualization */}
-                                <div className="relative pl-8 space-y-6 mb-6">
-                                    <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#5CD85A] to-red-500"></div>
+                                <div className="relative pl-6 md:pl-8 space-y-6 mb-6">
+                                    <div className="absolute left-2 md:left-3 top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#5CD85A] to-red-500"></div>
 
                                     <div className="relative">
-                                        <div className="absolute -left-8 w-6 h-6 rounded-full bg-[#5CD85A] flex items-center justify-center">
-                                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                                        <div className="absolute -left-7 md:-left-8 w-5 h-5 md:w-6 md:h-6 rounded-full bg-[#5CD85A] flex items-center justify-center">
+                                            <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-white rounded-full"></div>
                                         </div>
                                         <div>
                                             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Départ</p>
-                                            <p className="text-gray-900 font-medium mt-1">{booking.pickupAddress}</p>
+                                            <p className="text-gray-900 font-medium mt-1 text-sm md:text-base">{booking.pickupAddress}</p>
                                         </div>
                                     </div>
 
                                     <div className="relative">
-                                        <div className="absolute -left-8 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
-                                            <MapPin className="w-3 h-3 text-white" />
+                                        <div className="absolute -left-7 md:-left-8 w-5 h-5 md:w-6 md:h-6 rounded-full bg-red-500 flex items-center justify-center">
+                                            <MapPin className="w-2.5 h-2.5 md:w-3 md:h-3 text-white" />
                                         </div>
                                         <div>
                                             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Arrivée</p>
-                                            <p className="text-gray-900 font-medium mt-1">{booking.dropoffAddress}</p>
+                                            <p className="text-gray-900 font-medium mt-1 text-sm md:text-base">{booking.dropoffAddress}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -569,22 +576,22 @@ export default function BookingDetailPage() {
                                     <div className="text-center p-3 bg-gray-50 rounded-xl">
                                         <Calendar className="h-5 w-5 text-[#5CD85A] mx-auto mb-2" />
                                         <p className="text-xs text-gray-500">Date</p>
-                                        <p className="font-semibold text-gray-900">{new Date(booking.pickupDate).toLocaleDateString('fr-FR')}</p>
+                                        <p className="font-semibold text-gray-900 text-sm md:text-base">{new Date(booking.pickupDate).toLocaleDateString('fr-FR')}</p>
                                     </div>
                                     <div className="text-center p-3 bg-gray-50 rounded-xl">
                                         <Clock className="h-5 w-5 text-[#5CD85A] mx-auto mb-2" />
                                         <p className="text-xs text-gray-500">Heure</p>
-                                        <p className="font-semibold text-gray-900">{booking.pickupTime}</p>
+                                        <p className="font-semibold text-gray-900 text-sm md:text-base">{booking.pickupTime}</p>
                                     </div>
                                     <div className="text-center p-3 bg-gray-50 rounded-xl">
                                         <Users className="h-5 w-5 text-[#5CD85A] mx-auto mb-2" />
                                         <p className="text-xs text-gray-500">Passagers</p>
-                                        <p className="font-semibold text-gray-900">{booking.passengers}</p>
+                                        <p className="font-semibold text-gray-900 text-sm md:text-base">{booking.passengers}</p>
                                     </div>
                                     <div className="text-center p-3 bg-gray-50 rounded-xl">
                                         <Briefcase className="h-5 w-5 text-[#5CD85A] mx-auto mb-2" />
                                         <p className="text-xs text-gray-500">Bagages</p>
-                                        <p className="font-semibold text-gray-900">{booking.luggage}</p>
+                                        <p className="font-semibold text-gray-900 text-sm md:text-base">{booking.luggage}</p>
                                     </div>
                                 </div>
 
@@ -592,11 +599,11 @@ export default function BookingDetailPage() {
                                 <div className="grid grid-cols-2 gap-4 mt-4">
                                     <div className="p-3 bg-gray-50 rounded-xl">
                                         <p className="text-xs text-gray-500">Type de service</p>
-                                        <p className="font-medium text-gray-900 capitalize">{booking.serviceType}</p>
+                                        <p className="font-medium text-gray-900 capitalize text-sm md:text-base">{booking.serviceType}</p>
                                     </div>
                                     <div className="p-3 bg-gray-50 rounded-xl">
                                         <p className="text-xs text-gray-500">Distance</p>
-                                        <p className="font-medium text-gray-900">{booking.distance} km</p>
+                                        <p className="font-medium text-gray-900 text-sm md:text-base">{booking.distance} km</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -604,27 +611,27 @@ export default function BookingDetailPage() {
 
                         {/* Client Card */}
                         <Card>
-                            <CardHeader className="bg-gray-50 border-b border-gray-100">
+                            <CardHeader className="bg-gray-50 border-b border-gray-100 p-4 md:p-6">
                                 <CardTitle className="flex items-center gap-2 text-lg">
                                     <Users className="h-5 w-5 text-[#5CD85A]" />
                                     Informations Client
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="p-6">
+                            <CardContent className="p-4 md:p-6">
                                 <div className="flex flex-col md:flex-row md:items-center gap-6">
-                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#5CD85A] to-emerald-600 flex items-center justify-center text-white text-2xl font-bold">
+                                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#5CD85A] to-emerald-600 flex items-center justify-center text-white text-xl md:text-2xl font-bold self-center md:self-auto">
                                         {booking.guestName?.charAt(0).toUpperCase()}
                                     </div>
-                                    <div className="flex-1 space-y-3">
+                                    <div className="flex-1 space-y-3 text-center md:text-left">
                                         <div>
-                                            <p className="text-xl font-bold text-gray-900">{booking.guestName}</p>
+                                            <p className="text-lg md:text-xl font-bold text-gray-900">{booking.guestName}</p>
                                         </div>
-                                        <div className="flex flex-wrap gap-4">
-                                            <a href={`mailto:${booking.guestEmail}`} className="flex items-center gap-2 text-gray-600 hover:text-[#5CD85A] transition-colors">
+                                        <div className="flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-4 justify-center md:justify-start">
+                                            <a href={`mailto:${booking.guestEmail}`} className="flex items-center gap-2 text-gray-600 hover:text-[#5CD85A] transition-colors text-sm">
                                                 <Mail className="h-4 w-4" />
                                                 {booking.guestEmail}
                                             </a>
-                                            <a href={`tel:${booking.guestPhone}`} className="flex items-center gap-2 text-gray-600 hover:text-[#5CD85A] transition-colors">
+                                            <a href={`tel:${booking.guestPhone}`} className="flex items-center gap-2 text-gray-600 hover:text-[#5CD85A] transition-colors text-sm">
                                                 <Phone className="h-4 w-4" />
                                                 {booking.guestPhone}
                                             </a>
@@ -637,14 +644,14 @@ export default function BookingDetailPage() {
                         {/* Notes Card */}
                         {booking.notes && (
                             <Card>
-                                <CardHeader className="bg-gray-50 border-b border-gray-100">
+                                <CardHeader className="bg-gray-50 border-b border-gray-100 p-4 md:p-6">
                                     <CardTitle className="flex items-center gap-2 text-lg">
                                         <MessageSquare className="h-5 w-5 text-[#5CD85A]" />
                                         Notes du Client
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="p-6">
-                                    <p className="text-gray-700">{booking.notes}</p>
+                                <CardContent className="p-4 md:p-6">
+                                    <p className="text-gray-700 text-sm md:text-base">{booking.notes}</p>
                                 </CardContent>
                             </Card>
                         )}
@@ -652,33 +659,33 @@ export default function BookingDetailPage() {
                         {/* Pricing Breakdown */}
                         {breakdown && (
                             <Card>
-                                <CardHeader className="bg-gray-50 border-b border-gray-100">
+                                <CardHeader className="bg-gray-50 border-b border-gray-100 p-4 md:p-6">
                                     <CardTitle className="flex items-center gap-2 text-lg">
                                         <Receipt className="h-5 w-5 text-[#5CD85A]" />
                                         Détail Tarifaire
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="p-6">
+                                <CardContent className="p-4 md:p-6">
                                     <div className="space-y-2 text-sm">
-                                        {breakdown.costCA_out && (
+                                        {!!breakdown.costCA_out && (
                                             <div className="flex justify-between py-2 border-b border-gray-100">
                                                 <span className="text-gray-600">CA (dépôt → pickup)</span>
                                                 <span className="font-medium">{parseFloat(String(breakdown.costCA_out || '0')).toFixed(2)}€</span>
                                             </div>
                                         )}
-                                        {breakdown.costTP && (
+                                        {!!breakdown.costTP && (
                                             <div className="flex justify-between py-2 border-b border-gray-100">
                                                 <span className="text-gray-600">TP (pickup → dropoff)</span>
                                                 <span className="font-medium">{parseFloat(String(breakdown.costTP || '0')).toFixed(2)}€</span>
                                             </div>
                                         )}
-                                        {breakdown.costCA_return && booking.tripType === 'round-trip' && (
+                                        {!!breakdown.costCA_return && booking.tripType === 'round-trip' && (
                                             <div className="flex justify-between py-2 border-b border-gray-100">
                                                 <span className="text-gray-600">CA retour (dropoff → dépôt)</span>
                                                 <span className="font-medium">{parseFloat(String(breakdown.costCA_return || '0')).toFixed(2)}€</span>
                                             </div>
                                         )}
-                                        {breakdown.tollCost && (
+                                        {!!breakdown.tollCost && (
                                             <div className="flex justify-between py-2 border-b border-gray-100">
                                                 <span className="text-gray-600">Péages</span>
                                                 <span className="font-medium">{parseFloat(String(breakdown.tollCost || '0')).toFixed(2)}€</span>
@@ -694,10 +701,10 @@ export default function BookingDetailPage() {
                     <div className="space-y-6">
                         {/* Price Card */}
                         <Card className="bg-gradient-to-br from-gray-900 to-gray-800 text-white overflow-hidden">
-                            <CardContent className="p-6">
+                            <CardContent className="p-4 md:p-6">
                                 <div className="text-center mb-6">
                                     <p className="text-gray-400 text-sm mb-2">Total TTC</p>
-                                    <p className="text-4xl font-bold text-[#5CD85A]">
+                                    <p className="text-3xl md:text-4xl font-bold text-[#5CD85A]">
                                         {formatPrice(parseFloat(booking.totalPriceTTC || booking.totalPrice))}
                                     </p>
                                     {booking.discountPercentage && (

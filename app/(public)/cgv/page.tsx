@@ -121,19 +121,13 @@ export default function CGVPage() {
                                     <div className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
                                         <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                                         <div className="text-sm">
-                                            <strong>Moins de 48h avant :</strong> Aucun remboursement possible
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
-                                        <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                                        <div className="text-sm">
-                                            <strong>Entre 48h et 120h avant :</strong> Remboursement à hauteur de 50%
+                                            <strong>Moins de 48h avant :</strong> Remboursement de 50% du montant si la course est supérieure à 50€, ou totalité de la course si inférieure à 50€
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-100">
                                         <Shield className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
                                         <div className="text-sm">
-                                            <strong>Plus de 5 jours avant :</strong> Frais forfaitaires de 50€ TTC
+                                            <strong>Plus de 48h avant :</strong> Frais d'annulation forfaitaires de 50€ si le montant TTC est supérieur à 50€, ou totalité de la course si inférieur à 50€
                                         </div>
                                     </div>
                                 </div>
@@ -214,7 +208,7 @@ export default function CGVPage() {
                             </CardHeader>
                             <CardContent className="space-y-4 text-gray-700">
                                 <p>
-                                    Nos prestations sont payables à la réservation ou à la prise en charge sauf pour les clients « pro ». Ce client professionnel devra honorer le paiement sous <strong>30 jours</strong> à compter de la date d'émission de la facture.
+                                    Nos prestations sont <strong>payables à l'avance à 50% ou en totalité</strong> à la réservation ou à la prise en charge, sauf pour les clients « pro ». Ce client professionnel devra honorer le paiement sous <strong>30 jours</strong> à compter de la date d'émission de la facture.
                                 </p>
                                 <div className="bg-gray-50 rounded-lg p-4">
                                     <p className="font-semibold mb-3">Modes de règlement acceptés :</p>

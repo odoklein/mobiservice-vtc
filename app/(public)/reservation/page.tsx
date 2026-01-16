@@ -183,6 +183,7 @@ export default function ReservationPage() {
               pickupTime: data.pickupTime,
               tripType: data.tripType || 'one-way',
               tollCost: 0,
+              waitingMinutes: data.waitingMinutes || 0, // Temps d'attente pour A/R
             }),
           });
 
@@ -649,11 +650,11 @@ export default function ReservationPage() {
 
       {/* Main Content */}
       <div className="relative -mt-8 z-20">
-        <div className="container mx-auto px-6 md:px-12 lg:px-24 pb-16">
+        <div className="container mx-auto px-6 md:px-12 xl:px-24 pb-16">
           <div className="max-w-5xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:gap-8">
               {/* Main Form Area */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="xl:col-span-2 space-y-6">
                 {/* Step 1: Trip Details */}
                 {step === 1 && (
                   <div className="space-y-6 animate-fade-in-up">
@@ -669,7 +670,7 @@ export default function ReservationPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 max-w-4xl mx-auto">
                         {/* Transfer Service Card */}
                         <button
                           type="button"
@@ -779,9 +780,9 @@ export default function ReservationPage() {
 
                           {/* Waiting Duration for Round Trip */}
                           {(step1Data.tripType || 'one-way') === 'round-trip' && (
-                            <div className="mt-4 p-4 bg-amber-50/50 border border-amber-100 rounded-2xl">
-                              <Label className="text-xs font-semibold text-amber-900 mb-2 flex items-center gap-2">
-                                <IconClock className="h-3.5 w-3.5" />
+                            <div className="mt-4 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 rounded-2xl shadow-sm">
+                              <Label className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                                <IconClock className="h-4 w-4 text-blue-600" />
                                 Durée d'attente (MAD)
                               </Label>
                               <Input
@@ -790,12 +791,26 @@ export default function ReservationPage() {
                                 max="480"
                                 step="15"
                                 placeholder="Minutes d'attente"
-                                className="h-11 rounded-xl border-amber-200 focus:border-amber-400 bg-white text-sm"
+                                className="h-12 rounded-xl border-blue-200 focus:border-blue-400 focus:ring-blue-400/20 bg-white text-base font-medium text-slate-900 placeholder:text-slate-400"
                                 {...registerStep1('waitingMinutes', { valueAsNumber: true })}
                               />
-                              <p className="text-[10px] text-amber-700 mt-1.5 leading-relaxed">
-                                Temps d'attente estimé entre l'aller et le retour (10 premières minutes gratuites)
-                              </p>
+                              <div className="mt-3 space-y-2 bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-blue-100">
+                                <p className="text-xs text-slate-600 leading-relaxed">
+                                  Temps d'attente estimé entre l'aller et le retour
+                                </p>
+                                <div className="flex items-center gap-2 py-1.5 px-2.5 bg-emerald-50 rounded-lg border border-emerald-200/50">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                  <p className="text-xs text-emerald-800 font-semibold">
+                                    15 premières minutes gratuites
+                                  </p>
+                                </div>
+                                <p className="text-xs text-slate-700 font-medium leading-relaxed">
+                                  Ensuite : <span className="text-blue-700 font-bold">18€ TTC/15min</span> (jour) • <span className="text-indigo-700 font-bold">27€ TTC/15min</span> (nuit)
+                                </p>
+                                <p className="text-[10px] text-slate-500 italic leading-relaxed pt-1 border-t border-slate-200/50">
+                                  Toute tranche de 15 minutes entamée est due
+                                </p>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -926,7 +941,7 @@ export default function ReservationPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                         {/* Calendar */}
                         <div>
                           <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50">
@@ -1247,11 +1262,56 @@ export default function ReservationPage() {
                           </div>
                         )}
 
+                        {/* Trip Type & Waiting Time Summary */}
+                        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
+                              <IconRoute className="h-5 w-5 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Type de trajet</p>
+                              <p className="text-base font-bold text-slate-900">
+                                {bookingData.tripType === 'round-trip' ? '🔄 Aller-Retour' : '➡️ Aller Simple'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Waiting Time for Round Trip */}
+                          {bookingData.tripType === 'round-trip' && (step1Data.waitingMinutes || 0) > 0 && (
+                            <div className="pt-3 border-t border-blue-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <IconClock className="h-4 w-4 text-blue-600" />
+                                  <span className="text-sm text-slate-700">Temps d'attente :</span>
+                                </div>
+                                <span className="text-sm font-bold text-blue-700">{step1Data.waitingMinutes || 0} minutes</span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1 ml-6">
+                                {(step1Data.waitingMinutes || 0) <= 15
+                                  ? '✓ Gratuit (≤ 15 min)'
+                                  : `Facturable : ${(step1Data.waitingMinutes || 0) - 15} min`}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
                         {/* Info grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                        <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
                           {[
-                            { label: 'Distance', value: `${Math.round(bookingData.distance)} km`, icon: IconRoute },
-                            { label: 'Durée', value: `~${Math.round(bookingData.duration)} min`, icon: IconClock },
+                            {
+                              label: 'Distance',
+                              value: bookingData.tripType === 'round-trip'
+                                ? `${Math.round((bookingData.distanceTP || bookingData.distance) * 2)} km (A/R)`
+                                : `${Math.round(bookingData.distanceTP || bookingData.distance)} km`,
+                              icon: IconRoute
+                            },
+                            {
+                              label: 'Durée',
+                              value: bookingData.tripType === 'round-trip'
+                                ? `~${Math.round((bookingData.duration || 0) * 2)} min (A/R)`
+                                : `~${Math.round(bookingData.duration)} min`,
+                              icon: IconClock
+                            },
                             { label: 'Date', value: bookingData.pickupDate?.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }), icon: IconCalendar },
                             { label: 'Heure', value: bookingData.pickupTime, icon: IconClock },
                             {
@@ -1291,6 +1351,51 @@ export default function ReservationPage() {
                           </div>
                         </div>
 
+                      </div>
+                    </div>
+
+                    {/* Cancellation Policy Card - Step 2 */}
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-3xl p-6 shadow-sm">
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-600 flex items-center justify-center flex-shrink-0">
+                          <IconClock className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-base font-bold text-amber-900 mb-1">Politique d'annulation</h3>
+                          <p className="text-sm text-amber-700 leading-relaxed">
+                            Il est de votre devoir de prévenir MobiService VTC en cas de problème le plus rapidement possible.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-amber-100">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-sm font-bold text-green-700">✓</span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm text-slate-900 mb-1">Annulation anticipée</p>
+                              <p className="text-xs text-slate-600 leading-relaxed">
+                                Plus de <strong>48 heures (2 jours)</strong> avant la prestation : Frais d'annulation de <strong>50€</strong> si le montant TTC est supérieur à 50€, ou totalité de la course si inférieur à 50€.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-amber-100">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-sm font-bold text-orange-700">!</span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm text-slate-900 mb-1">Annulation tardive</p>
+                              <p className="text-xs text-slate-600 leading-relaxed">
+                                Moins de <strong>48 heures</strong> avant la prestation : Remboursement de <strong>50% du montant</strong> si la course est supérieure à 50€, ou <strong>totalité de la course</strong> si inférieure à 50€.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -1369,8 +1474,8 @@ export default function ReservationPage() {
                       </div>
 
                       <form onSubmit={handleSubmitStep3(onStep3Submit)} className="space-y-5">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="md:col-span-2">
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                          <div className="xl:col-span-2">
                             <Label className="text-sm font-semibold text-slate-700 mb-2 block">Nom complet</Label>
                             <Input
                               placeholder="Jean Dupont"
@@ -1478,9 +1583,9 @@ export default function ReservationPage() {
                                       <span className="text-sm font-bold text-green-700">✓</span>
                                     </div>
                                     <div className="flex-1">
-                                      <p className="font-semibold text-sm text-slate-900 mb-1">Annulation gratuite</p>
+                                      <p className="font-semibold text-sm text-slate-900 mb-1">Annulation anticipée</p>
                                       <p className="text-xs text-slate-600 leading-relaxed">
-                                        Plus de <strong>96 heures (4 jours)</strong> avant la prestation : Remboursement intégral moins 50€ de frais de dossier si le montant TTC est supérieur à 50€, ou totalité si inférieur.
+                                        Plus de <strong>48 heures (2 jours)</strong> avant la prestation : Frais d'annulation de <strong>50€</strong> si le montant TTC est supérieur à 50€, ou totalité de la course si inférieur à 50€.
                                       </p>
                                     </div>
                                   </div>
@@ -1494,7 +1599,7 @@ export default function ReservationPage() {
                                     <div className="flex-1">
                                       <p className="font-semibold text-sm text-slate-900 mb-1">Annulation tardive</p>
                                       <p className="text-xs text-slate-600 leading-relaxed">
-                                        Moins de <strong>96 heures</strong> avant la prestation : Remboursement de <strong>50% seulement</strong> du montant total.
+                                        Moins de <strong>48 heures</strong> avant la prestation : Remboursement de <strong>50% du montant</strong> si la course est supérieure à 50€, ou <strong>totalité de la course</strong> si inférieure à 50€.
                                       </p>
                                     </div>
                                   </div>
@@ -1686,7 +1791,7 @@ export default function ReservationPage() {
               </div>
 
               {/* Sidebar */}
-              <div className="lg:col-span-1">
+              <div className="xl:col-span-1">
                 <div className="sticky top-8 space-y-6">
                   {/* Trust badges */}
                   <div className="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100">

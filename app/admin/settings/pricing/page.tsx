@@ -475,13 +475,13 @@ export default function PricingSettingsPage() {
           <CardContent className="p-6">
             {/* Tabs */}
             <div className="border-b border-slate-200 mb-6">
-              <nav className="flex space-x-1 flex-wrap">
+              <nav className="-mb-px flex space-x-4 overflow-x-auto pb-px touch-pan-x scrollbar-hide">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
-                      ? 'border-slate-800 text-slate-900'
+                    className={`whitespace-nowrap px-1 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
+                      ? 'border-emerald-500 text-emerald-600'
                       : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                       }`}
                   >

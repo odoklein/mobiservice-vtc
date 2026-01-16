@@ -20,11 +20,11 @@ export default function Home() {
 
         {/* Content */}
         <div className="relative z-10 min-h-screen flex items-center">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 py-20 sm:py-24 lg:py-12">
-            <div className="flex flex-col lg:flex-row items-center gap-8 sm:gap-10 lg:gap-6 xl:gap-10">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-16 py-20 sm:py-24 lg:py-16 xl:py-12">
+            <div className="flex flex-col lg:flex-row items-center gap-8 sm:gap-10 lg:gap-8 xl:gap-12">
 
               {/* Left - Text Content */}
-              <div className="w-full lg:w-1/2 xl:w-5/12 space-y-5 sm:space-y-6 lg:space-y-5 xl:space-y-7">
+              <div className="w-full lg:w-3/5 xl:w-1/2 2xl:w-5/12 space-y-5 sm:space-y-6 lg:space-y-4 xl:space-y-7">
                 {/* Location Tag */}
                 <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#00FF88]/10 border border-[#00FF88]/20">
                   <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#00FF88] animate-pulse"></div>
@@ -57,17 +57,17 @@ export default function Home() {
 
                 {/* Stats - Responsive cards */}
                 <div className="flex gap-2 sm:gap-3 lg:gap-2 xl:gap-4">
-                  <div className="flex-1 p-2.5 sm:p-3 lg:p-2.5 xl:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5">
+                  <div className="flex-1 p-2.5 sm:p-3 lg:p-2 xl:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5">
                     <div className="text-xl sm:text-2xl lg:text-xl xl:text-3xl font-black text-white">15<span className="text-[#00FF88]">+</span></div>
                     <div className="text-[10px] sm:text-xs text-white/40 mt-0.5 sm:mt-1">ans d'exp.</div>
                   </div>
-                  <div className="flex-1 p-2.5 sm:p-3 lg:p-2.5 xl:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5">
+                  <div className="flex-1 p-2.5 sm:p-3 lg:p-2 xl:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5">
                     <div className="text-xl sm:text-2xl lg:text-xl xl:text-3xl font-black text-white flex items-center gap-0.5 sm:gap-1">
                       5.0 <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 lg:h-3.5 lg:w-3.5 xl:h-5 xl:w-5 text-[#00FF88] fill-[#00FF88]" />
                     </div>
                     <div className="text-[10px] sm:text-xs text-white/40 mt-0.5 sm:mt-1">avis</div>
                   </div>
-                  <div className="flex-1 p-2.5 sm:p-3 lg:p-2.5 xl:p-4 rounded-xl sm:rounded-2xl bg-[#00FF88]/10 border border-[#00FF88]/20">
+                  <div className="flex-1 p-2.5 sm:p-3 lg:p-2 xl:p-4 rounded-xl sm:rounded-2xl bg-[#00FF88]/10 border border-[#00FF88]/20">
                     <div className="text-xl sm:text-2xl lg:text-xl xl:text-3xl font-black text-[#00FF88]">24/7</div>
                     <div className="text-[10px] sm:text-xs text-[#00FF88]/60 mt-0.5 sm:mt-1">dispo</div>
                   </div>
@@ -95,9 +95,9 @@ export default function Home() {
               </div>
 
               {/* Right - Creative Image Composition */}
-              <div className="w-full lg:w-1/2 xl:w-7/12 relative mt-4 sm:mt-6 lg:mt-0">
+              <div className="w-full lg:w-2/5 xl:w-1/2 2xl:w-7/12 relative mt-8 sm:mt-10 lg:mt-0 xl:mt-0">
                 {/* Main container */}
-                <div className="relative lg:ml-4 xl:ml-8">
+                <div className="relative lg:ml-2 xl:ml-8">
                   {/* Glow effect behind image - smaller on mobile */}
                   <div className="absolute inset-0 bg-[#00FF88]/15 sm:bg-[#00FF88]/20 blur-2xl sm:blur-3xl scale-75 translate-x-4 sm:translate-x-8 translate-y-4 sm:translate-y-8"></div>
 
@@ -176,10 +176,10 @@ export default function Home() {
                       </div>
 
                       {/* Driver 1 - Top left ON TOP of border - Using IMG_0047 */}
-                      <div className="absolute -top-8 -left-6 sm:-top-10 sm:-left-8 lg:-top-12 lg:-left-10 xl:-top-14 xl:-left-12 z-30">
+                      <div className="absolute -top-8 -left-6 sm:-top-10 sm:-left-8 lg:-top-8 lg:-left-6 xl:-top-14 xl:-left-12 z-30">
                         <div className="relative">
                           {/* Image container */}
-                          <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-22 lg:h-22 xl:w-24 xl:h-24 rounded-full overflow-hidden border-3 sm:border-4 xl:border-[5px] border-[#00FF88] shadow-xl shadow-[#00FF88]/30">
+                          <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-18 lg:h-18 xl:w-24 xl:h-24 rounded-full overflow-hidden border-3 sm:border-4 xl:border-[5px] border-[#00FF88] shadow-xl shadow-[#00FF88]/30">
                             <Image
                               src="/IMG_0047 (2).jpeg"
                               alt="Chauffeur professionnel"
@@ -198,10 +198,10 @@ export default function Home() {
                       </div>
 
                       {/* Driver Image - Inside bottom right */}
-                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-8 lg:right-8 xl:bottom-10 xl:right-10 z-20">
+                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-6 lg:right-6 xl:bottom-10 xl:right-10 z-20">
                         <div className="relative">
                           {/* Image container - Bigger */}
-                          <div className="relative w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 xl:w-40 xl:h-40 rounded-full overflow-hidden border-4 sm:border-[5px] xl:border-[6px] border-[#00FF88] shadow-2xl shadow-[#00FF88]/40">
+                          <div className="relative w-28 h-28 sm:w-32 sm:h-32 lg:w-32 lg:h-32 xl:w-40 xl:h-40 rounded-full overflow-hidden border-4 sm:border-[5px] xl:border-[6px] border-[#00FF88] shadow-2xl shadow-[#00FF88]/40">
                             <Image
                               src="/IMG_0046 (2).jpeg"
                               alt="Chauffeur professionnel"
@@ -221,7 +221,7 @@ export default function Home() {
                     </div>
 
                     {/* Floating info card - Only on larger screens */}
-                    <div className="absolute bottom-4 lg:bottom-6 xl:bottom-8 left-2 lg:-left-8 xl:-left-16 z-30 hidden md:block">
+                    <div className="absolute bottom-4 lg:bottom-4 xl:bottom-8 left-2 lg:-left-4 xl:-left-16 z-30 hidden md:block">
                       <div className="p-2.5 sm:p-3 xl:p-4 bg-white/10 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/10 shadow-xl">
                         <div className="flex items-center gap-2 sm:gap-3">
                           <div className="w-8 h-8 sm:w-9 sm:h-9 xl:w-10 xl:h-10 rounded-full bg-[#00FF88]/20 flex items-center justify-center">
@@ -249,14 +249,14 @@ export default function Home() {
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#00FF88]/5 rounded-full blur-[150px]"></div>
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#3B82F6]/5 rounded-full blur-[120px]"></div>
 
-        <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-24 relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-24 relative z-10">
           {/* Header */}
           <div className="text-center mb-12 md:mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6">
               <div className="w-2 h-2 rounded-full bg-[#00FF88] animate-pulse"></div>
               <span className="text-sm font-medium text-white/70">Nos prestations</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-4xl xl:text-6xl font-bold text-white mb-4 tracking-tight">
               Nos services <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00FF88] to-[#3B82F6]">sur mesure</span>
             </h2>
             <p className="text-lg md:text-xl text-white/50 max-w-2xl mx-auto">
@@ -265,10 +265,10 @@ export default function Home() {
           </div>
 
           {/* Bento Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 max-w-6xl mx-auto pb-24 sm:pb-28 md:pb-32">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 xl:gap-12 max-w-6xl mx-auto pb-24 sm:pb-28 md:pb-32">
 
             {/* Card 1 - Transfert A/S & A/R (Green) */}
-            <Link href="/reservation" className="group relative rounded-3xl overflow-visible aspect-[2/3] sm:aspect-[4/3] lg:aspect-[5/4]">
+            <Link href="/reservation" className="group relative rounded-3xl overflow-visible aspect-[2/3] sm:aspect-[4/3] lg:aspect-[5/4] xl:aspect-[5/4]">
               {/* Image Container with rounded corners */}
               <div className="absolute inset-0 rounded-3xl overflow-hidden">
                 <Image
@@ -283,26 +283,26 @@ export default function Home() {
               </div>
 
               {/* Content - Glassmorphism with Logo - Half centered on bottom edge */}
-              <div className="absolute inset-x-0 bottom-0 translate-y-1/2 px-4 sm:px-6 md:px-8">
-                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 sm:p-5 md:p-6 border border-white/20 group-hover:border-[#00FF88]/30 transition-colors duration-500 shadow-xl">
+              <div className="absolute inset-x-0 bottom-0 translate-y-1/2 px-4 sm:px-6 lg:px-6 xl:px-8">
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 sm:p-5 lg:p-4 xl:p-6 border border-white/20 group-hover:border-[#00FF88]/30 transition-colors duration-500 shadow-xl">
                   <div className="flex flex-row justify-between items-end gap-4">
                     {/* Text Content - Left */}
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col gap-0.5 mb-3">
-                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white leading-tight">
-                          Transfert A/S <span className="text-white/60 font-normal text-sm sm:text-base md:text-lg">(Aller simple)</span>
+                        <h3 className="text-lg sm:text-xl lg:text-lg xl:text-2xl font-bold text-white leading-tight">
+                          Transfert A/S <span className="text-white/60 font-normal text-sm sm:text-base lg:text-sm xl:text-lg">(Aller simple)</span>
                         </h3>
-                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white leading-tight">
-                          Transfert A/R <span className="text-white/60 font-normal text-sm sm:text-base md:text-lg">(Aller retour)</span>
+                        <h3 className="text-lg sm:text-xl lg:text-lg xl:text-2xl font-bold text-white leading-tight">
+                          Transfert A/R <span className="text-white/60 font-normal text-sm sm:text-base lg:text-sm xl:text-lg">(Aller retour)</span>
                         </h3>
                       </div>
-                      <p className="text-white/60 text-xs sm:text-sm md:text-base mb-4 leading-relaxed hidden sm:block">
+                      <p className="text-white/60 text-xs sm:text-sm lg:text-xs xl:text-base mb-4 leading-relaxed hidden sm:block">
                         Transfert direct de votre point de départ à votre destination
                       </p>
                       <div className="flex items-center gap-3 flex-wrap">
                         <div>
                           <span className="text-[10px] sm:text-xs text-white/40 uppercase tracking-wider">À partir de</span>
-                          <div className="text-xl sm:text-2xl font-bold text-[#00FF88]">33€ TTC</div>
+                          <div className="text-xl sm:text-2xl lg:text-xl xl:text-2xl font-bold text-[#00FF88]">33€ TTC</div>
                         </div>
                         <div className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-[#00FF88] text-black font-semibold text-xs sm:text-sm group-hover:shadow-lg group-hover:shadow-[#00FF88]/30 transition-all duration-500">
                           <span className="hidden sm:inline">Demander une estimation</span>
@@ -314,7 +314,7 @@ export default function Home() {
 
                     {/* Logo - Right */}
                     <div className="flex-shrink-0">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center p-1.5 sm:p-2 group-hover:scale-110 group-hover:border-[#00FF88]/50 transition-all duration-500">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 lg:w-16 lg:h-16 xl:w-20 xl:h-20 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center p-1.5 sm:p-2 group-hover:scale-110 group-hover:border-[#00FF88]/50 transition-all duration-500">
                         <Image
                           src="/cardlogogreen.png"
                           alt="Logo vert"
@@ -330,7 +330,7 @@ export default function Home() {
             </Link>
 
             {/* Card 2 - Transfert Forfaitaire (Blue) */}
-            <Link href="/reservation" className="group relative rounded-3xl overflow-visible aspect-[2/3] sm:aspect-[4/3] lg:aspect-[5/4]">
+            <Link href="/reservation" className="group relative rounded-3xl overflow-visible aspect-[2/3] sm:aspect-[4/3] lg:aspect-[5/4] xl:aspect-[5/4]">
               {/* Image Container with rounded corners */}
               <div className="absolute inset-0 rounded-3xl overflow-hidden">
                 <Image
@@ -345,21 +345,21 @@ export default function Home() {
               </div>
 
               {/* Content - Glassmorphism with Logo - Half centered on bottom edge */}
-              <div className="absolute inset-x-0 bottom-0 translate-y-1/2 px-4 sm:px-6 md:px-8">
-                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 sm:p-5 md:p-6 border border-white/20 group-hover:border-[#3B82F6]/30 transition-colors duration-500 shadow-xl">
+              <div className="absolute inset-x-0 bottom-0 translate-y-1/2 px-4 sm:px-6 lg:px-6 xl:px-8">
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 sm:p-5 lg:p-4 xl:p-6 border border-white/20 group-hover:border-[#3B82F6]/30 transition-colors duration-500 shadow-xl">
                   <div className="flex flex-row justify-between items-end gap-4">
                     {/* Text Content - Left */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2 leading-tight">
+                      <h3 className="text-lg sm:text-xl lg:text-lg xl:text-2xl font-bold text-white mb-2 leading-tight">
                         Transfert Forfaitaire
                       </h3>
-                      <p className="text-white/60 text-xs sm:text-sm md:text-base mb-4 leading-relaxed hidden sm:block">
+                      <p className="text-white/60 text-xs sm:text-sm lg:text-xs xl:text-base mb-4 leading-relaxed hidden sm:block">
                         Chauffeur à disposition pour vos déplacements multiples. Forfaits de 2H à 8H disponibles.
                       </p>
                       <div className="flex items-center gap-3 flex-wrap">
                         <div>
                           <span className="text-[10px] sm:text-xs text-white/40 uppercase tracking-wider">Demandez votre</span>
-                          <div className="text-xl sm:text-2xl font-bold text-[#3B82F6]">Devis</div>
+                          <div className="text-xl sm:text-2xl lg:text-xl xl:text-2xl font-bold text-[#3B82F6]">Devis</div>
                         </div>
                         <div className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-[#3B82F6] text-white font-semibold text-xs sm:text-sm group-hover:shadow-lg group-hover:shadow-[#3B82F6]/30 transition-all duration-500">
                           <span className="hidden sm:inline">Demander une estimation</span>
@@ -371,7 +371,7 @@ export default function Home() {
 
                     {/* Logo - Right */}
                     <div className="flex-shrink-0">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center p-1.5 sm:p-2 group-hover:scale-110 group-hover:border-[#3B82F6]/50 transition-all duration-500">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 lg:w-16 lg:h-16 xl:w-20 xl:h-20 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center p-1.5 sm:p-2 group-hover:scale-110 group-hover:border-[#3B82F6]/50 transition-all duration-500">
                         <Image
                           src="/cardbluelogo.png"
                           alt="Logo bleu"
@@ -392,18 +392,18 @@ export default function Home() {
 
       {/* Values Section */}
       < section className="py-32 bg-[#0A0A0A]" >
-        <div className="container mx-auto px-6 md:px-12 lg:px-24">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
+        <div className="container mx-auto px-6 md:px-12 lg:px-10 xl:px-24">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-10 xl:gap-16 items-center max-w-6xl mx-auto">
             {/* Left */}
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6">
                 <span className="text-sm font-medium text-[#00FF88]">Nos engagements</span>
               </div>
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              <h2 className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-bold text-white mb-6">
                 L'excellence à chaque
                 <span className="text-[#00FF88]"> trajet</span>
               </h2>
-              <p className="text-xl text-white/70 mb-8 leading-relaxed">
+              <p className="text-xl lg:text-lg xl:text-xl text-white/70 mb-8 leading-relaxed">
                 Nous mettons un point d'honneur à offrir une expérience irréprochable.
               </p>
 
@@ -458,7 +458,7 @@ export default function Home() {
 
       {/* CTA Section */}
       < section className="py-32 bg-white" >
-        <div className="container mx-auto px-6 md:px-12 lg:px-24">
+        <div className="container mx-auto px-6 md:px-12 lg:px-10 xl:px-24">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-4xl md:text-6xl font-bold text-[#0A0A0A] mb-6">
               Prêt pour votre
