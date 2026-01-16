@@ -11,7 +11,7 @@ export function Footer() {
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(0,255,136,0.05),transparent_50%)]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(212,175,55,0.03),transparent_50%)]"></div>
-        
+
         <div className="container mx-auto px-4 py-16 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
             {/* Brand */}
@@ -28,7 +28,7 @@ export function Footer() {
               <p className="text-white/60 text-sm leading-relaxed">
                 {BRAND.description}
               </p>
-              
+
               {/* Trust Badges */}
               <div className="flex flex-wrap gap-4 pt-2">
                 <div className="flex items-center gap-2 text-white/50 text-xs">
@@ -42,6 +42,23 @@ export function Footer() {
                 <div className="flex items-center gap-2 text-white/50 text-xs">
                   <Star className="h-4 w-4 text-[#B8D4E3]" />
                   <span>5.0</span>
+                </div>
+              </div>
+
+              {/* QR Code */}
+              <div className="pt-4 border-t border-white/5 mt-6">
+                <p className="text-white/40 text-xs mb-3 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#5CD85A] animate-pulse"></span>
+                  Scannez pour réserver
+                </p>
+                <div className="bg-white p-2 rounded-xl inline-block shadow-lg shadow-[#5CD85A]/10 transition-transform hover:scale-105 duration-300">
+                  <Image
+                    src="/qr.svg"
+                    alt="Scan QR Code"
+                    width={100}
+                    height={100}
+                    className="w-24 h-24"
+                  />
                 </div>
               </div>
             </div>
@@ -135,7 +152,7 @@ export function Footer() {
           </div>
         </div>
       </div>
-      
+
       {/* Copyright Bar */}
       <div className="bg-[#0A0A0A] border-t border-white/5">
         <div className="container mx-auto px-4 py-6">

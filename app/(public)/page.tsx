@@ -103,76 +103,79 @@ export default function Home() {
 
                   {/* Main Car Image with creative frame */}
                   <div className="relative mx-4 sm:mx-6 lg:mx-0">
-                    <div className="relative aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl sm:shadow-2xl shadow-black/50 lg:rotate-1 xl:rotate-2 transition-transform hover:rotate-0 duration-500">
-                      <Image
-                        src="/MG5-Electric-Black-Interior-1024x685 (1).jpg"
-                        alt="MG5 Electric Interior"
-                        fill
-                        className="object-cover"
-                        priority
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 50vw"
-                      />
+                    <div className="relative aspect-[4/3] lg:rotate-1 xl:rotate-2 transition-transform hover:rotate-0 duration-500">
+                      <div className="absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl sm:shadow-2xl shadow-black/50">
+                        <Image
+                          src="/MG5-Electric-Black-Interior-1024x685 (1).jpg"
+                          alt="MG5 Electric Interior"
+                          fill
+                          className="object-cover"
+                          priority
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 50vw"
+                        />
 
-                      {/* Subtle glowing serpentine road effect */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-                        <svg
-                          viewBox="0 0 400 150"
-                          className="w-full h-auto max-h-full opacity-60"
-                          preserveAspectRatio="xMidYMid meet"
-                        >
-                          {/* Glow filter */}
-                          <defs>
-                            <filter id="roadGlow" x="-50%" y="-50%" width="200%" height="200%">
-                              <feGaussianBlur stdDeviation="3" result="blur" />
-                              <feMerge>
-                                <feMergeNode in="blur" />
-                                <feMergeNode in="SourceGraphic" />
-                              </feMerge>
-                            </filter>
-                            <linearGradient id="roadGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                              <stop offset="0%" stopColor="#00FF88" stopOpacity="0" />
-                              <stop offset="20%" stopColor="#00FF88" stopOpacity="0.4" />
-                              <stop offset="50%" stopColor="#00FF88" stopOpacity="0.6" />
-                              <stop offset="80%" stopColor="#00FF88" stopOpacity="0.4" />
-                              <stop offset="100%" stopColor="#00FF88" stopOpacity="0" />
-                            </linearGradient>
-                          </defs>
+                        {/* Subtle glowing serpentine road effect */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+                          <svg
+                            viewBox="0 0 400 150"
+                            className="w-full h-auto max-h-full opacity-60"
+                            preserveAspectRatio="xMidYMid meet"
+                          >
+                            {/* Glow filter */}
+                            <defs>
+                              <filter id="roadGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="3" result="blur" />
+                                <feMerge>
+                                  <feMergeNode in="blur" />
+                                  <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                              </filter>
+                              <linearGradient id="roadGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#00FF88" stopOpacity="0" />
+                                <stop offset="20%" stopColor="#00FF88" stopOpacity="0.4" />
+                                <stop offset="50%" stopColor="#00FF88" stopOpacity="0.6" />
+                                <stop offset="80%" stopColor="#00FF88" stopOpacity="0.4" />
+                                <stop offset="100%" stopColor="#00FF88" stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
 
-                          {/* Serpentine road path - S-curve */}
-                          <path
-                            d="M 0 75 
+                            {/* Serpentine road path - S-curve */}
+                            <path
+                              d="M 0 75 
                                C 50 75, 80 30, 130 30 
                                S 200 120, 270 120 
                                S 350 50, 400 75"
-                            fill="none"
-                            stroke="url(#roadGradient)"
-                            strokeWidth="4"
-                            strokeLinecap="round"
-                            filter="url(#roadGlow)"
-                          />
+                              fill="none"
+                              stroke="url(#roadGradient)"
+                              strokeWidth="4"
+                              strokeLinecap="round"
+                              filter="url(#roadGlow)"
+                            />
 
-                          {/* Dashed center line */}
-                          <path
-                            d="M 0 75 
+                            {/* Dashed center line */}
+                            <path
+                              d="M 0 75 
                                C 50 75, 80 30, 130 30 
                                S 200 120, 270 120 
                                S 350 50, 400 75"
-                            fill="none"
-                            stroke="#00FF88"
-                            strokeWidth="1.5"
-                            strokeDasharray="8 12"
-                            strokeLinecap="round"
-                            opacity="0.5"
-                          />
-                        </svg>
-                      </div>
+                              fill="none"
+                              stroke="#00FF88"
+                              strokeWidth="1.5"
+                              strokeDasharray="8 12"
+                              strokeLinecap="round"
+                              opacity="0.5"
+                            />
+                          </svg>
+                        </div>
 
-                      {/* Corner accent - smaller on mobile */}
-                      <div className="absolute top-0 right-0 w-16 sm:w-20 lg:w-16 xl:w-24 h-16 sm:h-20 lg:h-16 xl:h-24">
-                        <div className="absolute top-2 sm:top-3 lg:top-2 xl:top-4 right-2 sm:right-3 lg:right-2 xl:right-4 w-full h-full border-t-2 sm:border-t-3 lg:border-t-2 xl:border-t-4 border-r-2 sm:border-r-3 lg:border-r-2 xl:border-r-4 border-[#00FF88] rounded-tr-2xl sm:rounded-tr-3xl"></div>
-                      </div>
-                      <div className="absolute bottom-0 left-0 w-16 sm:w-20 lg:w-16 xl:w-24 h-16 sm:h-20 lg:h-16 xl:h-24">
-                        <div className="absolute bottom-2 sm:bottom-3 lg:bottom-2 xl:bottom-4 left-2 sm:left-3 lg:left-2 xl:left-4 w-full h-full border-b-2 sm:border-b-3 lg:border-b-2 xl:border-b-4 border-l-2 sm:border-l-3 lg:border-l-2 xl:border-l-4 border-[#00FF88] rounded-bl-2xl sm:rounded-bl-3xl"></div>
+                        {/* Corner accent - smaller on mobile */}
+                        <div className="absolute top-0 right-0 w-16 sm:w-20 lg:w-16 xl:w-24 h-16 sm:h-20 lg:h-16 xl:h-24">
+                          <div className="absolute top-2 sm:top-3 lg:top-2 xl:top-4 right-2 sm:right-3 lg:right-2 xl:right-4 w-full h-full border-t-2 sm:border-t-3 lg:border-t-2 xl:border-t-4 border-r-2 sm:border-r-3 lg:border-r-2 xl:border-r-4 border-[#00FF88] rounded-tr-2xl sm:rounded-tr-3xl"></div>
+                        </div>
+                        <div className="absolute bottom-0 left-0 w-16 sm:w-20 lg:w-16 xl:w-24 h-16 sm:h-20 lg:h-16 xl:h-24">
+                          <div className="absolute bottom-2 sm:bottom-3 lg:bottom-2 xl:bottom-4 left-2 sm:left-3 lg:left-2 xl:left-4 w-full h-full border-b-2 sm:border-b-3 lg:border-b-2 xl:border-b-4 border-l-2 sm:border-l-3 lg:border-l-2 xl:border-l-4 border-[#00FF88] rounded-bl-2xl sm:rounded-bl-3xl"></div>
+                        </div>
+
                       </div>
 
                       {/* Driver 1 - Top left ON TOP of border - Using IMG_0047 */}
@@ -198,7 +201,7 @@ export default function Home() {
                       </div>
 
                       {/* Driver Image - Inside bottom right */}
-                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-6 lg:right-6 xl:bottom-10 xl:right-10 z-20">
+                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-6 lg:right-6 xl:bottom-10 xl:right-10 z-40">
                         <div className="relative">
                           {/* Image container - Bigger */}
                           <div className="relative w-28 h-28 sm:w-32 sm:h-32 lg:w-32 lg:h-32 xl:w-40 xl:h-40 rounded-full overflow-hidden border-4 sm:border-[5px] xl:border-[6px] border-[#00FF88] shadow-2xl shadow-[#00FF88]/40">
@@ -330,7 +333,7 @@ export default function Home() {
             </Link>
 
             {/* Card 2 - Transfert Forfaitaire (Blue) */}
-            <Link href="/reservation" className="group relative rounded-3xl overflow-visible aspect-[2/3] sm:aspect-[4/3] lg:aspect-[5/4] xl:aspect-[5/4]">
+            <Link href="/reservation?type=hourly" className="group relative rounded-3xl overflow-visible aspect-[2/3] sm:aspect-[4/3] lg:aspect-[5/4] xl:aspect-[5/4]">
               {/* Image Container with rounded corners */}
               <div className="absolute inset-0 rounded-3xl overflow-hidden">
                 <Image

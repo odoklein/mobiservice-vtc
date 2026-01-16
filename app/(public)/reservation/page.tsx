@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -73,6 +74,7 @@ export default function ReservationPage() {
   const [cardErrors, setCardErrors] = useState<Partial<Record<keyof CardDetails, string>>>({});
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { bookingData: savedBookingData, saveBookingDraft, clearBookingDraft, addToHistory } = useBookingStorage();
+  const searchParams = useSearchParams();
 
   // Animation states
   const [mounted, setMounted] = useState(false);
@@ -131,6 +133,16 @@ export default function ReservationPage() {
       }
     }
   }, []);
+
+  // Handle URL parameters for service type pre-selection
+  useEffect(() => {
+    const typeParam = searchParams.get('type');
+    if (typeParam === 'hourly') {
+      setValueStep1('serviceType', 'hourly');
+    } else if (typeParam === 'transfer') {
+      setValueStep1('serviceType', 'transfer');
+    }
+  }, [searchParams, setValueStep1]);
 
   // Save form data to localStorage as user types (debounced)
   useEffect(() => {
@@ -652,9 +664,9 @@ export default function ReservationPage() {
       <div className="relative -mt-8 z-20">
         <div className="container mx-auto px-6 md:px-12 xl:px-24 pb-16">
           <div className="max-w-5xl mx-auto">
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
               {/* Main Form Area */}
-              <div className="xl:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-6">
                 {/* Step 1: Trip Details */}
                 {step === 1 && (
                   <div className="space-y-6 animate-fade-in-up">
@@ -670,7 +682,7 @@ export default function ReservationPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-4xl mx-auto">
                         {/* Transfer Service Card */}
                         <button
                           type="button"
@@ -684,10 +696,11 @@ export default function ReservationPage() {
                           `}
                         >
                           <div className={`
-                            w-14 h-14 rounded-2xl mb-5 flex items-center justify-center transition-all duration-150
+                            h-14 rounded-2xl mb-5 flex items-center justify-center transition-all duration-150 gap-3 px-4 max-w-fit
                             ${step1Data.serviceType === 'transfer' ? 'bg-white/20' : 'bg-[#5CD85A]/10 text-[#5CD85A]'}
                           `}>
-                            <IconCar className="h-8 w-8" />
+                            <IconCar className="h-7 w-7" />
+                            <IconRoute className="h-7 w-7" />
                           </div>
                           <div className="flex-grow">
                             <h3 className={`text-xl font-bold mb-2 leading-tight ${step1Data.serviceType === 'transfer' ? 'text-[#0A0A0A]' : 'text-slate-900'}`}>
@@ -941,7 +954,7 @@ export default function ReservationPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Calendar */}
                         <div>
                           <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50">
@@ -1474,8 +1487,8 @@ export default function ReservationPage() {
                       </div>
 
                       <form onSubmit={handleSubmitStep3(onStep3Submit)} className="space-y-5">
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                          <div className="xl:col-span-2">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          <div className="lg:col-span-2">
                             <Label className="text-sm font-semibold text-slate-700 mb-2 block">Nom complet</Label>
                             <Input
                               placeholder="Jean Dupont"
@@ -1791,7 +1804,7 @@ export default function ReservationPage() {
               </div>
 
               {/* Sidebar */}
-              <div className="xl:col-span-1">
+              <div className="lg:col-span-1">
                 <div className="sticky top-8 space-y-6">
                   {/* Trust badges */}
                   <div className="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100">
