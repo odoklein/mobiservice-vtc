@@ -83,30 +83,6 @@ export default function ReservationPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // Fetch minimum lead time when pickup coordinates are set
-  useEffect(() => {
-    const lat = step1Data?.pickupLat ?? savedBookingData?.pickupLat;
-    const lng = step1Data?.pickupLng ?? savedBookingData?.pickupLng;
-    if (typeof lat !== 'number' || typeof lng !== 'number') {
-      setEarliestPickupDateTime(null);
-      return;
-    }
-    fetch('/api/booking/lead-time', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pickupLat: lat, pickupLng: lng }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.earliestPickup) {
-          setEarliestPickupDateTime(new Date(data.earliestPickup));
-        } else {
-          setEarliestPickupDateTime(null);
-        }
-      })
-      .catch(() => setEarliestPickupDateTime(null));
-  }, [step1Data?.pickupLat, step1Data?.pickupLng, savedBookingData?.pickupLat, savedBookingData?.pickupLng]);
-
   // Step 1 form
   const {
     register: registerStep1,
@@ -138,6 +114,30 @@ export default function ReservationPage() {
   });
 
   const step1Data = watchStep1();
+
+  // Fetch minimum lead time when pickup coordinates are set
+  useEffect(() => {
+    const lat = step1Data?.pickupLat ?? savedBookingData?.pickupLat;
+    const lng = step1Data?.pickupLng ?? savedBookingData?.pickupLng;
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      setEarliestPickupDateTime(null);
+      return;
+    }
+    fetch('/api/booking/lead-time', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pickupLat: lat, pickupLng: lng }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.earliestPickup) {
+          setEarliestPickupDateTime(new Date(data.earliestPickup));
+        } else {
+          setEarliestPickupDateTime(null);
+        }
+      })
+      .catch(() => setEarliestPickupDateTime(null));
+  }, [step1Data?.pickupLat, step1Data?.pickupLng, savedBookingData?.pickupLat, savedBookingData?.pickupLng]);
 
   // Load saved booking data on mount
   useEffect(() => {
