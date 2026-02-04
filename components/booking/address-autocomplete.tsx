@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { IconMapPin, IconLoader2, IconClock, IconStar, IconMap2 } from '@tabler/icons-react';
 import { useRecentAddresses } from '@/hooks/use-local-storage';
-import { POPULAR_LOCATIONS } from '@/lib/constants';
+import { POPULAR_LOCATIONS, HAUTE_SAVOIE_AUTOCOMPLETE_BIAS } from '@/lib/constants';
 
 const libraries: ("places")[] = ["places"];
 
@@ -20,6 +20,8 @@ interface AddressAutocompleteProps {
   value: string;
   onChange: (address: string, lat?: number, lng?: number) => void;
   error?: string;
+  /** Affiche un rappel pour les adresses en Haute-Savoie (74) */
+  showHauteSavoieHint?: boolean;
 }
 
 // Inner component that only renders after Google Maps is loaded
@@ -29,6 +31,7 @@ function PlacesAutocompleteInner({
   value,
   onChange,
   error,
+  showHauteSavoieHint = false,
 }: AddressAutocompleteProps) {
   const {
     ready,
@@ -40,6 +43,11 @@ function PlacesAutocompleteInner({
     requestOptions: {
       componentRestrictions: { country: ['fr', 'ch'] },
       language: 'fr',
+      // Prioriser Haute-Savoie (74) pour les recherches ambiguës (ex. "Mairie de Vougy")
+      locationBias: {
+        center: HAUTE_SAVOIE_AUTOCOMPLETE_BIAS.center,
+        radius: HAUTE_SAVOIE_AUTOCOMPLETE_BIAS.radius,
+      },
     },
     debounce: 300,
   });
@@ -178,6 +186,11 @@ function PlacesAutocompleteInner({
       </div>
 
       {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
+      {showHauteSavoieHint && !error && (
+        <p className="text-xs text-slate-500 mt-1">
+          Pour une adresse en Haute-Savoie, précisez «&nbsp;74&nbsp;» ou le code postal si le mauvais département s’affiche.
+        </p>
+      )}
 
       {showSuggestions && (
         <div

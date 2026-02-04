@@ -28,7 +28,7 @@ export default function Home() {
                 {/* Location Tag */}
                 <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#00FF88]/10 border border-[#00FF88]/20">
                   <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#00FF88] animate-pulse"></div>
-                  <span className="text-[#00FF88] text-xs sm:text-sm font-medium">Haute-Savoie • France</span>
+                  <span className="text-[#00FF88] text-xs sm:text-sm font-medium">Haute-Savoie & environs • France • Europe</span>
                 </div>
 
                 {/* Headline with creative styling */}
@@ -152,18 +152,18 @@ export default function Home() {
                               filter="url(#roadGlow)"
                             />
 
-                            {/* Dashed center line */}
+                            {/* Dashed center line - plus marquant, visible sur fond noir */}
                             <path
                               d="M 0 75 
                                C 50 75, 80 30, 130 30 
                                S 200 120, 270 120 
                                S 350 50, 400 75"
                               fill="none"
-                              stroke="#00FF88"
-                              strokeWidth="1.5"
-                              strokeDasharray="8 12"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeDasharray="10 14"
                               strokeLinecap="round"
-                              opacity="0.5"
+                              opacity="0.9"
                             />
                           </svg>
                         </div>
@@ -190,18 +190,18 @@ export default function Home() {
                               className="object-cover"
                             />
                           </div>
-                          {/* Badge */}
-                          <div className="absolute -bottom-1.5 sm:-bottom-2 xl:-bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 sm:px-3 xl:px-4 py-1 sm:py-1.5 bg-black border-2 border-[#00FF88] rounded-full shadow-xl">
-                            <div className="flex items-center gap-1 sm:gap-1.5">
-                              <Shield className="h-2.5 w-2.5 sm:h-3 sm:w-3 xl:h-3.5 xl:w-3.5 text-[#00FF88]" />
-                              <span className="text-xs sm:text-sm font-bold text-[#00FF88]">PRO</span>
+                          {/* Badge - plus petit (client) */}
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black border border-[#00FF88] rounded-full shadow-lg">
+                            <div className="flex items-center gap-0.5">
+                              <Shield className="h-2.5 w-2.5 text-[#00FF88]" />
+                              <span className="text-[10px] font-bold text-[#00FF88]">PRO</span>
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Driver Image - Inside bottom right */}
-                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-6 lg:right-6 xl:bottom-10 xl:right-10 z-40">
+                      {/* Driver Image - Inside bottom right, mord sur la photo et le noir (1/3 photo, 2/3 noir) */}
+                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-6 lg:right-2 xl:bottom-8 xl:-right-8 z-40">
                         <div className="relative">
                           {/* Image container - Bigger */}
                           <div className="relative w-28 h-28 sm:w-32 sm:h-32 lg:w-32 lg:h-32 xl:w-40 xl:h-40 rounded-full overflow-hidden border-4 sm:border-[5px] xl:border-[6px] border-[#00FF88] shadow-2xl shadow-[#00FF88]/40">
@@ -299,8 +299,11 @@ export default function Home() {
                           Transfert A/R <span className="text-white/60 font-normal text-sm sm:text-base lg:text-sm xl:text-lg">(Aller retour)</span>
                         </h3>
                       </div>
-                      <p className="text-white/60 text-xs sm:text-sm lg:text-xs xl:text-base mb-4 leading-relaxed hidden sm:block">
+                      <p className="text-white/60 text-xs sm:text-sm lg:text-xs xl:text-base mb-2 leading-relaxed hidden sm:block">
                         Transfert direct de votre point de départ à votre destination
+                      </p>
+                      <p className="text-white/50 text-[10px] sm:text-xs mb-3 leading-tight">
+                        Transfert A/R : retour planifié avec trajet identique de 1 à 3 jours après l&apos;aller.
                       </p>
                       <div className="flex items-center gap-3 flex-wrap">
                         <div>
@@ -356,8 +359,11 @@ export default function Home() {
                       <h3 className="text-lg sm:text-xl lg:text-lg xl:text-2xl font-bold text-white mb-2 leading-tight">
                         Transfert Forfaitaire
                       </h3>
-                      <p className="text-white/60 text-xs sm:text-sm lg:text-xs xl:text-base mb-4 leading-relaxed hidden sm:block">
-                        Chauffeur à disposition pour vos déplacements multiples. Forfaits de 2H à 8H disponibles.
+                      <p className="text-white/60 text-xs sm:text-sm lg:text-xs xl:text-base mb-2 leading-relaxed hidden sm:block">
+                        Chauffeur à disposition de 1h à 8h (paliers de 30 min). Forfaits de 1H à 8H disponibles.
+                      </p>
+                      <p className="text-white/50 text-[10px] sm:text-xs mb-3 leading-tight">
+                        Retour uniquement le même jour.
                       </p>
                       <div className="flex items-center gap-3 flex-wrap">
                         <div>
@@ -401,13 +407,15 @@ export default function Home() {
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6">
                 <span className="text-sm font-medium text-[#00FF88]">Nos engagements</span>
+                <span className="text-white/50">•</span>
+                <span className="text-xs text-white/60">Haute-Savoie & environs, France, Europe</span>
               </div>
               <h2 className="text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-bold text-white mb-6">
-                L'excellence à chaque
+                L&apos;excellence à chaque
                 <span className="text-[#00FF88]"> trajet</span>
               </h2>
               <p className="text-xl lg:text-lg xl:text-xl text-white/70 mb-8 leading-relaxed">
-                Nous mettons un point d'honneur à offrir une expérience irréprochable.
+                Nous mettons un point d&apos;honneur à vous offrir une expérience irréprochable.
               </p>
 
               <div className="space-y-4">

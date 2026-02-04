@@ -78,6 +78,8 @@ export interface PricingConfig {
     day: number;
     night: number;
     freeMinutes: number;
+    per15MinDay?: number;
+    per15MinNight?: number;
   };
   airportRates: {
     geneva: { day: number; night: number };
@@ -148,6 +150,8 @@ async function loadPricingFromDatabase(): Promise<PricingConfig | null> {
         day: 1.20,
         night: 1.80,
         freeMinutes: 15,
+        per15MinDay: 18,
+        per15MinNight: 27,
       },
       airportRates: {
         geneva: { day: 116, night: 130 },
@@ -281,6 +285,8 @@ async function loadPricingFromDatabase(): Promise<PricingConfig | null> {
 function getHardcodedPricing(): PricingConfig {
   return {
     forfaits: [
+      { hours: 1, maxKm: 90, day: 116, night: 140 },
+      { hours: 1.5, maxKm: 135, day: 174, night: 210 },
       { hours: 2, maxKm: 180, day: 232, night: 280 },
       { hours: 2.5, maxKm: 225, day: 290, night: 337.50 },
       { hours: 3, maxKm: 270, day: 348, night: 390 },
@@ -324,6 +330,8 @@ function getHardcodedPricing(): PricingConfig {
       day: 1.20,
       night: 1.80,
       freeMinutes: 15,
+      per15MinDay: 18,
+      per15MinNight: 27,
     },
     airportRates: {
       geneva: { day: 116, night: 130 },

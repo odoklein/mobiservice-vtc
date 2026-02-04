@@ -76,9 +76,36 @@ export default function ReservationPage() {
   const { bookingData: savedBookingData, saveBookingDraft, clearBookingDraft, addToHistory } = useBookingStorage();
   const searchParams = useSearchParams();
 
+  // Minimum pickup datetime (CA Aller lead time)
+  const [earliestPickupDateTime, setEarliestPickupDateTime] = useState<Date | null>(null);
+
   // Animation states
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Fetch minimum lead time when pickup coordinates are set
+  useEffect(() => {
+    const lat = step1Data?.pickupLat ?? savedBookingData?.pickupLat;
+    const lng = step1Data?.pickupLng ?? savedBookingData?.pickupLng;
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      setEarliestPickupDateTime(null);
+      return;
+    }
+    fetch('/api/booking/lead-time', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pickupLat: lat, pickupLng: lng }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.earliestPickup) {
+          setEarliestPickupDateTime(new Date(data.earliestPickup));
+        } else {
+          setEarliestPickupDateTime(null);
+        }
+      })
+      .catch(() => setEarliestPickupDateTime(null));
+  }, [step1Data?.pickupLat, step1Data?.pickupLng, savedBookingData?.pickupLat, savedBookingData?.pickupLng]);
 
   // Step 1 form
   const {
@@ -771,7 +798,11 @@ export default function ReservationPage() {
                           <div className="grid grid-cols-2 gap-3">
                             {[
                               { value: 'one-way', label: 'Aller Simple', sub: 'Trajet unique' },
-                              { value: 'round-trip', label: 'Aller-Retour', sub: 'Même jour' },
+                              {
+                                value: 'round-trip',
+                                label: 'Aller-Retour',
+                                sub: step1Data.serviceType === 'hourly' ? 'Même jour' : 'Retour 1 à 3 jours après l\'aller',
+                              },
                             ].map((option) => (
                               <button
                                 key={option.value}
@@ -796,20 +827,21 @@ export default function ReservationPage() {
                             <div className="mt-4 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 rounded-2xl shadow-sm">
                               <Label className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
                                 <IconClock className="h-4 w-4 text-blue-600" />
-                                Durée d'attente (MAD)
+                                MAD (Mise à disposition) – choix par ¼ h (15 min)
                               </Label>
+                              <p className="text-xs text-slate-600 mb-2">15 min = 0,00 € puis par tranches de 15 min</p>
                               <Input
                                 type="number"
                                 min="0"
                                 max="480"
                                 step="15"
-                                placeholder="Minutes d'attente"
+                                placeholder="0, 15, 30, 45…"
                                 className="h-12 rounded-xl border-blue-200 focus:border-blue-400 focus:ring-blue-400/20 bg-white text-base font-medium text-slate-900 placeholder:text-slate-400"
                                 {...registerStep1('waitingMinutes', { valueAsNumber: true })}
                               />
                               <div className="mt-3 space-y-2 bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-blue-100">
                                 <p className="text-xs text-slate-600 leading-relaxed">
-                                  Temps d'attente estimé entre l'aller et le retour
+                                  Durée d&apos;immobilisation (MAD) / Temps d&apos;immobilisation estimé entre l&apos;aller et le retour
                                 </p>
                                 <div className="flex items-center gap-2 py-1.5 px-2.5 bg-emerald-50 rounded-lg border border-emerald-200/50">
                                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
@@ -818,7 +850,7 @@ export default function ReservationPage() {
                                   </p>
                                 </div>
                                 <p className="text-xs text-slate-700 font-medium leading-relaxed">
-                                  Ensuite : <span className="text-blue-700 font-bold">18€ TTC/15min</span> (jour) • <span className="text-indigo-700 font-bold">27€ TTC/15min</span> (nuit)
+                                  Ensuite : <span className="text-blue-700 font-bold">18 € TTC / 15 min</span> (jour) • <span className="text-indigo-700 font-bold">27 € TTC / 15 min</span> (nuit)
                                 </p>
                                 <p className="text-[10px] text-slate-500 italic leading-relaxed pt-1 border-t border-slate-200/50">
                                   Toute tranche de 15 minutes entamée est due
@@ -911,6 +943,7 @@ export default function ReservationPage() {
                                   }
                                 }}
                                 error={errorsStep1.pickupAddress?.message}
+                                showHauteSavoieHint
                               />
                             </div>
                           </div>
@@ -965,7 +998,18 @@ export default function ReservationPage() {
                                 setSelectedDate(date);
                                 if (date) setValueStep1('pickupDate', date);
                               }}
-                              disabled={(date) => date < new Date()}
+                              disabled={(date) => {
+                                const d = new Date(date);
+                                d.setHours(0, 0, 0, 0);
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                return d < today;
+                              }}
+                              formatters={{
+                                formatCaption: (month) =>
+                                  month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^\w/, (c) => c.toUpperCase()),
+                                formatWeekdayName: (date) => ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'][date.getDay()],
+                              }}
                               className="rounded-xl"
                             />
                           </div>
@@ -983,6 +1027,22 @@ export default function ReservationPage() {
                             <Input
                               type="time"
                               className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg font-medium"
+                              min={
+                                selectedDate && earliestPickupDateTime
+                                  ? (() => {
+                                      const t = new Date(selectedDate);
+                                      t.setHours(0, 0, 0, 0);
+                                      const today = new Date();
+                                      today.setHours(0, 0, 0, 0);
+                                      if (t.getTime() === today.getTime()) {
+                                        const h = earliestPickupDateTime.getHours();
+                                        const m = earliestPickupDateTime.getMinutes();
+                                        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                                      }
+                                      return undefined;
+                                    })()
+                                  : undefined
+                              }
                               {...registerStep1('pickupTime')}
                             />
                             {errorsStep1.pickupTime && (
@@ -998,12 +1058,12 @@ export default function ReservationPage() {
                             </div>
 
                             <div className="space-y-3">
-                              {/* Adults */}
+                              {/* Adults and children 10+ */}
                               <div className="bg-white rounded-2xl p-4 border border-slate-100">
                                 <div className="flex items-center justify-between">
                                   <div className="flex-1">
-                                    <div className="font-semibold text-sm text-slate-900">Adultes</div>
-                                    <div className="text-xs text-slate-500 mt-0.5">13 ans et plus</div>
+                                    <div className="font-semibold text-sm text-slate-900">Adultes et enfant de + de 10 ans</div>
+                                    <div className="text-xs text-slate-500 mt-0.5">(− 1 +)</div>
                                   </div>
                                   <div className="flex items-center gap-4">
                                     <button
@@ -1037,12 +1097,12 @@ export default function ReservationPage() {
                                 </div>
                               </div>
 
-                              {/* Children */}
+                              {/* Children under 10 */}
                               <div className="bg-white rounded-2xl p-4 border border-slate-100">
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between flex-wrap gap-3">
                                   <div className="flex-1">
-                                    <div className="font-semibold text-sm text-slate-900">Enfants</div>
-                                    <div className="text-xs text-slate-500 mt-0.5">2 à 12 ans</div>
+                                    <div className="font-semibold text-sm text-slate-900">Enfants - de 10 ans</div>
+                                    <div className="text-xs text-slate-500 mt-0.5">Avec âge (1 à 10 ans)</div>
                                   </div>
                                   <div className="flex items-center gap-4">
                                     <button
@@ -1073,6 +1133,19 @@ export default function ReservationPage() {
                                       +
                                     </button>
                                   </div>
+                                  {(watchStep1().children || 0) >= 1 && (
+                                    <div className="w-full pt-2 border-t border-slate-100">
+                                      <Label className="text-xs text-slate-600 mb-1 block">Âge de l&apos;enfant</Label>
+                                      <select
+                                        className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 focus:border-[#5CD85A] focus:ring-[#5CD85A]/20"
+                                        {...registerStep1('childAge', { valueAsNumber: true })}
+                                      >
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((age) => (
+                                          <option key={age} value={age}>{age} an{age > 1 ? 's' : ''}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 

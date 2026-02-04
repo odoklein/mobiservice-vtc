@@ -18,11 +18,12 @@ export const bookingStepOneSchema = z.object({
   passengers: z.number().min(1).max(4, 'Maximum 4 passagers'),
   adults: z.number().min(1).max(4).default(1),
   children: z.number().min(0).max(4).default(0),
+  childAge: z.number().min(1).max(10).optional(), // Âge de l'enfant (- de 10 ans)
   babies: z.number().min(0).max(4).default(0),
   luggage: z.number().min(0).max(5, 'Maximum 5 bagages'),
   serviceType: z.enum(['transfer', 'hourly']), // Only Point à Point and Mise à Disposition
   tripType: z.enum(['one-way', 'round-trip']).default('one-way'),
-  hours: z.number().min(2).max(8).optional(), // For hourly/forfait bookings (2-8h)
+  hours: z.number().min(1).max(8).optional(), // For hourly/forfait bookings (1-8h, paliers 30 min)
   waitingMinutes: z.number().min(0).max(480).optional(), // For round-trip MAD (waiting duration)
 });
 

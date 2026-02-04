@@ -41,12 +41,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Construire la date complète en heure locale (pas UTC)
-    // Utiliser les composants de date pour garantir l'heure locale
-    const [year, month, day] = pickupDate.split('-').map(Number);
-    const [hours, minutes] = pickupTime.split(':').map(Number);
+    // Construire la date complète en heure locale uniquement (éviter tout décalage UTC)
+    const dateOnly = typeof pickupDate === 'string' && pickupDate.includes('T')
+      ? pickupDate.split('T')[0]
+      : String(pickupDate).slice(0, 10);
+    const [year, month, day] = dateOnly.split('-').map(Number);
+    const timePart = String(pickupTime).trim();
+    const [hours, minutes] = (timePart.includes(':') ? timePart.split(':') : [0, 0]).map(Number);
 
-    // Créer la date en heure locale explicite
     const pickupDateTime = new Date(year, month - 1, day, hours, minutes, 0);
 
     if (isNaN(pickupDateTime.getTime())) {
@@ -56,15 +58,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Debug: Vérifier la date construite
-    console.log('[PRICING] Date construite:', {
-      pickupDate,
+    const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    const dayName = dayNames[pickupDateTime.getDay()];
+    const rateLabel = pickupDateTime.getDay() === 0 || pickupDateTime.getHours() >= 20 || pickupDateTime.getHours() < 7
+      ? 'Tarif nuit / Dim & JF 24/24'
+      : 'Tarif jour (7h-20h sauf Dim/JF)';
+    console.log('[PRICING] Date construite (local):', {
+      pickupDate: dateOnly,
       pickupTime,
-      constructed: pickupDateTime.toISOString(),
-      localHours: pickupDateTime.getHours(),
-      localDay: pickupDateTime.getDay(),
-      dayName: ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][pickupDateTime.getDay()],
-      isSunday: pickupDateTime.getDay() === 0,
+      dayName,
+      rateLabel,
     });
 
     // Calculer les distances CA/TP/retour
@@ -173,8 +176,9 @@ export async function POST(request: NextRequest) {
           tva: pricing.tva,
           isNightRate: pricing.isNightRate,
           rateType: pricing.isNightRate
-            ? 'Tarif nuit (20h-7h + Dim/JF)'
+            ? 'Tarif nuit / Dim & JF 24/24'
             : 'Tarif jour (7h-20h sauf Dim/JF)',
+          dayName,
           breakdown: {
             // Breakdown masqué côté client mais disponible pour admin
             costCA_out: pricing.breakdown.costCA_out,
@@ -186,6 +190,8 @@ export async function POST(request: NextRequest) {
             pricePerKmCA: pricing.breakdown.pricePerKmCA,
             pricePerKmTP: pricing.breakdown.pricePerKmTP,
           },
+          // TVA différenciée (prestation 10%, péage et MAD 20%)
+          tvaBreakdown: pricing.debugInfo?.tvaDetails ?? undefined,
           // Informations sur les péages
           tollInfo: {
             detected: autoDetectedTollCost > 0,

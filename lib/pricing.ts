@@ -86,6 +86,8 @@ const TVA_RATE = 0.10; // 10% TVA
 // Export FORFAITS for display (loaded from dynamic config with fallback)
 // Initialize with fallback values for immediate use
 export let FORFAITS: Array<{ hours: number; maxKm: number; day: number; night: number }> = [
+  { hours: 1, maxKm: 90, day: 116, night: 140 },
+  { hours: 1.5, maxKm: 135, day: 174, night: 210 },
   { hours: 2, maxKm: 180, day: 232, night: 280 },
   { hours: 2.5, maxKm: 225, day: 290, night: 337.50 },
   { hours: 3, maxKm: 270, day: 348, night: 390 },
@@ -333,12 +335,15 @@ function calculatePriceWithConfig(input: PricingInput, config: any): PricingResu
     rateType = 'Forfait business';
   }
 
-  // ===== MDA (Mise à Disposition) =====
+  // ===== MDA (Mise à Disposition) - 15 min gratuites, puis par tranche de 15 min entamée =====
   else if (input.serviceType === 'mda') {
     const waitingMinutes = input.waitingMinutes || 0;
     const chargeableMinutes = Math.max(0, waitingMinutes - config.mdaRates.freeMinutes);
-    const minuteRate = night ? config.mdaRates.night : config.mdaRates.day;
-    breakdown.waitingCharge = chargeableMinutes * minuteRate;
+    const per15Day = config.mdaRates.per15MinDay ?? 18;
+    const per15Night = config.mdaRates.per15MinNight ?? 27;
+    const chargeableBlocks15 = Math.ceil(chargeableMinutes / 15);
+    const ratePer15 = night ? per15Night : per15Day;
+    breakdown.waitingCharge = chargeableBlocks15 * ratePer15;
     totalPrice = breakdown.waitingCharge;
     rateType = 'Mise à disposition';
   }

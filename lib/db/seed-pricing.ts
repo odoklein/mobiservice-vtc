@@ -30,6 +30,8 @@ export async function seedPricingRules() {
   // FORFAITS (Hourly Packages)
   // ============================================================================
   const FORFAITS = [
+    { hours: 1, maxKm: 90, day: 116, night: 140 },
+    { hours: 1.5, maxKm: 135, day: 174, night: 210 },
     { hours: 2, maxKm: 180, day: 232, night: 280 },
     { hours: 2.5, maxKm: 225, day: 290, night: 337.50 },
     { hours: 3, maxKm: 270, day: 348, night: 390 },

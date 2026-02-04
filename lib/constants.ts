@@ -5,6 +5,12 @@ export const BRAND = {
   description: 'Pour tous vos déplacements professionnels et/ou personnels, votre chauffeur privé en Haute-Savoie saura vous accompagner en répondant à vos attentes.',
 };
 
+// Haute-Savoie (74) – centre pour prioriser les résultats d’autocomplete
+export const HAUTE_SAVOIE_AUTOCOMPLETE_BIAS = {
+  center: { lat: 45.8992, lng: 6.1294 } as { lat: number; lng: number }, // Annecy
+  radius: 70_000, // 70 km pour couvrir le département
+};
+
 // VTC Depot Location - Point de départ pour tous les calculs de tarification
 export const VTC_DEPOT = {
   address: '4 rue des artisans, 74300 Cluses',
@@ -29,12 +35,12 @@ export const DRIVER = {
 export const VALUES = [
   {
     title: 'Sérénité',
-    description: 'Un trajet en toute tranquillité, sans stress ni imprévu, MobiService VTC saura répondre à votre attente.',
+    description: 'Nous mettons un point d\'honneur à vous offrir une expérience irréprochable. Un trajet en toute tranquillité, sans stress ni imprévu.',
     icon: '🧘',
   },
   {
     title: 'Confidentialité',
-    description: 'Dans une éthique de respect et de confidentialité, nous nous engageons à préserver la vie privée et les conversations de notre clientèle.',
+    description: 'Dans l\'éthique du respect et de la confidentialité, nous nous engageons à préserver la vie privée et les conversations de notre clientèle.',
     icon: '🔒',
   },
   {
@@ -44,7 +50,7 @@ export const VALUES = [
   },
   {
     title: 'Expérience',
-    description: 'Plus de 15 années d\'expertise et d’écoute au service de votre confort pour une réelle expérience à voyager en toute tranquillité.',
+    description: 'Plus de 15 années d\'expertise et d’écoute au service de votre confort pour une réelle expérience à voyager en toute sérénité.',
     icon: '⭐',
   },
 ];
@@ -62,7 +68,7 @@ export const SERVICES = [
   {
     id: 'hourly',
     name: 'Transfert Forfaitaire',
-    description: 'Chauffeur à disposition pour vos déplacements multiples. Forfaits de 2H à 8H disponibles, de jour comme de nuit.',
+    description: 'Chauffeur à disposition de 1h à 8h (paliers de 30 min) pour vos besoins spécifiques. Forfaits de 1H à 8H disponibles. Retour uniquement le même jour.',
     icon: '⏰',
     priceInfo: 'Demandez votre réservation',
     illustration: '/Gemini_Generated_Image_aimpniaimpniaimp.png',
@@ -87,8 +93,10 @@ export const PRICING = {
     tpRate: { day: 1.32, night: 1.90 }, // Tarif TP constant
   },
 
-  // Forfaits TTC
+  // Forfaits TTC (1H à 8H, paliers 30 min)
   forfaits: [
+    { hours: 1, maxKm: 90, day: 116, night: 140, label: 'Forfait 1H / 90km' },
+    { hours: 1.5, maxKm: 135, day: 174, night: 210, label: 'Forfait 1H30 / 135km' },
     { hours: 2, maxKm: 180, day: 232, night: 280, label: 'Forfait 2H / 180km' },
     { hours: 2.5, maxKm: 225, day: 290, night: 337.50, label: 'Forfait 2H30 / 225km' },
     { hours: 3, maxKm: 270, day: 348, night: 390, label: 'Forfait 3H / 270km' },
@@ -107,8 +115,14 @@ export const PRICING = {
   // Extra hour beyond forfait TTC
   extraHour: { day: 116, night: 140 },
 
-  // MDA (Mise à disposition) - 10 min free
-  mda: { dayPerMin: 1.20, nightPerMin: 1.80, freeMinutes: 10 },
+  // MDA (Mise à disposition) - 15 min gratuites, puis par tranche de 15 min entamée
+  mda: {
+    freeMinutes: 15,
+    per15MinDay: 18,   // 18 € TTC / 15 min (jour)
+    per15MinNight: 27, // 27 € TTC / 15 min (nuit)
+    dayPerMin: 1.20,   // legacy fallback
+    nightPerMin: 1.80,
+  },
 
   // Airport transfers (estimated)
   airport: {

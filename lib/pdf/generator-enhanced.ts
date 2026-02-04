@@ -313,6 +313,10 @@ export async function generateFactureEnhanced(
       <div>
         <div class="info-line"><strong>Date d'émission:</strong> ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
         <div class="info-line"><strong>Date de service:</strong> ${new Date(booking.pickupDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${booking.pickupTime}</div>
+        ${(booking as any).returnDate && (booking as any).returnTime ? `
+        <div class="info-line"><strong>Trajet Aller (planifié):</strong> ${new Date(booking.pickupDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${booking.pickupTime}</div>
+        <div class="info-line"><strong>Trajet Retour (planifié):</strong> ${new Date((booking as any).returnDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${(booking as any).returnTime}</div>
+        ` : ''}
         <div class="info-line"><strong>Statut:</strong> ${booking.paymentStatus === 'paid' ? '✅ Payée' : '⏳ En attente'}</div>
       </div>
       <div>
@@ -387,7 +391,7 @@ export async function generateFactureEnhanced(
         <span>${(parseFloat(booking.totalPriceHT?.toString() || booking.basePrice?.toString() || '0')).toFixed(2)}€</span>
       </div>
       <div class="total-line">
-        <span>TVA (10%)</span>
+        <span>TVA (10% prestation, 20% péages/MAD)</span>
         <span>${(parseFloat(booking.tvaAmount?.toString() || '0')).toFixed(2)}€</span>
       </div>
       <div class="total-line total-final">
@@ -679,7 +683,10 @@ export async function generateDevisEnhanced(
     <div class="info-section">
       <div>
         <div class="info-line"><strong>Date d'émission:</strong> ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-        <div class="info-line"><strong>Date de service prévue:</strong> ${new Date(booking.pickupDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${booking.pickupTime}</div>
+        <div class="info-line"><strong>Trajet Aller (planifié):</strong> ${new Date(booking.pickupDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${booking.pickupTime}</div>
+        ${(booking as any).returnDate && (booking as any).returnTime ? `
+        <div class="info-line"><strong>Trajet Retour (planifié):</strong> ${new Date((booking as any).returnDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${(booking as any).returnTime}</div>
+        ` : ''}
         <div class="info-line"><strong>Validité:</strong> ${settings.quoteValidityDays} jours (jusqu'au ${validityDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })})</div>
       </div>
       <div>
@@ -754,7 +761,7 @@ export async function generateDevisEnhanced(
         <span>${(parseFloat(booking.totalPriceHT?.toString() || booking.basePrice?.toString() || '0')).toFixed(2)}€</span>
       </div>
       <div class="total-line">
-        <span>TVA (10%)</span>
+        <span>TVA (10% prestation, 20% péages/MAD)</span>
         <span>${(parseFloat(booking.tvaAmount?.toString() || '0')).toFixed(2)}€</span>
       </div>
       <div class="total-line total-final">

@@ -43,6 +43,10 @@ export const bookings = pgTable('bookings', {
   pickupDate: timestamp('pickup_date').notNull(),
   pickupTime: text('pickup_time').notNull(),
 
+  // Return trip (A/R): date and time for return leg (transfer 1-3 days after or forfait same day)
+  returnDate: timestamp('return_date'),
+  returnTime: text('return_time'),
+
   passengers: integer('passengers').notNull().default(1),
   luggage: integer('luggage').notNull().default(0),
 
