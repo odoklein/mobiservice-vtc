@@ -10,8 +10,10 @@ export const metadata: Metadata = {
   description: 'Grille tarifaire transparente pour vos trajets VTC en Haute-Savoie. Forfaits agglomération, tarifs au km, mise à disposition.',
 };
 
-// Forfaits MDA complets selon grille 2026
+// Forfaits MDA complets selon grille 2026 (1H à 8H)
 const FORFAITS_MDA = [
+  { hours: '1H', km: 90, dayHT: 105.45, dayTTC: 116, nightHT: 127.27, nightTTC: 140, hourlyDay: 116, hourlyNight: 140 },
+  { hours: '1H30', km: 135, dayHT: 158.18, dayTTC: 174, nightHT: 190.91, nightTTC: 210, hourlyDay: 116, hourlyNight: 140 },
   { hours: '2H', km: 180, dayHT: 210.91, dayTTC: 232, nightHT: 254.55, nightTTC: 280, hourlyDay: 116, hourlyNight: 140 },
   { hours: '2H30', km: 225, dayHT: 263.64, dayTTC: 290, nightHT: 306.82, nightTTC: 337.50, hourlyDay: 116, hourlyNight: 135 },
   { hours: '3H', km: 270, dayHT: 316.36, dayTTC: 348, nightHT: 354.55, nightTTC: 390, hourlyDay: 116, hourlyNight: 130 },
@@ -51,7 +53,7 @@ export default function TarifsPage() {
               Trajet hors agglomération, déplacement au km en A/S ou A/R
             </p>
             <p className="text-sm mt-4 italic opacity-80">
-              Forfait hors agglomération par MAD de votre chauffeur (Forfaits de 2h00 à 8h00 - calcul suivant un taux horaire jour ou nuit avec un kilométrage maximum, établi à l’avance... Déplacement conçu pour un A/R le même jour. Mise à disposition (MAD) automatique (mini 15 min).
+              Forfait hors agglomération par MAD de votre chauffeur (Forfaits de 1h00 à 8h00 - calcul suivant un taux horaire jour ou nuit avec un kilométrage maximum, établi à l’avance... Déplacement conçu pour un A/R le même jour. Mise à disposition (MAD) automatique (mini 15 min).
             </p>
           </div>
           <a

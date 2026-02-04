@@ -220,9 +220,15 @@ export const InvoicePDF: React.FC<PDFDocumentProps> = ({ type, booking, company,
               {new Date().toLocaleDateString('fr-FR')}
             </Text>
             <Text style={styles.infoLine}>
-              <Text style={styles.infoLabel}>Date de service: </Text>
-              {new Date(booking.pickupDate).toLocaleDateString('fr-FR')} à {booking.pickupTime}
+              <Text style={styles.infoLabel}>Trajet Aller (planifié): </Text>
+              {new Date(booking.pickupDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à {booking.pickupTime}
             </Text>
+            {booking.returnDate && booking.returnTime && (
+              <Text style={styles.infoLine}>
+                <Text style={styles.infoLabel}>Trajet Retour (planifié): </Text>
+                {new Date(booking.returnDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à {booking.returnTime}
+              </Text>
+            )}
             {isDevis && (
               <Text style={styles.infoLine}>
                 <Text style={styles.infoLabel}>Validité: </Text>

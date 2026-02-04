@@ -13,6 +13,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { AddressAutocomplete } from '@/components/booking/address-autocomplete';
 import { calculatePrice, formatPrice, FORFAITS } from '@/lib/pricing';
+import { getImmobilisationMAD, isAR13DaysAllowed } from '@/lib/booking/immobilisation-mad';
 import { SERVICES, CONTACT, VTC_DEPOT, BRAND } from '@/lib/constants';
 import { useBookingStorage } from '@/hooks/use-local-storage';
 import {
@@ -106,6 +107,8 @@ export default function ReservationPage() {
         dropoffLng: savedBookingData.dropoffLng,
         pickupDate: savedBookingData.pickupDate ? new Date(savedBookingData.pickupDate) : undefined,
         pickupTime: savedBookingData.pickupTime,
+        returnDate: savedBookingData.returnDate ? new Date(savedBookingData.returnDate) : undefined,
+        returnTime: savedBookingData.returnTime,
         passengers: savedBookingData.passengers || 1,
         luggage: savedBookingData.luggage || 1,
         serviceType: savedBookingData.serviceType || 'transfer',
@@ -204,9 +207,19 @@ export default function ReservationPage() {
   const onStep1Submit = async (data: BookingStepOneData) => {
     setIsCalculating(true);
     try {
+      const isTransferAR = data.serviceType === 'transfer' && (data.tripType || 'one-way') === 'round-trip';
+
+      if (isTransferAR && (!data.returnDate || !data.returnTime)) {
+        alert('Veuillez sélectionner la date et l\'heure du trajet retour (J+1, J+2 ou J+3).');
+        setIsCalculating(false);
+        return;
+      }
+
       if (data.serviceType === 'transfer' && data.pickupLat && data.pickupLng && data.dropoffLat && data.dropoffLng) {
         try {
-          const pickupDateStr = new Date(data.pickupDate).toISOString().split('T')[0];
+          // Use local date only (avoid UTC shift: e.g. 10 Feb Paris → 09 Feb in UTC)
+          const pickupD = data.pickupDate instanceof Date ? data.pickupDate : new Date(data.pickupDate);
+          const pickupDateStr = `${pickupD.getFullYear()}-${String(pickupD.getMonth() + 1).padStart(2, '0')}-${String(pickupD.getDate()).padStart(2, '0')}`;
 
           const response = await fetch('/api/pricing/estimate', {
             method: 'POST',
@@ -222,7 +235,7 @@ export default function ReservationPage() {
               pickupTime: data.pickupTime,
               tripType: data.tripType || 'one-way',
               tollCost: 0,
-              waitingMinutes: data.waitingMinutes || 0, // Temps d'attente pour A/R
+              waitingMinutes: data.waitingMinutes || 0,
             }),
           });
 
@@ -237,6 +250,22 @@ export default function ReservationPage() {
           }
 
           const est = result.estimation;
+          const totalAR = (est.distances as { totalAR?: number }).totalAR;
+
+          if (isTransferAR && typeof totalAR === 'number' && !isAR13DaysAllowed(totalAR)) {
+            alert('Ce trajet fait moins de 25 km au total. Pour un Aller-Retour avec retour 1 à 3 jours après l\'aller, nous vous conseillons le Forfait agglomération.');
+            setIsCalculating(false);
+            return;
+          }
+
+          const pickupDateObj = data.pickupDate instanceof Date ? data.pickupDate : new Date(data.pickupDate);
+          const returnDateObj = data.returnDate instanceof Date ? data.returnDate : (data.returnDate ? new Date(data.returnDate) : null);
+          const returnDaysAfter = returnDateObj && pickupDateObj
+            ? (Math.round((returnDateObj.getTime() - pickupDateObj.getTime()) / (24 * 60 * 60 * 1000)) as 1 | 2 | 3)
+            : undefined;
+          const immobilisation = isTransferAR && typeof totalAR === 'number' && returnDaysAfter
+            ? getImmobilisationMAD(totalAR, returnDaysAfter)
+            : null;
 
           const completeBookingData = {
             ...data,
@@ -254,15 +283,23 @@ export default function ReservationPage() {
             rateType: est.pricing.rateType,
             breakdown: est.pricing.breakdown,
             priceBreakdown: est.pricing.breakdown,
-            debugInfo: est.debugInfo, // Debug info for pricing calculation details
+            debugInfo: est.debugInfo,
             step: 2,
             pickupDate: data.pickupDate,
+            ...(isTransferAR && {
+              returnDate: data.returnDate,
+              returnTime: data.returnTime,
+              totalDistanceAR: totalAR,
+              immobilisationMAD: immobilisation ? immobilisation.label : undefined,
+              immobilisationMADPrice: immobilisation?.priceTTC,
+            }),
           };
 
           setBookingData(completeBookingData);
           saveBookingDraft({
             ...completeBookingData,
             pickupDate: data.pickupDate ? (data.pickupDate instanceof Date ? data.pickupDate.toISOString() : data.pickupDate) : undefined,
+            returnDate: data.returnDate ? (data.returnDate instanceof Date ? data.returnDate.toISOString() : (data.returnDate as string)) : undefined,
           });
           setStep(2);
           return;
@@ -296,10 +333,13 @@ export default function ReservationPage() {
           }
 
           const segments = await response.json();
+          if (segments?.error || (typeof segments?.distanceCA !== 'number')) {
+            throw new Error(segments?.message || segments?.error || 'Réponse de distance invalide');
+          }
           distanceCA = segments.distanceCA;
           distanceTP = segments.distanceTP;
           distanceReturn = segments.distanceReturn;
-          duration = segments.totalDuration;
+          duration = segments.totalDuration ?? 0;
         } catch (apiError) {
           console.error('API error:', apiError);
           throw apiError;
@@ -772,7 +812,7 @@ export default function ReservationPage() {
                               Transfert Forfaitaire (Mise à disposition Chauffeur)
                             </h3>
                             <p className={`text-sm leading-relaxed ${step1Data.serviceType === 'hourly' ? 'text-white/80' : 'text-slate-500'}`}>
-                              Chauffeur à disposition de 2h à 8h (paliers de 30min) pour vos besoins spécifiques.
+                              Chauffeur à disposition de 1h à 8h (paliers de 30 min) pour vos besoins spécifiques.
                             </p>
                           </div>
                           <div className="mt-6 flex items-center justify-between">
@@ -822,42 +862,40 @@ export default function ReservationPage() {
                             ))}
                           </div>
 
-                          {/* Waiting Duration for Round Trip */}
-                          {(step1Data.tripType || 'one-way') === 'round-trip' && (
-                            <div className="mt-4 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 rounded-2xl shadow-sm">
-                              <Label className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                                <IconClock className="h-4 w-4 text-blue-600" />
-                                MAD (Mise à disposition) – choix par ¼ h (15 min)
-                              </Label>
-                              <p className="text-xs text-slate-600 mb-2">15 min = 0,00 € puis par tranches de 15 min</p>
-                              <Input
-                                type="number"
-                                min="0"
-                                max="480"
-                                step="15"
-                                placeholder="0, 15, 30, 45…"
-                                className="h-12 rounded-xl border-blue-200 focus:border-blue-400 focus:ring-blue-400/20 bg-white text-base font-medium text-slate-900 placeholder:text-slate-400"
-                                {...registerStep1('waitingMinutes', { valueAsNumber: true })}
-                              />
-                              <div className="mt-3 space-y-2 bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-blue-100">
-                                <p className="text-xs text-slate-600 leading-relaxed">
-                                  Durée d&apos;immobilisation (MAD) / Temps d&apos;immobilisation estimé entre l&apos;aller et le retour
-                                </p>
-                                <div className="flex items-center gap-2 py-1.5 px-2.5 bg-emerald-50 rounded-lg border border-emerald-200/50">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                                  <p className="text-xs text-emerald-800 font-semibold">
-                                    15 premières minutes gratuites
-                                  </p>
-                                </div>
-                                <p className="text-xs text-slate-700 font-medium leading-relaxed">
-                                  Ensuite : <span className="text-blue-700 font-bold">18 € TTC / 15 min</span> (jour) • <span className="text-indigo-700 font-bold">27 € TTC / 15 min</span> (nuit)
-                                </p>
-                                <p className="text-[10px] text-slate-500 italic leading-relaxed pt-1 border-t border-slate-200/50">
-                                  Toute tranche de 15 minutes entamée est due
+                          {/* MAD (Mise à disposition) – choix par ¼ h, pour A/S et A/R */}
+                          <div className="mt-4 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 rounded-2xl shadow-sm">
+                            <Label className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                              <IconClock className="h-4 w-4 text-blue-600" />
+                              MAD (Mise à disposition) – choix par ¼ h (15 min)
+                            </Label>
+                            <p className="text-xs text-slate-600 mb-2">15 min = 0,00 € puis déroulé de 15 en 15 min</p>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="480"
+                              step="15"
+                              placeholder="0, 15, 30, 45…"
+                              className="h-12 rounded-xl border-blue-200 focus:border-blue-400 focus:ring-blue-400/20 bg-white text-base font-medium text-slate-900 placeholder:text-slate-400"
+                              {...registerStep1('waitingMinutes', { valueAsNumber: true })}
+                            />
+                            <div className="mt-3 space-y-2 bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-blue-100">
+                              <p className="text-xs text-slate-600 leading-relaxed">
+                                Temps d&apos;attente estimé pour ce trajet
+                              </p>
+                              <div className="flex items-center gap-2 py-1.5 px-2.5 bg-emerald-50 rounded-lg border border-emerald-200/50">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                <p className="text-xs text-emerald-800 font-semibold">
+                                  Premières minutes gratuites
                                 </p>
                               </div>
+                              <p className="text-xs text-slate-700 font-medium leading-relaxed">
+                                Ensuite : <span className="text-blue-700 font-bold">18 € TTC / 15 min</span> (jour) • <span className="text-indigo-700 font-bold">27 € TTC / 15 min</span> (nuit)
+                              </p>
+                              <p className="text-[10px] text-slate-500 italic leading-relaxed pt-1 border-t border-slate-200/50">
+                                Toute tranche de 15 minutes entamée est due
+                              </p>
                             </div>
-                          )}
+                          </div>
                         </div>
                       )}
 
@@ -968,6 +1006,7 @@ export default function ReservationPage() {
                                   }
                                 }}
                                 error={errorsStep1.dropoffAddress?.message}
+                                showHauteSavoieHint
                               />
                             </div>
                           </div>
@@ -977,78 +1016,146 @@ export default function ReservationPage() {
 
                     {/* Date & Time */}
                     <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/60 border border-slate-100">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
-                          <IconCalendar className="h-5 w-5 text-[#5CD85A]" />
-                        </div>
-                        <div>
-                          <h2 className="text-lg font-bold text-[#0A0A0A]">Date et heure</h2>
-                          <p className="text-sm text-gray-500">Planifiez votre trajet</p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Calendar */}
-                        <div>
-                          <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50">
-                            <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={(date) => {
-                                setSelectedDate(date);
-                                if (date) setValueStep1('pickupDate', date);
-                              }}
-                              disabled={(date) => {
-                                const d = new Date(date);
-                                d.setHours(0, 0, 0, 0);
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-                                return d < today;
-                              }}
-                              formatters={{
-                                formatCaption: (month) =>
-                                  month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^\w/, (c) => c.toUpperCase()),
-                                formatWeekdayName: (date) => ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'][date.getDay()],
-                              }}
-                              className="rounded-xl"
-                            />
+                      {step1Data.serviceType === 'transfer' && (step1Data.tripType || 'one-way') === 'round-trip' ? (
+                        <>
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
+                              <IconCalendar className="h-5 w-5 text-[#5CD85A]" />
+                            </div>
+                            <div>
+                              <h2 className="text-lg font-bold text-[#0A0A0A]">Date et heure</h2>
+                              <p className="text-sm text-gray-500">Aller et retour (retour 1 à 3 jours après l&apos;aller)</p>
+                            </div>
                           </div>
-                          {errorsStep1.pickupDate && (
-                            <p className="text-sm text-red-500 mt-2">{errorsStep1.pickupDate.message}</p>
-                          )}
-                        </div>
 
-                        {/* Time and passengers */}
-                        <div className="space-y-5">
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">
-                              Heure de prise en charge
-                            </Label>
-                            <Input
-                              type="time"
-                              className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg font-medium"
-                              min={
-                                selectedDate && earliestPickupDateTime
-                                  ? (() => {
-                                      const t = new Date(selectedDate);
-                                      t.setHours(0, 0, 0, 0);
+                          {/* Bloc Aller */}
+                          <div className="mb-8 p-5 bg-slate-50 rounded-2xl border border-slate-200">
+                            <h3 className="text-base font-bold text-slate-900 mb-4">Planifiez votre trajet Aller</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div>
+                                <Label className="text-sm font-semibold text-gray-700 mb-2 block">Date aller</Label>
+                                <div className="border border-gray-100 rounded-2xl p-4 bg-white">
+                                  <Calendar
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={(date) => {
+                                      setSelectedDate(date);
+                                      if (date) setValueStep1('pickupDate', date);
+                                      setValueStep1('returnDate', undefined as any);
+                                      setValueStep1('returnTime', '');
+                                    }}
+                                    disabled={(date) => {
+                                      const d = new Date(date);
+                                      d.setHours(0, 0, 0, 0);
                                       const today = new Date();
                                       today.setHours(0, 0, 0, 0);
-                                      if (t.getTime() === today.getTime()) {
-                                        const h = earliestPickupDateTime.getHours();
-                                        const m = earliestPickupDateTime.getMinutes();
-                                        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                                      return d < today;
+                                    }}
+                                    formatters={{
+                                      formatCaption: (month) =>
+                                        month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^\w/, (c) => c.toUpperCase()),
+                                      formatWeekdayName: (date) => ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'][date.getDay()],
+                                    }}
+                                    className="rounded-xl"
+                                  />
+                                </div>
+                                {errorsStep1.pickupDate && <p className="text-sm text-red-500 mt-2">{errorsStep1.pickupDate.message}</p>}
+                              </div>
+                              <div>
+                                <Label className="text-sm font-semibold text-gray-700 mb-2 block">Heure aller</Label>
+                                <Input
+                                  type="time"
+                                  className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg font-medium"
+                                  min={
+                                    selectedDate && earliestPickupDateTime
+                                      ? (() => {
+                                          const t = new Date(selectedDate);
+                                          t.setHours(0, 0, 0, 0);
+                                          const today = new Date();
+                                          today.setHours(0, 0, 0, 0);
+                                          if (t.getTime() === today.getTime()) {
+                                            const h = earliestPickupDateTime.getHours();
+                                            const m = earliestPickupDateTime.getMinutes();
+                                            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                                          }
+                                          return undefined;
+                                        })()
+                                      : undefined
+                                  }
+                                  {...registerStep1('pickupTime')}
+                                />
+                                {errorsStep1.pickupTime && <p className="text-sm text-red-500 mt-1">{errorsStep1.pickupTime.message}</p>}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Bloc Retour — uniquement J+1, J+2 ou J+3 */}
+                          <div className="mb-8 p-5 bg-blue-50/50 rounded-2xl border border-blue-200/60">
+                            <h3 className="text-base font-bold text-slate-900 mb-2">Planifiez votre trajet Retour</h3>
+                            <p className="text-sm text-slate-600 mb-4">Retour entre 1 et 3 jours après l&apos;aller (même trajet). J+3 : heure limite 23h59.</p>
+                            {selectedDate ? (
+                              <>
+                                <Label className="text-sm font-semibold text-gray-700 mb-2 block">Date retour</Label>
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                  {[1, 2, 3].map((daysAfter) => {
+                                    const ret = new Date(selectedDate);
+                                    ret.setDate(ret.getDate() + daysAfter);
+                                    const isSelected =
+                                      step1Data.returnDate &&
+                                      new Date(step1Data.returnDate).toDateString() === ret.toDateString();
+                                    return (
+                                      <button
+                                        key={daysAfter}
+                                        type="button"
+                                        onClick={() => {
+                                          setValueStep1('returnDate', ret);
+                                          if (!step1Data.returnTime) setValueStep1('returnTime', '12:00');
+                                        }}
+                                        className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                                          isSelected ? 'border-[#5CD85A] bg-[#5CD85A]/10 text-slate-900' : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                                        }`}
+                                      >
+                                        J+{daysAfter} — {ret.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                {(step1Data.returnDate || step1Data.returnTime) && (
+                                  <>
+                                    <Label className="text-sm font-semibold text-gray-700 mb-2 block">Heure retour</Label>
+                                    <Input
+                                      type="time"
+                                      className="h-12 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] font-medium max-w-[140px]"
+                                      max={
+                                        step1Data.returnDate && selectedDate
+                                          ? (() => {
+                                              const r = new Date(step1Data.returnDate);
+                                              const p = new Date(selectedDate);
+                                              const diffDays = Math.round((r.getTime() - p.getTime()) / (24 * 60 * 60 * 1000));
+                                              if (diffDays === 3) return '23:59';
+                                              return undefined;
+                                            })()
+                                          : undefined
                                       }
-                                      return undefined;
-                                    })()
-                                  : undefined
-                              }
-                              {...registerStep1('pickupTime')}
-                            />
-                            {errorsStep1.pickupTime && (
-                              <p className="text-sm text-red-500 mt-1">{errorsStep1.pickupTime.message}</p>
+                                      {...registerStep1('returnTime')}
+                                    />
+                                    {step1Data.returnDate && selectedDate && (() => {
+                                      const r = new Date(step1Data.returnDate);
+                                      const p = new Date(selectedDate);
+                                      const diffDays = Math.round((r.getTime() - p.getTime()) / (24 * 60 * 60 * 1000));
+                                      return diffDays === 3 ? <p className="text-xs text-slate-500 mt-1">Jusqu&apos;au jour 3 à 23h59</p> : null;
+                                    })()}
+                                  </>
+                                )}
+                              </>
+                            ) : (
+                              <p className="text-sm text-slate-500">Choisissez d&apos;abord la date de l&apos;aller ci-dessus.</p>
                             )}
                           </div>
+
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div />
+                            <div className="space-y-5">
 
                           {/* Detailed Passenger Selection */}
                           <div className="bg-gradient-to-br from-slate-50 to-white rounded-3xl p-6 border-2 border-slate-100 shadow-sm">
@@ -1244,8 +1351,170 @@ export default function ReservationPage() {
                             />
                             <p className="text-xs text-gray-500 mt-1">Pour correspondance train/avion</p>
                           </div>
-                        </div>
-                      </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-xl bg-[#5CD85A]/10 flex items-center justify-center">
+                              <IconCalendar className="h-5 w-5 text-[#5CD85A]" />
+                            </div>
+                            <div>
+                              <h2 className="text-lg font-bold text-[#0A0A0A]">Date et heure</h2>
+                              <p className="text-sm text-gray-500">Planifiez votre trajet</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                              <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50">
+                                <Calendar
+                                  mode="single"
+                                  selected={selectedDate}
+                                  onSelect={(date) => {
+                                    setSelectedDate(date);
+                                    if (date) setValueStep1('pickupDate', date);
+                                  }}
+                                  disabled={(date) => {
+                                    const d = new Date(date);
+                                    d.setHours(0, 0, 0, 0);
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+                                    return d < today;
+                                  }}
+                                  formatters={{
+                                    formatCaption: (month) =>
+                                      month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^\w/, (c) => c.toUpperCase()),
+                                    formatWeekdayName: (date) => ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'][date.getDay()],
+                                  }}
+                                  className="rounded-xl"
+                                />
+                              </div>
+                              {errorsStep1.pickupDate && (
+                                <p className="text-sm text-red-500 mt-2">{errorsStep1.pickupDate.message}</p>
+                              )}
+                            </div>
+                            <div className="space-y-5">
+                              <div>
+                                <Label className="text-sm font-semibold text-gray-700 mb-2 block">
+                                  Heure de prise en charge
+                                </Label>
+                                <Input
+                                  type="time"
+                                  className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A] text-lg font-medium"
+                                  min={
+                                    selectedDate && earliestPickupDateTime
+                                      ? (() => {
+                                          const t = new Date(selectedDate);
+                                          t.setHours(0, 0, 0, 0);
+                                          const today = new Date();
+                                          today.setHours(0, 0, 0, 0);
+                                          if (t.getTime() === today.getTime()) {
+                                            const h = earliestPickupDateTime.getHours();
+                                            const m = earliestPickupDateTime.getMinutes();
+                                            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                                          }
+                                          return undefined;
+                                        })()
+                                      : undefined
+                                  }
+                                  {...registerStep1('pickupTime')}
+                                />
+                                {errorsStep1.pickupTime && (
+                                  <p className="text-sm text-red-500 mt-1">{errorsStep1.pickupTime.message}</p>
+                                )}
+                              </div>
+                              {/* Detailed Passenger Selection - same block as round-trip */}
+                              <div className="bg-gradient-to-br from-slate-50 to-white rounded-3xl p-6 border-2 border-slate-100 shadow-sm">
+                                <div className="flex items-center gap-2 mb-5">
+                                  <IconUsers className="h-5 w-5 text-[#5CD85A]" />
+                                  <h3 className="text-base font-bold text-slate-900">Détails des passagers</h3>
+                                </div>
+                                <div className="space-y-3">
+                                  <div className="bg-white rounded-2xl p-4 border border-slate-100">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <div className="font-semibold text-sm text-slate-900">Adultes et enfant de + de 10 ans</div>
+                                        <div className="text-xs text-slate-500 mt-0.5">(− 1 +)</div>
+                                      </div>
+                                      <div className="flex items-center gap-4">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const current = watchStep1().adults || 1;
+                                            if (current > 1) {
+                                              setValueStep1('adults', current - 1);
+                                              setValueStep1('passengers', (current - 1) + (watchStep1().children || 0) + (watchStep1().babies || 0));
+                                            }
+                                          }}
+                                          className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-[#5CD85A] hover:text-white flex items-center justify-center transition-all duration-150 font-bold text-slate-600"
+                                        >−</button>
+                                        <span className="w-8 text-center font-bold text-lg text-slate-900">{watchStep1().adults || 1}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const total = (watchStep1().adults || 1) + (watchStep1().children || 0) + (watchStep1().babies || 0);
+                                            if (total < 4) {
+                                              setValueStep1('adults', (watchStep1().adults || 1) + 1);
+                                              setValueStep1('passengers', total + 1);
+                                            }
+                                          }}
+                                          className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-[#5CD85A] hover:text-white flex items-center justify-center transition-all duration-150 font-bold text-slate-600"
+                                        >+</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="bg-white rounded-2xl p-4 border border-slate-100">
+                                    <div className="flex items-center justify-between flex-wrap gap-3">
+                                      <div className="flex-1">
+                                        <div className="font-semibold text-sm text-slate-900">Enfants - de 10 ans</div>
+                                        <div className="text-xs text-slate-500 mt-0.5">Avec âge (1 à 10 ans)</div>
+                                      </div>
+                                      <div className="flex items-center gap-4">
+                                        <button type="button" onClick={() => { const c = watchStep1().children || 0; if (c > 0) { setValueStep1('children', c - 1); setValueStep1('passengers', (watchStep1().adults || 1) + (c - 1) + (watchStep1().babies || 0)); } }} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-blue-500 hover:text-white flex items-center justify-center transition-all font-bold text-slate-600">−</button>
+                                        <span className="w-8 text-center font-bold text-lg text-slate-900">{watchStep1().children || 0}</span>
+                                        <button type="button" onClick={() => { const t = (watchStep1().adults || 1) + (watchStep1().children || 0) + (watchStep1().babies || 0); if (t < 4) { setValueStep1('children', (watchStep1().children || 0) + 1); setValueStep1('passengers', t + 1); } }} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-blue-500 hover:text-white flex items-center justify-center transition-all font-bold text-slate-600">+</button>
+                                      </div>
+                                      {(watchStep1().children || 0) >= 1 && (
+                                        <div className="w-full pt-2 border-t border-slate-100">
+                                          <Label className="text-xs text-slate-600 mb-1 block">Âge de l&apos;enfant</Label>
+                                          <select className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 focus:border-[#5CD85A]" {...registerStep1('childAge', { valueAsNumber: true })}>
+                                            {[1,2,3,4,5,6,7,8,9,10].map((age) => <option key={age} value={age}>{age} an{age > 1 ? 's' : ''}</option>)}
+                                          </select>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="bg-white rounded-2xl p-4 border border-slate-100">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1 flex items-center gap-2">
+                                        <IconLuggage className="h-4 w-4 text-slate-400" />
+                                        <div className="font-semibold text-sm text-slate-900">Bagages</div>
+                                      </div>
+                                      <div className="flex items-center gap-4">
+                                        <button type="button" onClick={() => { const c = watchStep1().luggage || 0; if (c > 0) setValueStep1('luggage', c - 1); }} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-700 hover:text-white flex items-center justify-center font-bold text-slate-600">−</button>
+                                        <span className="w-8 text-center font-bold text-lg text-slate-900">{watchStep1().luggage || 0}</span>
+                                        <button type="button" onClick={() => { const c = watchStep1().luggage || 0; if (c < 5) setValueStep1('luggage', c + 1); }} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-700 hover:text-white flex items-center justify-center font-bold text-slate-600">+</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="mt-4 p-3 bg-[#5CD85A]/10 border border-[#5CD85A]/20 rounded-xl">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-medium text-slate-700">Total passagers</span>
+                                    <span className="text-sm font-bold text-[#5CD85A]">{(watchStep1().adults || 1) + (watchStep1().children || 0) + (watchStep1().babies || 0)} / 4</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-semibold text-gray-700 mb-2 block">Heure d&apos;arrivée max <span className="text-gray-400 font-normal">(optionnel)</span></Label>
+                                <Input type="time" className="h-14 rounded-xl border-2 border-gray-100 focus:border-[#5CD85A]" {...registerStep1('maxArrivalTime')} />
+                                <p className="text-xs text-gray-500 mt-1">Pour correspondance train/avion</p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Submit Button */}
@@ -1386,9 +1655,16 @@ export default function ReservationPage() {
                           {[
                             {
                               label: 'Distance',
-                              value: bookingData.tripType === 'round-trip'
-                                ? `${Math.round((bookingData.distanceTP || bookingData.distance) * 2)} km (A/R)`
-                                : `${Math.round(bookingData.distanceTP || bookingData.distance)} km`,
+                              value: (() => {
+                                if (bookingData.tripType === 'round-trip') {
+                                  const ca = Number(bookingData.distanceCA) || 0;
+                                  const tp = Number(bookingData.distanceTP) || 0;
+                                  const ret = Number(bookingData.distanceReturn) || 0;
+                                  const totalAR = ca + tp * 2 + ret; // CA Aller + TP×2 + CA Retour
+                                  return `${Math.round(totalAR)} km (A/R)`;
+                                }
+                                return `${Math.round(bookingData.distanceTP || bookingData.distance)} km`;
+                              })(),
                               icon: IconRoute
                             },
                             {

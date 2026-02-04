@@ -14,6 +14,8 @@ export const bookingStepOneSchema = z.object({
     message: 'Date de prise en charge requise',
   }),
   pickupTime: z.string().min(1, 'Heure de prise en charge requise'),
+  returnDate: z.union([z.date(), z.string().transform((val) => new Date(val))]).optional().refine((d) => !d || !isNaN(new Date(d).getTime()), { message: 'Date de retour invalide' }),
+  returnTime: z.string().optional(), // HH:mm pour A/R retour 1–3 jours
   maxArrivalTime: z.string().optional(), // Heure maximale d'arrivée (HH:mm) - optionnel
   passengers: z.number().min(1).max(4, 'Maximum 4 passagers'),
   adults: z.number().min(1).max(4).default(1),

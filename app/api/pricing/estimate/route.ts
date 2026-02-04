@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
       : String(pickupDate).slice(0, 10);
     const [year, month, day] = dateOnly.split('-').map(Number);
     const timePart = String(pickupTime).trim();
-    const [hours, minutes] = (timePart.includes(':') ? timePart.split(':') : [0, 0]).map(Number);
+    const timeParts = timePart.includes(':') ? timePart.split(':') : [timePart, '0'];
+    const [hours, minutes] = [Number(timeParts[0]) || 0, Number(timeParts[1]) || 0];
 
     const pickupDateTime = new Date(year, month - 1, day, hours, minutes, 0);
 
@@ -166,6 +167,10 @@ export async function POST(request: NextRequest) {
           tp: distanceTP,
           ca_return: distanceCA_return, // TOUJOURS inclus (règle n°1)
           total: distanceCA_out + distanceTP + distanceCA_return,
+          // A/R 1–3 jours : distance totale (CA Aller + 2×TP + CA Retour) pour bloc < 25 km et immobilisation
+          ...(tripType === 'round-trip' && {
+            totalAR: distanceCA_out * 2 + distanceTP * 2,
+          }),
         },
         // Durée (minutes)
         duration: totalDuration,

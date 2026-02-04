@@ -46,9 +46,15 @@ export async function generateBonDeCommande(booking: Booking): Promise<string> {
       <span class="detail-value">${booking.guestPhone}</span>
     </div>
     <div class="detail-row">
-      <span class="detail-label">Date de prise en charge</span>
-      <span class="detail-value">${new Date(booking.pickupDate).toLocaleDateString('fr-FR')} à ${booking.pickupTime}</span>
+      <span class="detail-label">Trajet Aller (planifié)</span>
+      <span class="detail-value">${new Date(booking.pickupDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${booking.pickupTime}</span>
     </div>
+    ${booking.returnDate && booking.returnTime ? `
+    <div class="detail-row">
+      <span class="detail-label">Trajet Retour (planifié)</span>
+      <span class="detail-value">${new Date(booking.returnDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${booking.returnTime}</span>
+    </div>
+    ` : ''}
     <div class="detail-row">
       <span class="detail-label">Départ</span>
       <span class="detail-value">${booking.pickupAddress}</span>

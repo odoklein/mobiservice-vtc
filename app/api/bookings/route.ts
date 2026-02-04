@@ -76,6 +76,8 @@ export async function POST(request: NextRequest) {
         dropoffLng: validatedData.dropoffLng?.toString(),
         pickupDate: validatedData.pickupDate,
         pickupTime: validatedData.pickupTime,
+        returnDate: validatedData.returnDate ? new Date(validatedData.returnDate as string | Date) : null,
+        returnTime: validatedData.returnTime || null,
         passengers: validatedData.passengers,
         luggage: validatedData.luggage,
         serviceType: validatedData.serviceType,

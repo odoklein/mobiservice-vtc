@@ -312,11 +312,10 @@ export async function generateFactureEnhanced(
     <div class="info-section">
       <div>
         <div class="info-line"><strong>Date d'émission:</strong> ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-        <div class="info-line"><strong>Date de service:</strong> ${new Date(booking.pickupDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${booking.pickupTime}</div>
-        ${(booking as any).returnDate && (booking as any).returnTime ? `
+        ${((booking as any).returnDate || (booking as any).return_date) && ((booking as any).returnTime || (booking as any).return_time) ? `
         <div class="info-line"><strong>Trajet Aller (planifié):</strong> ${new Date(booking.pickupDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${booking.pickupTime}</div>
-        <div class="info-line"><strong>Trajet Retour (planifié):</strong> ${new Date((booking as any).returnDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${(booking as any).returnTime}</div>
-        ` : ''}
+        <div class="info-line"><strong>Trajet Retour (planifié):</strong> ${new Date((booking as any).returnDate || (booking as any).return_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${(booking as any).returnTime || (booking as any).return_time}</div>
+        ` : `<div class="info-line"><strong>Date de service:</strong> ${new Date(booking.pickupDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${booking.pickupTime}</div>`}
         <div class="info-line"><strong>Statut:</strong> ${booking.paymentStatus === 'paid' ? '✅ Payée' : '⏳ En attente'}</div>
       </div>
       <div>
@@ -684,8 +683,8 @@ export async function generateDevisEnhanced(
       <div>
         <div class="info-line"><strong>Date d'émission:</strong> ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
         <div class="info-line"><strong>Trajet Aller (planifié):</strong> ${new Date(booking.pickupDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${booking.pickupTime}</div>
-        ${(booking as any).returnDate && (booking as any).returnTime ? `
-        <div class="info-line"><strong>Trajet Retour (planifié):</strong> ${new Date((booking as any).returnDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${(booking as any).returnTime}</div>
+        ${((booking as any).returnDate || (booking as any).return_date) && ((booking as any).returnTime || (booking as any).return_time) ? `
+        <div class="info-line"><strong>Trajet Retour (planifié):</strong> ${new Date((booking as any).returnDate || (booking as any).return_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à ${(booking as any).returnTime || (booking as any).return_time}</div>
         ` : ''}
         <div class="info-line"><strong>Validité:</strong> ${settings.quoteValidityDays} jours (jusqu'au ${validityDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })})</div>
       </div>

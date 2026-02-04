@@ -188,7 +188,7 @@ function PlacesAutocompleteInner({
       {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
       {showHauteSavoieHint && !error && (
         <p className="text-xs text-slate-500 mt-1">
-          Pour une adresse en Haute-Savoie, précisez «&nbsp;74&nbsp;» ou le code postal si le mauvais département s’affiche.
+          Précisez 74 ou le code postal pour prioriser la Haute-Savoie.
         </p>
       )}
 
