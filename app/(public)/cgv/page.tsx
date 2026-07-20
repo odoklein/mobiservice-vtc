@@ -115,21 +115,21 @@ export default function CGVPage() {
                             </CardHeader>
                             <CardContent className="space-y-4 text-gray-700">
                                 <p>
-                                    Toute annulation devra nous parvenir au plus tard <strong>48 heures</strong> avant la dite prestation, il est de votre devoir de prévenir la société Mobi Service VTC en cas de problème quelconque le plus rapidement possible.
+                                    Toute annulation devra nous parvenir au plus tard <strong>8 heures</strong> avant la prestation. Il est de votre devoir de prévenir la société Mobi Service VTC en cas de problème le plus rapidement possible.
                                 </p>
                                 <div className="space-y-3">
                                     <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
                                         <Shield className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                                         <div className="text-sm">
                                             <strong>Annulation anticipée</strong><br />
-                                            Plus de 48 heures (2 jours) avant la prestation : Frais d'annulation de 50 € si le montant TTC est supérieur à 50 €, aucun remboursement de la course si inférieur à 50 €.
+                                            Plus de 8 heures avant la prestation : <strong>Annulation gratuite</strong>, aucun frais.
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
                                         <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                                         <div className="text-sm">
                                             <strong>Annulation tardive</strong><br />
-                                            Moins de 48 heures avant la prestation : Remboursement de 50 % du montant TTC si la course est supérieure à 100 €, aucun remboursement de la course si inférieure à 100 €.
+                                            Moins de 8 heures avant la prestation : Frais d'annulation de <strong>20 € TTC maximum</strong>.
                                         </div>
                                     </div>
                                 </div>

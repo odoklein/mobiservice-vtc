@@ -8,7 +8,7 @@ export const BRAND = {
 // Haute-Savoie (74) – centre pour prioriser les résultats d’autocomplete
 export const HAUTE_SAVOIE_AUTOCOMPLETE_BIAS = {
   center: { lat: 45.8992, lng: 6.1294 } as { lat: number; lng: number }, // Annecy
-  radius: 70_000, // 70 km pour couvrir le département
+  radius: 150_000, // 150 km pour couvrir Haute-Savoie + départements limitrophes (Jura, Ain, Isère…)
 };
 
 // VTC Depot Location - Point de départ pour tous les calculs de tarification

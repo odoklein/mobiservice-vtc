@@ -1626,7 +1626,11 @@ export default function ReservationPage() {
                             <div>
                               <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Type de trajet</p>
                               <p className="text-base font-bold text-slate-900">
-                                {bookingData.tripType === 'round-trip' ? '🔄 Aller-Retour' : '➡️ Aller Simple'}
+                                {bookingData.serviceType === 'hourly'
+                                  ? '⏱️ Mise à disposition'
+                                  : bookingData.tripType === 'round-trip'
+                                    ? '🔄 Aller-Retour'
+                                    : '➡️ Aller Simple'}
                               </p>
                             </div>
                           </div>
@@ -1642,9 +1646,9 @@ export default function ReservationPage() {
                                 <span className="text-sm font-bold text-blue-700">{step1Data.waitingMinutes || 0} minutes</span>
                               </div>
                               <p className="text-xs text-slate-500 mt-1 ml-6">
-                                {(step1Data.waitingMinutes || 0) <= 15
-                                  ? '✓ Gratuit (≤ 15 min)'
-                                  : `Facturable : ${(step1Data.waitingMinutes || 0) - 15} min`}
+                                {(step1Data.waitingMinutes || 0) <= 10
+                                  ? '✓ Gratuit (≤ 10 min)'
+                                  : `Facturable : ${(step1Data.waitingMinutes || 0) - 10} min`}
                               </p>
                             </div>
                           )}
@@ -1739,7 +1743,7 @@ export default function ReservationPage() {
                             <div className="flex-1">
                               <p className="font-semibold text-sm text-slate-900 mb-1">Annulation anticipée</p>
                               <p className="text-xs text-slate-600 leading-relaxed">
-                                Plus de <strong>48 heures (2 jours)</strong> avant la prestation : Frais d'annulation de <strong>50€</strong> si le montant TTC est supérieur à 50€, ou totalité de la course si inférieur à 50€.
+                                Plus de <strong>8 heures</strong> avant la prestation : <strong>Annulation gratuite</strong>, aucun frais.
                               </p>
                             </div>
                           </div>
@@ -1753,7 +1757,7 @@ export default function ReservationPage() {
                             <div className="flex-1">
                               <p className="font-semibold text-sm text-slate-900 mb-1">Annulation tardive</p>
                               <p className="text-xs text-slate-600 leading-relaxed">
-                                Moins de <strong>48 heures</strong> avant la prestation : Remboursement de <strong>50% du montant</strong> si la course est supérieure à 50€, ou <strong>totalité de la course</strong> si inférieure à 50€.
+                                Moins de <strong>8 heures</strong> avant la prestation : Frais d'annulation de <strong>20€ TTC maximum</strong>.
                               </p>
                             </div>
                           </div>
@@ -1886,7 +1890,7 @@ export default function ReservationPage() {
                                 <div className="flex-1">
                                   <h3 className="text-base font-bold text-emerald-900 mb-1">Modes de paiement acceptés</h3>
                                   <p className="text-sm text-emerald-700 leading-relaxed">
-                                    Nos prestations sont payables à la réservation (minimum 50%) et à la prise en charge.
+                                    Nos prestations sont payables à la prise en charge.
                                   </p>
                                 </div>
                               </div>
@@ -1947,7 +1951,7 @@ export default function ReservationPage() {
                                     <div className="flex-1">
                                       <p className="font-semibold text-sm text-slate-900 mb-1">Annulation anticipée</p>
                                       <p className="text-xs text-slate-600 leading-relaxed">
-                                        Plus de <strong>48 heures (2 jours)</strong> avant la prestation : Frais d'annulation de <strong>50€</strong> si le montant TTC est supérieur à 50€, ou totalité de la course si inférieur à 50€.
+                                        Plus de <strong>8 heures</strong> avant la prestation : <strong>Annulation gratuite</strong>, aucun frais.
                                       </p>
                                     </div>
                                   </div>
@@ -1961,7 +1965,7 @@ export default function ReservationPage() {
                                     <div className="flex-1">
                                       <p className="font-semibold text-sm text-slate-900 mb-1">Annulation tardive</p>
                                       <p className="text-xs text-slate-600 leading-relaxed">
-                                        Moins de <strong>48 heures</strong> avant la prestation : Remboursement de <strong>50% du montant</strong> si la course est supérieure à 50€, ou <strong>totalité de la course</strong> si inférieure à 50€.
+                                        Moins de <strong>8 heures</strong> avant la prestation : Frais d'annulation de <strong>20€ TTC maximum</strong>.
                                       </p>
                                     </div>
                                   </div>

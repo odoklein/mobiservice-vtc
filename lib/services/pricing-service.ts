@@ -148,10 +148,10 @@ async function loadPricingFromDatabase(): Promise<PricingConfig | null> {
       },
       mdaRates: {
         day: 1.20,
-        night: 1.80,
-        freeMinutes: 15,
+        night: 1.90,
+        freeMinutes: 10,
         per15MinDay: 18,
-        per15MinNight: 27,
+        per15MinNight: 28.50,
       },
       airportRates: {
         geneva: { day: 116, night: 130 },
@@ -285,6 +285,7 @@ async function loadPricingFromDatabase(): Promise<PricingConfig | null> {
 function getHardcodedPricing(): PricingConfig {
   return {
     forfaits: [
+      { hours: 0.5, maxKm: 45, day: 58, night: 70 },
       { hours: 1, maxKm: 90, day: 116, night: 140 },
       { hours: 1.5, maxKm: 135, day: 174, night: 210 },
       { hours: 2, maxKm: 180, day: 232, night: 280 },

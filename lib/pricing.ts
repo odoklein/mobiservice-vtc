@@ -86,6 +86,7 @@ const TVA_RATE = 0.10; // 10% TVA
 // Export FORFAITS for display (loaded from dynamic config with fallback)
 // Initialize with fallback values for immediate use
 export let FORFAITS: Array<{ hours: number; maxKm: number; day: number; night: number }> = [
+  { hours: 0.5, maxKm: 45, day: 58, night: 70 },
   { hours: 1, maxKm: 90, day: 116, night: 140 },
   { hours: 1.5, maxKm: 135, day: 174, night: 210 },
   { hours: 2, maxKm: 180, day: 232, night: 280 },
@@ -239,10 +240,9 @@ function calculatePriceWithConfig(input: PricingInput, config: any): PricingResu
       rateType += ` (${bracket}km)`;
     }
 
-    // Ajouter les péages (x1 pour A/S, x2 pour A/R)
+    // Péages toujours × 2 : aller + retour au dépôt (que ce soit A/S ou A/R)
     const tollCost = input.tollCost || 0;
-    const finalTollCost = tripType === 'round-trip' ? tollCost * 2 : tollCost;
-    totalPrice += finalTollCost;
+    totalPrice += tollCost * 2;
   }
 
   // ===== AIRPORT SERVICE =====
@@ -267,10 +267,16 @@ function calculatePriceWithConfig(input: PricingInput, config: any): PricingResu
     let adjusted = false;
 
     if (input.duration) {
-      const estimatedHours = Math.ceil(input.duration / 60); // Convert minutes to hours, round up
+      // Round to nearest 30-min slot with +10 min tolerance
+      // e.g. 192 min → overage 12 min > 10 → rounds up to 210 min (3.5h)
+      //      188 min → overage 8 min ≤ 10 → stays at 180 min (3h)
+      const SLOT = 30;
+      const TOLERANCE = 10;
+      const lowerSlot = Math.floor(input.duration / SLOT) * SLOT;
+      const overage = input.duration - lowerSlot;
+      const roundedMinutes = overage > TOLERANCE ? lowerSlot + SLOT : lowerSlot;
+      const estimatedHours = roundedMinutes / 60;
 
-      // Use the MAXIMUM between requested and estimated duration
-      // This ensures we don't undercharge for long trips
       if (estimatedHours > requestedHours) {
         actualHours = estimatedHours;
         adjusted = true;
@@ -335,15 +341,12 @@ function calculatePriceWithConfig(input: PricingInput, config: any): PricingResu
     rateType = 'Forfait business';
   }
 
-  // ===== MDA (Mise à Disposition) - 15 min gratuites, puis par tranche de 15 min entamée =====
+  // ===== MDA (Mise à Disposition) - 10 min gratuites, puis 1,20€/min jour / 1,90€/min nuit =====
   else if (input.serviceType === 'mda') {
     const waitingMinutes = input.waitingMinutes || 0;
     const chargeableMinutes = Math.max(0, waitingMinutes - config.mdaRates.freeMinutes);
-    const per15Day = config.mdaRates.per15MinDay ?? 18;
-    const per15Night = config.mdaRates.per15MinNight ?? 27;
-    const chargeableBlocks15 = Math.ceil(chargeableMinutes / 15);
-    const ratePer15 = night ? per15Night : per15Day;
-    breakdown.waitingCharge = chargeableBlocks15 * ratePer15;
+    const ratePerMin = night ? (config.mdaRates.night ?? 1.90) : (config.mdaRates.day ?? 1.20);
+    breakdown.waitingCharge = Math.round(chargeableMinutes * ratePerMin * 100) / 100;
     totalPrice = breakdown.waitingCharge;
     rateType = 'Mise à disposition';
   }
