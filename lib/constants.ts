@@ -178,8 +178,9 @@ export const VEHICLE = {
 // Navigation menu items
 export const NAV_ITEMS = [
   { label: 'Accueil', href: '/' },
-  { label: 'Services', href: '/services' }, // Keep as absolute path for now or consistent with app
+  { label: 'Services', href: '/services' },
   { label: 'Tarifs', href: '/tarifs' },
+  { label: 'Notre idée', href: '/notre-idee' },
   { label: 'Contact', href: '/contact' },
 ];
 
