@@ -1,18 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useJsApiLoader } from '@react-google-maps/api';
-import usePlacesAutocomplete, {
-  getGeocode,
-  getLatLng,
-} from 'use-places-autocomplete';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { IconMapPin, IconLoader2, IconClock, IconStar, IconMap2 } from '@tabler/icons-react';
 import { useRecentAddresses } from '@/hooks/use-local-storage';
 import { POPULAR_LOCATIONS, HAUTE_SAVOIE_AUTOCOMPLETE_BIAS } from '@/lib/constants';
-
-const libraries: ("places")[] = ["places"];
 
 interface AddressAutocompleteProps {
   label: string;
@@ -24,8 +17,75 @@ interface AddressAutocompleteProps {
   showHauteSavoieHint?: boolean;
 }
 
-// Inner component that only renders after Google Maps is loaded
-function PlacesAutocompleteInner({
+interface MapboxSuggestion {
+  id: string;
+  mainText: string;
+  secondaryText: string;
+  fullAddress: string;
+  lat: number;
+  lng: number;
+}
+
+interface MapboxFeature {
+  id?: string;
+  geometry: { coordinates: [number, number] };
+  properties: {
+    mapbox_id?: string;
+    full_address?: string;
+    place_formatted?: string;
+    name?: string;
+    name_preferred?: string;
+    coordinates?: { longitude: number; latitude: number };
+  };
+}
+
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+
+async function fetchMapboxSuggestions(query: string, signal: AbortSignal): Promise<MapboxSuggestion[]> {
+  const url = new URL('https://api.mapbox.com/search/geocode/v6/forward');
+  url.searchParams.set('q', query);
+  url.searchParams.set('access_token', MAPBOX_TOKEN);
+  url.searchParams.set('language', 'fr');
+  url.searchParams.set('country', 'fr,ch');
+  url.searchParams.set('limit', '6');
+  url.searchParams.set('autocomplete', 'true');
+  url.searchParams.set(
+    'proximity',
+    `${HAUTE_SAVOIE_AUTOCOMPLETE_BIAS.center.lng},${HAUTE_SAVOIE_AUTOCOMPLETE_BIAS.center.lat}`
+  );
+
+  const response = await fetch(url.toString(), { signal });
+
+  if (!response.ok) {
+    throw new Error(`Mapbox geocoding error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const features: MapboxFeature[] = Array.isArray(data.features) ? data.features : [];
+
+  return features.map((feature) => {
+    const coords = feature.properties.coordinates ?? {
+      longitude: feature.geometry.coordinates[0],
+      latitude: feature.geometry.coordinates[1],
+    };
+    const fullAddress = feature.properties.full_address || feature.properties.place_formatted || feature.properties.name || '';
+    const mainText = feature.properties.name_preferred || feature.properties.name || fullAddress;
+    const secondaryText = feature.properties.place_formatted && feature.properties.place_formatted !== mainText
+      ? feature.properties.place_formatted
+      : fullAddress;
+
+    return {
+      id: feature.properties.mapbox_id || feature.id || fullAddress,
+      mainText,
+      secondaryText,
+      fullAddress,
+      lat: coords.latitude,
+      lng: coords.longitude,
+    };
+  });
+}
+
+export function AddressAutocomplete({
   label,
   placeholder,
   value,
@@ -33,73 +93,87 @@ function PlacesAutocompleteInner({
   error,
   showHauteSavoieHint = false,
 }: AddressAutocompleteProps) {
-  const {
-    ready,
-    value: inputValue,
-    suggestions: { status, data },
-    setValue,
-    clearSuggestions,
-  } = usePlacesAutocomplete({
-    requestOptions: {
-      componentRestrictions: { country: ['fr', 'ch'] },
-      language: 'fr',
-      // Prioriser Haute-Savoie (74) pour les recherches ambiguës (ex. "Mairie de Vougy")
-      locationBias: {
-        center: HAUTE_SAVOIE_AUTOCOMPLETE_BIAS.center,
-        radius: HAUTE_SAVOIE_AUTOCOMPLETE_BIAS.radius,
-      },
-    },
-    debounce: 300,
-  });
-
+  const [inputValue, setInputValue] = useState(value);
+  const [suggestions, setSuggestions] = useState<MapboxSuggestion[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [tokenError] = useState(!MAPBOX_TOKEN);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { recentAddresses, addAddress } = useRecentAddresses();
 
   useEffect(() => {
-    setValue(value, false);
-  }, [value, setValue]);
+    setInputValue(value);
+  }, [value]);
 
-  const handleSelect = async (placeId: string, description: string) => {
-    setValue(description, false);
-    clearSuggestions();
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  const runSearch = (query: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+
+    if (query.trim().length < 3 || tokenError) {
+      setSuggestions([]);
+      setIsLoading(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setIsLoading(true);
+
+      try {
+        const results = await fetchMapboxSuggestions(query, controller.signal);
+        setSuggestions(results);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Error fetching address suggestions:', err);
+          setSuggestions([]);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300);
+  };
+
+  const handleSelect = (suggestion: MapboxSuggestion) => {
+    setInputValue(suggestion.fullAddress);
+    setSuggestions([]);
     setShowSuggestions(false);
+    addAddress(suggestion.fullAddress);
+    onChange(suggestion.fullAddress, suggestion.lat, suggestion.lng);
+  };
+
+  const handleSelectRecent = async (address: string) => {
+    setInputValue(address);
+    setShowSuggestions(false);
+    setSuggestions([]);
 
     try {
-      const results = await getGeocode({ placeId });
-      const { lat, lng } = await getLatLng(results[0]);
-
-      addAddress(description);
-      onChange(description, lat, lng);
-    } catch (error) {
-      console.error('Error selecting address:', error);
-      onChange(description);
+      const controller = new AbortController();
+      const results = await fetchMapboxSuggestions(address, controller.signal);
+      const match = results[0];
+      addAddress(address);
+      onChange(address, match?.lat, match?.lng);
+    } catch (err) {
+      console.error('Error geocoding recent address:', err);
+      onChange(address);
     }
   };
 
-  const handleSelectRecent = (address: string) => {
-    setValue(address, false);
-    setShowSuggestions(false);
-    clearSuggestions();
-
-    getGeocode({ address })
-      .then((results) => getLatLng(results[0]))
-      .then(({ lat, lng }) => {
-        addAddress(address);
-        onChange(address, lat, lng);
-      })
-      .catch((error) => {
-        console.error('Error geocoding recent address:', error);
-        onChange(address);
-      });
-  };
-
   const handleSelectPopular = (location: typeof POPULAR_LOCATIONS[0]) => {
-    setValue(location.address, false);
+    setInputValue(location.address);
     setShowSuggestions(false);
-    clearSuggestions();
+    setSuggestions([]);
     addAddress(location.address);
     onChange(location.address, location.lat, location.lng);
   };
@@ -107,10 +181,10 @@ function PlacesAutocompleteInner({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showSuggestions) return;
 
-    const googleSuggestions = status === 'OK' ? data.length : 0;
+    const mapboxCount = suggestions.length;
     const popularCount = !inputValue ? POPULAR_LOCATIONS.length : 0;
     const recentCount = !inputValue ? Math.min(recentAddresses.length, 5) : 0;
-    const totalSuggestions = popularCount + recentCount + googleSuggestions;
+    const totalSuggestions = popularCount + recentCount + mapboxCount;
 
     if (totalSuggestions === 0) return;
 
@@ -130,9 +204,8 @@ function PlacesAutocompleteInner({
       } else if (selectedIndex < popularCount + recentCount) {
         handleSelectRecent(recentAddresses[selectedIndex - popularCount]);
       } else {
-        const googleIndex = selectedIndex - popularCount - recentCount;
-        const item = data[googleIndex];
-        handleSelect(item.place_id, item.description);
+        const mapboxIndex = selectedIndex - popularCount - recentCount;
+        handleSelect(suggestions[mapboxIndex]);
       }
     } else if (e.key === 'Escape') {
       setShowSuggestions(false);
@@ -165,19 +238,21 @@ function PlacesAutocompleteInner({
           placeholder={placeholder}
           value={inputValue}
           onChange={(e) => {
-            setValue(e.target.value);
-            onChange(e.target.value);
+            const newValue = e.target.value;
+            setInputValue(newValue);
+            onChange(newValue);
             setShowSuggestions(true);
             setSelectedIndex(-1);
+            runSearch(newValue);
           }}
           onKeyDown={handleKeyDown}
           onFocus={() => {
             setShowSuggestions(true);
           }}
-          disabled={!ready}
+          disabled={tokenError}
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-          {!ready ? (
+          {isLoading ? (
             <IconLoader2 className="h-4 w-4 animate-spin text-slate-400" />
           ) : (
             <IconMap2 className="h-4 w-4 text-slate-300" />
@@ -185,14 +260,17 @@ function PlacesAutocompleteInner({
         </div>
       </div>
 
+      {tokenError && (
+        <p className="text-sm text-red-500 mt-1">Erreur de configuration. Veuillez réessayer plus tard.</p>
+      )}
       {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
-      {showHauteSavoieHint && !error && (
+      {showHauteSavoieHint && !error && !tokenError && (
         <p className="text-xs text-slate-500 mt-1">
           Précisez 74 ou le code postal pour prioriser la Haute-Savoie.
         </p>
       )}
 
-      {showSuggestions && (
+      {showSuggestions && !tokenError && (
         <div
           ref={suggestionsRef}
           className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl shadow-slate-200/50 max-h-80 overflow-auto"
@@ -254,15 +332,15 @@ function PlacesAutocompleteInner({
             </>
           )}
 
-          {status === 'OK' && data.map(({ place_id, description, structured_formatting }, index) => {
-            const trueIndex = POPULAR_LOCATIONS.length + recentAddresses.length + index;
+          {suggestions.map((suggestion, index) => {
+            const trueIndex = (!inputValue ? POPULAR_LOCATIONS.length + Math.min(recentAddresses.length, 5) : 0) + index;
             const isSelected = trueIndex === selectedIndex;
 
             return (
               <button
-                key={place_id}
+                key={suggestion.id}
                 type="button"
-                onClick={() => handleSelect(place_id, description)}
+                onClick={() => handleSelect(suggestion)}
                 className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-start gap-3 border-b border-slate-50 last:border-b-0 ${isSelected ? 'bg-slate-50' : ''}`}
               >
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center mt-0.5 border border-blue-100">
@@ -270,65 +348,23 @@ function PlacesAutocompleteInner({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-slate-900">
-                    {structured_formatting.main_text}
+                    {suggestion.mainText}
                   </div>
                   <div className="text-xs text-slate-500 mt-0.5 truncate">
-                    {structured_formatting.secondary_text}
+                    {suggestion.secondaryText}
                   </div>
                 </div>
               </button>
             );
           })}
 
-          {status === 'OK' && data.length > 0 && (
-            <div className="flex justify-end p-2 bg-slate-50 border-t border-slate-100">
-              <img src="https://developers.google.com/static/maps/documentation/images/powered_by_google_on_white.png" alt="Powered by Google" className="h-4 object-contain opacity-75" />
+          {suggestions.length > 0 && (
+            <div className="flex justify-end px-4 py-1.5 bg-slate-50 border-t border-slate-100">
+              <span className="text-[11px] text-slate-400">Adresses via Mapbox</span>
             </div>
           )}
         </div>
       )}
     </div>
   );
-}
-
-// Outer component that handles loading Google Maps
-export function AddressAutocomplete(props: AddressAutocompleteProps) {
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries,
-    language: 'fr',
-  });
-
-  if (loadError) {
-    return (
-      <div className="space-y-2">
-        <Label className="text-sm font-semibold text-slate-900">{props.label}</Label>
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          Erreur de chargement. Veuillez réessayer.
-        </div>
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="space-y-2">
-        <Label className="text-sm font-semibold text-slate-900">{props.label}</Label>
-        <div className="relative">
-          <Input
-            type="text"
-            placeholder={props.placeholder}
-            disabled
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <IconLoader2 className="h-4 w-4 animate-spin text-slate-400" />
-          </div>
-        </div>
-        {props.error && <p className="text-sm text-red-500 mt-1">{props.error}</p>}
-      </div>
-    );
-  }
-
-  // Only render the autocomplete component when Google Maps is fully loaded
-  return <PlacesAutocompleteInner {...props} />;
 }

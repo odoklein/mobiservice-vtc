@@ -23,8 +23,9 @@ The pricing system now **automatically detects and includes French toll (péage)
 ### 1. Route Analysis
 When a customer requests a price estimate, the system:
 1. Analyzes **ONLY the main trip** (Pickup → Dropoff) for toll costs
-2. Uses Google Maps Directions API to detect toll roads (autoroutes)
-3. Identifies specific autoroute sections (A40, A41, A43, etc.)
+2. Uses the Mapbox Directions API (`steps=true`) and reads each step's
+   `intersections[].classes` — a structured "toll" flag, not text parsing
+3. Identifies specific autoroute sections (A40, A41, A43, etc.) from step names/refs
 
 ### 2. Cost Calculation
 Toll costs are estimated based on:
@@ -102,22 +103,24 @@ calculateTollForTrip({
 ## Configuration
 
 ### Required API Access
-Enable these Google Cloud APIs:
-1. **Directions API** - For route analysis
-2. **Places API** - Already used for address autocomplete
-3. **Geocoding API** - Already used for coordinates
-
-**Cost:** ~$0.005 per Directions API call (very affordable!)
+Uses the Mapbox APIs (single account/token for everything):
+1. **Directions API** - For route analysis and toll detection
+2. **Geocoding API (v6)** - Address autocomplete and address search
 
 ### Environment Variable
 ```env
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key_here
+NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=pk.your_token_here
 ```
 
-The same key powers:
+The same token powers:
 - ✅ Address autocomplete
 - ✅ Toll detection
-- ✅ Route analysis
+- ✅ Route analysis / distance & duration for pricing
+
+For production, a dedicated secret token (`sk.…`, no URL restrictions) can
+be set server-side as `MAPBOX_ACCESS_TOKEN` and takes priority over the
+public `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` for server-side calls
+(toll detection, routing, geocoding search).
 
 ## Benefits
 

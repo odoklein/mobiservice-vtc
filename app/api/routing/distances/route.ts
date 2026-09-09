@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRouteMatrix } from '@/lib/routing/distancematrix';
+import { getRouteMatrix } from '@/lib/routing/mapbox';
 
 export async function POST(request: NextRequest) {
     try {

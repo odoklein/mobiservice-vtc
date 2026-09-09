@@ -1,8 +1,8 @@
 /**
- * DistanceMatrix.ai Routing Service
+ * Mapbox Directions API routing service
  * Server-side only - handles distance calculations for VTC pricing
- * 
- * API: https://distancematrix.ai/distance-matrix-api
+ *
+ * API: https://docs.mapbox.com/api/navigation/directions/
  */
 
 // Simple in-memory cache for route distances
@@ -30,16 +30,10 @@ interface Coordinates {
     lng: number;
 }
 
-/**
- * Generate cache key from coordinates
- */
 function getCacheKey(depot: Coordinates, pickup: Coordinates, dropoff: Coordinates): string {
     return `${depot.lng},${depot.lat}|${pickup.lng},${pickup.lat}|${dropoff.lng},${dropoff.lat}`;
 }
 
-/**
- * Get route distances from cache if available and fresh
- */
 function getFromCache(cacheKey: string): RouteDistances | null {
     const entry = routeCache.get(cacheKey);
     if (!entry) return null;
@@ -53,9 +47,6 @@ function getFromCache(cacheKey: string): RouteDistances | null {
     return entry.distances;
 }
 
-/**
- * Store route distances in cache
- */
 function storeInCache(cacheKey: string, distances: RouteDistances): void {
     routeCache.set(cacheKey, {
         distances,
@@ -64,65 +55,64 @@ function storeInCache(cacheKey: string, distances: RouteDistances): void {
 }
 
 /**
- * Call DistanceMatrix.ai API to get driving distance between two points
+ * Call Mapbox Directions API to get driving distance/duration between two points
  */
 async function getDistanceBetweenPoints(
     origin: Coordinates,
     destination: Coordinates,
-    apiKey: string
+    accessToken: string
 ): Promise<{ distance: number; duration: number }> {
-    const url = new URL('https://api.distancematrix.ai/maps/api/distancematrix/json');
-    url.searchParams.set('origins', `${origin.lat},${origin.lng}`);
-    url.searchParams.set('destinations', `${destination.lat},${destination.lng}`);
-    url.searchParams.set('key', apiKey);
+    const coords = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+    const url = new URL(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}`);
+    url.searchParams.set('access_token', accessToken);
+    url.searchParams.set('overview', 'false');
+    url.searchParams.set('geometries', 'geojson');
+    url.searchParams.set('alternatives', 'false');
 
     const response = await fetch(url.toString());
 
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`DistanceMatrix API error (${response.status}): ${errorText}`);
+        throw new Error(`Mapbox Directions API error (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
 
-    if (data.status !== 'OK') {
-        throw new Error(`DistanceMatrix API error: ${data.status}`);
+    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+        throw new Error(`Mapbox Directions API: Route not found (${data.code || 'UNKNOWN'})`);
     }
 
-    const element = data.rows?.[0]?.elements?.[0];
-    if (!element || element.status !== 'OK') {
-        throw new Error(`DistanceMatrix API: Route not found (${element?.status || 'UNKNOWN'})`);
-    }
+    const route = data.routes[0];
 
     return {
-        distance: element.distance.value / 1000, // meters to km
-        duration: Math.round(element.duration.value / 60), // seconds to minutes
+        distance: route.distance / 1000, // meters to km
+        duration: Math.round(route.duration / 60), // seconds to minutes
     };
 }
 
 /**
- * Call DistanceMatrix.ai Matrix API to get driving distances for all 3 segments
- * 
- * @throws Error if API call fails or API key is missing
+ * Call Mapbox Directions API to get driving distances for all 3 segments
+ *
+ * @throws Error if API call fails or access token is missing
  */
-async function callDistanceMatrixApi(
+async function callDirectionsApi(
     depot: Coordinates,
     pickup: Coordinates,
     dropoff: Coordinates
 ): Promise<RouteDistances> {
-    const apiKey = process.env.DISTANCEMATRIX_API_KEY;
+    const accessToken = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-    if (!apiKey) {
-        throw new Error('DISTANCEMATRIX_API_KEY is not configured');
+    if (!accessToken) {
+        throw new Error('MAPBOX_ACCESS_TOKEN is not configured');
     }
 
     try {
-        // Make 3 separate API calls for each segment
-        // (DistanceMatrix.ai charges per element, so this is equivalent)
+        // Make 3 separate calls for each segment (accurate driving distance,
+        // important in mountainous Haute-Savoie region)
         const [segmentCA, segmentTP, segmentReturn] = await Promise.all([
-            getDistanceBetweenPoints(depot, pickup, apiKey),      // Depot → Pickup
-            getDistanceBetweenPoints(pickup, dropoff, apiKey),    // Pickup → Dropoff
-            getDistanceBetweenPoints(dropoff, depot, apiKey),     // Dropoff → Depot
+            getDistanceBetweenPoints(depot, pickup, accessToken),      // Depot → Pickup
+            getDistanceBetweenPoints(pickup, dropoff, accessToken),    // Pickup → Dropoff
+            getDistanceBetweenPoints(dropoff, depot, accessToken),     // Dropoff → Depot
         ]);
 
         return {
@@ -137,16 +127,16 @@ async function callDistanceMatrixApi(
         };
     } catch (error) {
         if (error instanceof Error) {
-            throw new Error(`DistanceMatrix routing failed: ${error.message}`);
+            throw new Error(`Mapbox routing failed: ${error.message}`);
         }
-        throw new Error('DistanceMatrix routing failed: Unknown error');
+        throw new Error('Mapbox routing failed: Unknown error');
     }
 }
 
 /**
  * Get route matrix with 3-segment distances for VTC pricing
  * Uses caching to reduce API calls
- * 
+ *
  * @param depot - VTC depot location
  * @param pickup - Customer pickup location
  * @param dropoff - Customer dropoff location
@@ -158,7 +148,6 @@ export async function getRouteMatrix(
     pickup: Coordinates,
     dropoff: Coordinates
 ): Promise<RouteDistances> {
-    // Check cache first
     const cacheKey = getCacheKey(depot, pickup, dropoff);
     const cached = getFromCache(cacheKey);
 
@@ -167,15 +156,10 @@ export async function getRouteMatrix(
     }
 
     try {
-        // Call DistanceMatrix.ai API
-        const distances = await callDistanceMatrixApi(depot, pickup, dropoff);
-
-        // Store in cache
+        const distances = await callDirectionsApi(depot, pickup, dropoff);
         storeInCache(cacheKey, distances);
-
         return distances;
     } catch (error) {
-        // Re-throw with consistent error message
         if (error instanceof Error) {
             throw new Error(`Estimation temporairement indisponible. ${error.message}`);
         }

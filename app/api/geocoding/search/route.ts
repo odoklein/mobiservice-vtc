@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchAddress } from '@/lib/geocoding/distancematrix';
+import { searchAddress } from '@/lib/geocoding/mapbox';
 
 export async function GET(request: NextRequest) {
     try {

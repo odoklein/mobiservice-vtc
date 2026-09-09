@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VTC_DEPOT_COORDS, calculateTransferPrice } from '@/lib/pricing/tariffs-2026';
-import { getRouteMatrix } from '@/lib/routing/distancematrix';
+import { getRouteMatrix } from '@/lib/routing/mapbox';
 
 /**
  * POST /api/pricing/estimate

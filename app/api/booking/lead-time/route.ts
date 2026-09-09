@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRouteMatrix } from '@/lib/routing/distancematrix';
+import { getRouteMatrix } from '@/lib/routing/mapbox';
 import { getMinimumLeadTimeForCA } from '@/lib/booking/ca-lead-time';
 import { VTC_DEPOT } from '@/lib/constants';
 

@@ -1,6 +1,10 @@
 /**
  * French Toll (Péage) Detection and Cost Calculation Service
- * Uses Google Maps Directions API to detect toll roads and estimate costs
+ * Uses Mapbox Directions API to detect toll roads and estimate costs.
+ *
+ * Toll detection relies on Mapbox's structured `intersections[].classes`
+ * data (a "toll" class means the road continues on a toll road), not on
+ * text-parsing of turn-by-turn instructions.
  */
 
 interface TollResult {
@@ -39,34 +43,37 @@ const FRENCH_TOLL_DATABASE = {
     DEFAULT_RATE_PER_KM: 0.13,
 };
 
-/**
- * Detect if route uses toll roads via Google Maps Directions API
- */
-async function detectTollsViaGoogleMaps(segment: RouteSegment): Promise<TollResult> {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const MOTORWAY_REF_PATTERN = /\bA\s?(\d{1,3})\b/i;
 
-    if (!apiKey) {
-        console.warn('[TOLL] Google Maps API key not configured');
+/**
+ * Detect if route uses toll roads via Mapbox Directions API
+ */
+async function detectTollsViaMapbox(segment: RouteSegment): Promise<TollResult> {
+    const accessToken = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+
+    if (!accessToken) {
+        console.warn('[TOLL] Mapbox access token not configured');
         return { hasTolls: false, estimatedCost: 0, tollSections: [], confidence: 'low' };
     }
 
     try {
-        const url = new URL('https://maps.googleapis.com/maps/api/directions/json');
-        url.searchParams.set('origin', `${segment.origin.lat},${segment.origin.lng}`);
-        url.searchParams.set('destination', `${segment.destination.lat},${segment.destination.lng}`);
-        url.searchParams.set('key', apiKey);
-        url.searchParams.set('language', 'fr');
+        const coords = `${segment.origin.lng},${segment.origin.lat};${segment.destination.lng},${segment.destination.lat}`;
+        const url = new URL(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}`);
+        url.searchParams.set('access_token', accessToken);
+        url.searchParams.set('steps', 'true');
+        url.searchParams.set('overview', 'false');
         url.searchParams.set('alternatives', 'false');
+        url.searchParams.set('language', 'fr');
 
         const response = await fetch(url.toString());
 
         if (!response.ok) {
-            throw new Error(`Google Directions API error: ${response.status}`);
+            throw new Error(`Mapbox Directions API error: ${response.status}`);
         }
 
         const data = await response.json();
 
-        if (data.status !== 'OK' || !data.routes || data.routes.length === 0) {
+        if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
             return { hasTolls: false, estimatedCost: 0, tollSections: [], confidence: 'low' };
         }
 
@@ -74,44 +81,39 @@ async function detectTollsViaGoogleMaps(segment: RouteSegment): Promise<TollResu
         const legs = route.legs || [];
 
         let hasTolls = false;
-        const tollSections: string[] = [];
+        const tollSections = new Set<string>();
 
-        // Check route summary for toll indicators
-        const summary = route.summary?.toLowerCase() || '';
-        const tollKeywords = ['a40', 'a41', 'a43', 'a6', 'a7', 'péage', 'autoroute'];
-
-        for (const keyword of tollKeywords) {
-            if (summary.includes(keyword)) {
-                hasTolls = true;
-                if (keyword.startsWith('a')) {
-                    tollSections.push(keyword.toUpperCase());
-                }
-            }
-        }
-
-        // Check individual steps for toll road indicators
         for (const leg of legs) {
             for (const step of leg.steps || []) {
-                const instructions = step.html_instructions?.toLowerCase() || '';
-                const maneuver = step.maneuver?.toLowerCase() || '';
+                // Structured, authoritative signal: this step continues on a toll road.
+                const intersections = step.intersections || [];
+                for (const intersection of intersections) {
+                    if (Array.isArray(intersection.classes) && intersection.classes.includes('toll')) {
+                        hasTolls = true;
+                    }
+                }
 
-                if (instructions.includes('péage') || instructions.includes('autoroute') ||
-                    maneuver.includes('toll') || instructions.match(/a\d{1,2}/)) {
-                    hasTolls = true;
+                // Best-effort motorway number for cost lookup/display (e.g. "A40").
+                // Only look at the road the step is actually on (name/ref), not
+                // junction sign text (step.destinations), which lists nearby
+                // motorways the vehicle isn't necessarily taking.
+                const nameCandidates = [step.name, step.ref].filter(Boolean).join(' ');
+                const match = nameCandidates.match(MOTORWAY_REF_PATTERN);
+                if (match) {
+                    tollSections.add(`A${match[1]}`);
                 }
             }
         }
 
-        // If tolls detected, estimate cost
+        // If a toll was detected but we couldn't identify a specific motorway
+        // number, keep tollSections empty and fall back to distance-based pricing.
         let estimatedCost = 0;
         if (hasTolls && legs.length > 0) {
-            const totalDistanceKm = legs.reduce((sum: number, leg: any) => sum + (leg.distance?.value || 0), 0) / 1000;
+            const totalDistanceKm = legs.reduce((sum: number, leg: any) => sum + (leg.distance || 0), 0) / 1000;
 
-            // Try to match known toll routes
-            estimatedCost = estimateTollCostByRoute(tollSections, totalDistanceKm);
+            estimatedCost = estimateTollCostByRoute(Array.from(tollSections), totalDistanceKm);
 
             if (estimatedCost === 0 && totalDistanceKm > 0) {
-                // Fallback: use default rate if on autoroute
                 estimatedCost = Math.round(totalDistanceKm * FRENCH_TOLL_DATABASE.DEFAULT_RATE_PER_KM * 100) / 100;
             }
         }
@@ -119,8 +121,10 @@ async function detectTollsViaGoogleMaps(segment: RouteSegment): Promise<TollResu
         return {
             hasTolls,
             estimatedCost,
-            tollSections,
-            confidence: hasTolls ? 'medium' : 'high',
+            tollSections: Array.from(tollSections),
+            // Mapbox's intersections[].classes is a structured signal (not text
+            // parsing), so we're equally confident whether a toll was found or not.
+            confidence: 'high',
         };
 
     } catch (error) {
@@ -133,7 +137,6 @@ async function detectTollsViaGoogleMaps(segment: RouteSegment): Promise<TollResu
  * Estimate toll cost based on detected autoroute sections
  */
 function estimateTollCostByRoute(tollSections: string[], distanceKm: number): number {
-    // Check if route matches known toll segments
     const routeKey = tollSections.join('_');
 
     // Common Haute-Savoie routes
@@ -158,12 +161,12 @@ function estimateTollCostByRoute(tollSections: string[], distanceKm: number): nu
 
 /**
  * Calculate toll cost for VTC trip
- * 
+ *
  * RÈGLE IMPORTANTE: Les péages ne sont comptés QUE lorsque le client est dans le véhicule
  * - ✅ Pickup → Dropoff : PÉAGES COMPTÉS (client dans le véhicule)
  * - ❌ Depot → Pickup : PAS de péages (chauffeur seul)
  * - ❌ Dropoff → Depot : PAS de péages (chauffeur seul - retour à vide)
- * 
+ *
  * Cela signifie que seul le trajet principal (TP) est facturé avec péages.
  * Le chauffeur absorbe les coûts de péages pour les trajets CA.
  */
@@ -187,19 +190,19 @@ export async function calculateTollForTrip(params: {
         console.log('[TOLL] Détection des péages - UNIQUEMENT sur trajet client (pickup → dropoff)');
 
         // ✅ SEUL SEGMENT FACTURÉ: Pickup → Dropoff (le client est dans le véhicule)
-        const mainTripSegment = await detectTollsViaGoogleMaps({
+        const mainTripSegment = await detectTollsViaMapbox({
             origin: params.pickup,
             destination: params.dropoff,
         });
 
         // ❌ Depot → Pickup (chauffeur seul - NON FACTURÉ au client)
-        const depotToPickupSegment = await detectTollsViaGoogleMaps({
+        const depotToPickupSegment = await detectTollsViaMapbox({
             origin: params.depot,
             destination: params.pickup,
         });
 
         // ❌ Dropoff → Depot (chauffeur seul - NON FACTURÉ au client)
-        const dropoffToDepotSegment = await detectTollsViaGoogleMaps({
+        const dropoffToDepotSegment = await detectTollsViaMapbox({
             origin: params.dropoff,
             destination: params.depot,
         });
