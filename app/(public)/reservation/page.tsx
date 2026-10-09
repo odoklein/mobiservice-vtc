@@ -1,256 +1,470 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Ref } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
-  IconAlertTriangle,
-  IconArrowLeft,
-  IconArrowRight,
-  IconArrowsUpDown,
-  IconCalendar,
-  IconCash,
   IconCheck,
   IconClock,
-  IconClockHour4,
-  IconCar,
-  IconInfoCircle,
-  IconLoader2,
-  IconLuggage,
+  IconArrowRight,
+  IconArrowLeft,
+  IconPlus,
+  IconMinus,
+  IconChevronLeft,
+  IconChevronRight,
   IconMapPin,
-  IconPhone,
-  IconRoute,
-  IconSparkles,
+  IconCalendar,
   IconUsers,
+  IconLuggage,
+  IconPhone,
+  IconShieldCheck,
+  IconLoader2,
+  IconAlertTriangle,
+  IconRoute,
 } from '@tabler/icons-react';
-import { FORFAITS } from '@/lib/pricing';
 import { CONTACT } from '@/lib/constants';
 import { getImmobilisationMAD, isAR13DaysAllowed, type ReturnDaysAfter } from '@/lib/booking/immobilisation-mad';
-import { bookingStepThreeSchema } from '@/lib/validations/booking';
-import { useBookingStorage } from '@/hooks/use-local-storage';
-import { AddressField } from '@/components/reservation/address-field';
-import { Card, CardTitle, CheckRow, Choice, Stepper, TextField } from '@/components/reservation/controls';
-import { HeroBg } from '@/components/reservation/hero-bg';
-import { OtpStep } from '@/components/reservation/otp-step';
-import { Calendar, TimeGrid, isBeforeMin } from '@/components/reservation/pickers';
-import { QuoteCard } from '@/components/reservation/quote-card';
-import { useQuote, type Place, type ServiceType, type TripType } from '@/components/reservation/use-quote';
-import {
-  addDays,
-  formatEuro,
-  formatHours,
-  formatLongDate,
-  formatMediumDate,
-  formatTime,
-  parseTime,
-  startOfDay,
-  toNoonISO,
-} from '@/components/reservation/utils';
 
 type Step = 1 | 2 | 3 | 4;
-type ReturnOffset = 1 | 2 | 3;
 
 const STEP_LABELS = ['Trajet', 'Quand', 'Voyageurs', 'Confirmation'];
-const MAX_PASSENGERS = 4;
-const DRAFT_KEY = 'mobiservice_reservation_draft_v2';
-const BACKGROUND = 'linear-gradient(135deg, #0a1628 0%, #0d2847 30%, #0f3060 50%, #0d2847 70%, #0a1628 100%)';
 
-interface Draft {
-  step: Step;
-  serviceType: ServiceType;
-  tripType: TripType;
-  pickup: Place | null;
-  pickupText: string;
-  dropoff: Place | null;
-  dropoffText: string;
-  hours: number;
-  date: string | null;
-  time: string;
-  returnOffset: ReturnOffset | null;
-  returnTime: string;
-  waitingMinutes: number;
-  adults: number;
-  children: number;
-  childAge: number;
-  babies: number;
-  luggage: number;
-  maxArrival: string;
+const MONTH_NAMES = [
+  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+];
+const DAY_NAMES = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+
+interface Place {
+  label: string;
+  lat: number;
+  lng: number;
 }
 
-const isPlace = (p: unknown): p is Place =>
-  !!p && typeof (p as Place).label === 'string' && typeof (p as Place).lat === 'number' && typeof (p as Place).lng === 'number';
+interface Estimation {
+  distances: { ca_out: number; tp: number; ca_return: number; total: number; totalAR?: number };
+  duration: number;
+  pricing: {
+    totalTTC: number;
+    totalHT: number;
+    tva: number;
+    isNightRate: boolean;
+    rateType: string;
+    dayName: string;
+    tollInfo: { detected: boolean; cost: number; details: string; totalIncluded: number };
+  };
+}
 
-const num = (v: unknown, fallback: number, min: number, max: number) =>
-  typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback;
+/* ---------------------------------- utils --------------------------------- */
 
-/* ---------------------------------- page ---------------------------------- */
+const pad = (n: number) => String(n).padStart(2, '0');
+const toISODate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const sameDay = (a: Date | null, b: Date | null) =>
+  !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+const formatLongDate = (d: Date) =>
+  `${DAY_NAMES[d.getDay()].charAt(0).toUpperCase()}${DAY_NAMES[d.getDay()].slice(1)} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+const formatShortDate = (d: Date) => `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0, 4)}.`;
+
+/** Grille du mois, semaines commençant le lundi. */
+function buildMonthGrid(year: number, month: number): Date[][] {
+  const first = new Date(year, month, 1);
+  const offset = (first.getDay() + 6) % 7; // lundi = 0
+  const start = new Date(year, month, 1 - offset);
+  const weeks: Date[][] = [];
+  for (let w = 0; w < 6; w++) {
+    const week: Date[] = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + d));
+    }
+    weeks.push(week);
+  }
+  return weeks.filter((week) => week.some((d) => d.getMonth() === month));
+}
+
+const TIME_SLOTS: string[] = (() => {
+  const slots: string[] = [];
+  for (let h = 0; h < 24; h++) for (const m of [0, 30]) slots.push(`${pad(h)}:${pad(m)}`);
+  return slots;
+})();
+
+const combineDateTime = (date: Date, time: string) => {
+  const [h, m] = time.split(':').map(Number);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h || 0, m || 0, 0);
+};
+
+/* ----------------------------- address field ------------------------------ */
+
+function AddressField({
+  label,
+  placeholder,
+  pinClass,
+  value,
+  onTextChange,
+  onSelect,
+}: {
+  label: string;
+  placeholder: string;
+  pinClass: string;
+  value: string;
+  onTextChange: (text: string) => void;
+  onSelect: (place: Place) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<Place[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [highlight, setHighlight] = useState(-1);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  const search = (query: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+
+    if (query.trim().length < 3) {
+      setSuggestions([]);
+      setOpen(false);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
+      try {
+        const res = await fetch(`/api/geocoding/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        const results: Place[] = Array.isArray(data.results)
+          ? data.results.map((r: { label: string; latitude: number; longitude: number }) => ({
+              label: r.label,
+              lat: r.latitude,
+              lng: r.longitude,
+            }))
+          : [];
+        setSuggestions(results);
+        setOpen(results.length > 0);
+        setHighlight(-1);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          setSuggestions([]);
+          setOpen(false);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 300);
+  };
+
+  const choose = (place: Place) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+    onSelect(place);
+    setOpen(false);
+    setSuggestions([]);
+    setHighlight(-1);
+    setLoading(false);
+  };
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <label className="text-sm font-medium text-gray-700 mb-1.5 block">{label}</label>
+      <div className="relative">
+        <IconMapPin size={18} className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${pinClass}`} />
+        <input
+          type="text"
+          value={value}
+          autoComplete="off"
+          onChange={(e) => {
+            onTextChange(e.target.value);
+            search(e.target.value);
+          }}
+          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          onKeyDown={(e) => {
+            if (!open) return;
+            if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              setHighlight((i) => Math.min(i + 1, suggestions.length - 1));
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              setHighlight((i) => Math.max(i - 1, 0));
+            } else if (e.key === 'Enter' && highlight >= 0) {
+              e.preventDefault();
+              choose(suggestions[highlight]);
+            } else if (e.key === 'Escape') {
+              setOpen(false);
+            }
+          }}
+          placeholder={placeholder}
+          className="w-full pl-10 pr-10 py-3.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449] text-sm"
+        />
+        {loading && (
+          <IconLoader2 size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />
+        )}
+      </div>
+
+      {open && suggestions.length > 0 && (
+        <div className="absolute z-30 mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
+          {suggestions.map((s, i) => (
+            <button
+              key={`${s.label}-${i}`}
+              type="button"
+              onMouseEnter={() => setHighlight(i)}
+              onClick={() => choose(s)}
+              className={`w-full flex items-start gap-2.5 px-4 py-3 text-left transition-colors ${
+                highlight === i ? 'bg-[#4BC449]/8' : 'hover:bg-gray-50'
+              }`}
+            >
+              <IconMapPin size={15} className="text-gray-400 mt-0.5 shrink-0" />
+              <span className="text-sm text-gray-800 leading-snug">{s.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* --------------------------------- calendar ------------------------------- */
+
+function Calendar({
+  viewMonth,
+  onMonthChange,
+  selected,
+  minDate,
+  onSelect,
+  compact = false,
+}: {
+  viewMonth: Date;
+  onMonthChange: (d: Date) => void;
+  selected: Date | null;
+  minDate: Date;
+  onSelect: (d: Date) => void;
+  compact?: boolean;
+}) {
+  const weeks = useMemo(
+    () => buildMonthGrid(viewMonth.getFullYear(), viewMonth.getMonth()),
+    [viewMonth]
+  );
+  const min = startOfDay(minDate);
+  const canGoPrev =
+    new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1) >
+    new Date(min.getFullYear(), min.getMonth(), 1);
+
+  return (
+    <div>
+      <div className={`flex items-center justify-between ${compact ? 'mb-3' : 'mb-4'}`}>
+        <button
+          type="button"
+          disabled={!canGoPrev}
+          onClick={() => onMonthChange(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
+          className="text-gray-400 hover:text-gray-600 disabled:opacity-25 disabled:cursor-not-allowed"
+        >
+          <IconChevronLeft size={compact ? 18 : 20} />
+        </button>
+        <span className={`font-semibold text-gray-900 ${compact ? 'text-xs' : 'text-sm'}`}>
+          {MONTH_NAMES[viewMonth.getMonth()].charAt(0).toUpperCase() + MONTH_NAMES[viewMonth.getMonth()].slice(1)}{' '}
+          {viewMonth.getFullYear()}
+        </span>
+        <button
+          type="button"
+          onClick={() => onMonthChange(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <IconChevronRight size={compact ? 18 : 20} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-0 mb-1">
+        {['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'].map((d) => (
+          <div key={d} className={`text-center font-medium text-gray-400 ${compact ? 'text-[10px] py-1' : 'text-xs py-2'}`}>
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {weeks.map((week, wi) => (
+        <div key={wi} className="grid grid-cols-7 gap-0">
+          {week.map((day) => {
+            const inMonth = day.getMonth() === viewMonth.getMonth();
+            const disabled = !inMonth || day < min;
+            const isSel = sameDay(day, selected);
+            return (
+              <button
+                key={day.toISOString()}
+                type="button"
+                onClick={() => !disabled && onSelect(day)}
+                disabled={disabled}
+                className={`${compact ? 'h-8 text-xs' : 'h-10 text-sm'} rounded-lg transition-all ${
+                  isSel
+                    ? 'bg-[#4BC449] text-white font-bold'
+                    : disabled
+                      ? 'text-gray-300 cursor-not-allowed'
+                      : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {day.getDate()}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* --------------------------------- time grid ------------------------------ */
+
+function TimeGrid({
+  value,
+  onChange,
+  minDateTime,
+  day,
+  compact = false,
+}: {
+  value: string;
+  onChange: (t: string) => void;
+  minDateTime: Date | null;
+  day: Date | null;
+  compact?: boolean;
+}) {
+  const isDisabled = (t: string) => {
+    if (!minDateTime || !day) return false;
+    return combineDateTime(day, t) < minDateTime;
+  };
+
+  return (
+    <div>
+      <div className="grid grid-cols-4 gap-2 max-h-52 overflow-y-auto pr-1">
+        {TIME_SLOTS.map((t) => {
+          const disabled = isDisabled(t);
+          return (
+            <button
+              key={t}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(t)}
+              className={`${compact ? 'py-2.5 text-xs' : 'py-3 text-sm'} rounded-xl font-medium transition-all border ${
+                value === t
+                  ? 'bg-[#4BC449] text-white border-[#4BC449]'
+                  : disabled
+                    ? 'border-gray-100 text-gray-300 cursor-not-allowed'
+                    : 'border-gray-200 text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              {t}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <span className="text-xs text-gray-500">Heure précise</span>
+        <input
+          type="time"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]"
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------- reservation flow --------------------------- */
 
 function ReservationFlow() {
   const searchParams = useSearchParams();
-  const { addToHistory, clearBookingDraft } = useBookingStorage();
+  const initialType = searchParams.get('type') === 'hourly' ? 'hourly' : 'transfer';
 
   const [step, setStep] = useState<Step>(1);
-  const [attempted, setAttempted] = useState(false);
 
-  const [serviceType, setServiceType] = useState<ServiceType>(() => (searchParams.get('type') === 'hourly' ? 'hourly' : 'transfer'));
-  const [tripType, setTripType] = useState<TripType>('one-way');
   const [pickupText, setPickupText] = useState('');
-  const [pickup, setPickup] = useState<Place | null>(null);
+  const [pickupPlace, setPickupPlace] = useState<Place | null>(null);
   const [dropoffText, setDropoffText] = useState('');
-  const [dropoff, setDropoff] = useState<Place | null>(null);
-  const [hours, setHours] = useState(2);
+  const [dropoffPlace, setDropoffPlace] = useState<Place | null>(null);
+  const [serviceType, setServiceType] = useState<'transfer' | 'hourly'>(initialType);
+  const [direction, setDirection] = useState<'one-way' | 'round-trip'>('one-way');
 
-  const [now, setNow] = useState(() => new Date());
-  const [viewMonth, setViewMonth] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
-  const [date, setDate] = useState<Date | null>(null);
-  const [time, setTime] = useState('');
-  const [returnOffset, setReturnOffset] = useState<ReturnOffset | null>(null);
+  const [today] = useState(() => startOfDay(new Date()));
+  const [viewMonth, setViewMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState('');
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const [returnChoice, setReturnChoice] = useState<'' | 'same' | 'next' | 'custom'>('');
+  const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [returnTime, setReturnTime] = useState('');
-  const [waitingMinutes, setWaitingMinutes] = useState(0);
-  const [earliestPickup, setEarliestPickup] = useState<Date | null>(null);
+  const [returnViewMonth, setReturnViewMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [showReturnCalendar, setShowReturnCalendar] = useState(false);
+  const [showReturnTime, setShowReturnTime] = useState(false);
 
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
-  const [childAge, setChildAge] = useState(5);
   const [babies, setBabies] = useState(0);
-  const [luggage, setLuggage] = useState(1);
-  const [maxArrival, setMaxArrival] = useState('');
+  const [suitcases, setSuitcases] = useState(2);
   const [babySeat, setBabySeat] = useState(false);
   const [wheelchair, setWheelchair] = useState(false);
   const [largeLuggage, setLargeLuggage] = useState(false);
 
-  const [guestName, setGuestName] = useState('');
-  const [guestEmail, setGuestEmail] = useState('');
-  const [guestPhone, setGuestPhone] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [note, setNote] = useState('');
-  const [cgv, setCgv] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
+  // Estimation temps réel
+  const [quote, setQuote] = useState<Estimation | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  // Délai de réservation minimum (dépend du CA Aller dépôt → départ)
+  const [earliestPickup, setEarliestPickup] = useState<Date | null>(null);
+
+  // Soumission et OTP
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState<string[]>(['', '', '', '', '', '']);
-  const [otpError, setOtpError] = useState('');
-  const [otpInfo, setOtpInfo] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpInfo, setOtpInfo] = useState<string | null>(null);
   const [resendIn, setResendIn] = useState(0);
   const [createdBookingId, setCreatedBookingId] = useState<number | null>(null);
-  const [hydrated, setHydrated] = useState(false);
 
-  const submittingRef = useRef(false);
-  const lastFingerprint = useRef('');
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const firstRender = useRef(true);
-
-  const isHourly = serviceType === 'hourly';
-  const effectiveTrip: TripType = isHourly ? 'one-way' : tripType;
-  const isRoundTrip = !isHourly && tripType === 'round-trip';
   const totalPassengers = adults + children + babies;
-  const returnDate = date && returnOffset ? addDays(date, returnOffset) : null;
 
-  /* ------------------------------ horloge + brouillon ------------------------ */
+  /* ----------------------- timer de renvoi OTP ------------------------------- */
 
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Restauration du brouillon (côté client uniquement) puis paramètre ?type=
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(DRAFT_KEY);
-      const d: Partial<Draft> | null = raw ? JSON.parse(raw) : null;
-      if (d && typeof d === 'object') {
-        const svc: ServiceType = d.serviceType === 'hourly' ? 'hourly' : 'transfer';
-        const restoredPickup = isPlace(d.pickup) ? d.pickup : null;
-        const restoredDropoff = isPlace(d.dropoff) ? d.dropoff : null;
-        const today = startOfDay(new Date());
-        let restoredDate: Date | null = null;
-        if (typeof d.date === 'string') {
-          const parsed = new Date(d.date);
-          if (!isNaN(parsed.getTime()) && startOfDay(parsed) >= today) restoredDate = startOfDay(parsed);
-        }
-        setServiceType(svc);
-        setTripType(d.tripType === 'round-trip' ? 'round-trip' : 'one-way');
-        setPickup(restoredPickup);
-        setPickupText(restoredPickup ? restoredPickup.label : typeof d.pickupText === 'string' ? d.pickupText : '');
-        setDropoff(restoredDropoff);
-        setDropoffText(restoredDropoff ? restoredDropoff.label : typeof d.dropoffText === 'string' ? d.dropoffText : '');
-        const savedHours = num(d.hours, 2, 0.5, 8);
-        setHours(FORFAITS.some((f) => f.hours === savedHours) ? savedHours : 2);
-        if (restoredDate) {
-          setDate(restoredDate);
-          setViewMonth(new Date(restoredDate.getFullYear(), restoredDate.getMonth(), 1));
-          if (typeof d.time === 'string' && parseTime(d.time)) setTime(d.time);
-          if (d.returnOffset === 1 || d.returnOffset === 2 || d.returnOffset === 3) setReturnOffset(d.returnOffset);
-          if (typeof d.returnTime === 'string' && parseTime(d.returnTime)) setReturnTime(d.returnTime);
-        }
-        setWaitingMinutes(Math.round(num(d.waitingMinutes, 0, 0, 480) / 15) * 15);
-        const a = num(d.adults, 1, 1, MAX_PASSENGERS);
-        const c = num(d.children, 0, 0, MAX_PASSENGERS - a);
-        const b = num(d.babies, 0, 0, MAX_PASSENGERS - a - c);
-        setAdults(a);
-        setChildren(c);
-        setBabies(b);
-        setChildAge(Math.round(num(d.childAge, 5, 1, 10)));
-        setLuggage(Math.round(num(d.luggage, 1, 0, 5)));
-        if (typeof d.maxArrival === 'string' && parseTime(d.maxArrival)) setMaxArrival(d.maxArrival);
-
-        const savedStep = Number(d.step);
-        const reachable: Step = !(restoredPickup && restoredDropoff) ? 1 : !restoredDate ? 2 : 3;
-        if (savedStep >= 1) setStep(Math.min(Math.min(savedStep, 3), reachable) as Step);
-      }
-    } catch {
-      /* brouillon illisible : on repart de zéro */
-    }
-
-    const type = searchParams.get('type');
-    if (type === 'hourly' || type === 'transfer') setServiceType(type);
-    setHydrated(true);
-    // une seule fois au montage
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Sauvegarde du brouillon (coordonnées personnelles exclues)
-  useEffect(() => {
-    if (!hydrated || showOtp) return;
-    const timer = setTimeout(() => {
-      try {
-        const draft: Draft = {
-          step: Math.min(step, 3) as Step,
-          serviceType,
-          tripType,
-          pickup,
-          pickupText,
-          dropoff,
-          dropoffText,
-          hours,
-          date: date ? toNoonISO(date) : null,
-          time,
-          returnOffset,
-          returnTime,
-          waitingMinutes,
-          adults,
-          children,
-          childAge,
-          babies,
-          luggage,
-          maxArrival,
-        };
-        window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-      } catch {
-        /* stockage indisponible */
-      }
-    }, 600);
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn((n) => n - 1), 1000);
     return () => clearTimeout(timer);
-  }, [
-    hydrated, showOtp, step, serviceType, tripType, pickup, pickupText, dropoff, dropoffText, hours, date, time,
-    returnOffset, returnTime, waitingMinutes, adults, children, childAge, babies, luggage, maxArrival,
-  ]);
+  }, [resendIn]);
 
-  /* --------------------------- délai minimum de réservation ------------------- */
+  /* ----------------------- délai minimum de réservation ---------------------- */
 
   useEffect(() => {
-    if (!pickup) {
+    if (!pickupPlace) {
       setEarliestPickup(null);
       return;
     }
@@ -260,284 +474,269 @@ function ReservationFlow() {
         const res = await fetch('/api/booking/lead-time', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pickupLat: pickup.lat, pickupLng: pickup.lng }),
+          body: JSON.stringify({ pickupLat: pickupPlace.lat, pickupLng: pickupPlace.lng }),
           signal: controller.signal,
         });
         const data = await res.json();
-        setEarliestPickup(data.success && data.earliestPickup ? new Date(data.earliestPickup) : null);
+        if (data.success && data.earliestPickup) setEarliestPickup(new Date(data.earliestPickup));
       } catch {
-        if (!controller.signal.aborted) setEarliestPickup(null);
+        /* le délai minimum reste optionnel */
       }
     })();
     return () => controller.abort();
-  }, [pickup]);
+  }, [pickupPlace]);
 
-  const minPickup = earliestPickup && earliestPickup > now ? earliestPickup : now;
-  const minPickupDay = startOfDay(minPickup);
+  const minPickupDay = startOfDay(earliestPickup ?? today);
 
   // La date choisie devient invalide si le délai minimum la dépasse
   useEffect(() => {
-    if (date && date < startOfDay(minPickup)) {
-      setDate(null);
-      setTime('');
-      setReturnOffset(null);
-      setReturnTime('');
-    }
-  }, [date, minPickup]);
-
-  /* ---------------------------------- tarif ---------------------------------- */
-
-  const { quote, loading: quoteLoading, error: quoteError, ready: quoteReady, retry } = useQuote({
-    serviceType,
-    tripType: effectiveTrip,
-    pickup,
-    dropoff,
-    date,
-    time,
-    returnDate: isRoundTrip ? returnDate : null,
-    returnTime: isRoundTrip ? returnTime : '',
-    hours,
-    waitingMinutes: isHourly ? 0 : waitingMinutes,
-  });
-
-  const immobilisation = useMemo(() => {
-    const totalAR = quote?.totalAR;
-    if (!isRoundTrip || !returnOffset || typeof totalAR !== 'number') return null;
-    return getImmobilisationMAD(totalAR, returnOffset as ReturnDaysAfter);
-  }, [quote, isRoundTrip, returnOffset]);
-
-  // A/R avec retour 1–3 jours interdit sous 25 km au total (forfait agglomération conseillé)
-  const arTooShort = isRoundTrip && quote?.kind === 'transfer' && typeof quote.totalAR === 'number' && !isAR13DaysAllowed(quote.totalAR);
-
-  const timeTooEarly = isBeforeMin(date, time, minPickup);
-  const sameCoords = !!pickup && !!dropoff && !isHourly && pickup.lat === dropoff.lat && pickup.lng === dropoff.lng;
-
-  const priceLabel = quote ? formatEuro(quote.totalTTC) : '—';
-
-  /* ------------------------------ notes + payload ----------------------------- */
-
-  const notes = useMemo(() => {
-    const parts: string[] = [];
-    if (note.trim()) parts.push(`Note du client : ${note.trim()}`);
-    const needs = [babySeat && 'siège bébé / rehausseur', wheelchair && 'accessibilité PMR', largeLuggage && 'bagage volumineux'].filter(Boolean);
-    if (needs.length) parts.push(`Besoins : ${needs.join(', ')}`);
-    if (children > 0) parts.push(`Âge de l'enfant : ${childAge} an${childAge > 1 ? 's' : ''}`);
-    if (maxArrival) parts.push(`Heure d'arrivée maximale : ${maxArrival}`);
-    if (!isHourly && waitingMinutes > 0) parts.push(`Temps d'attente demandé : ${waitingMinutes} min`);
-    if (immobilisation && immobilisation.priceTTC > 0) parts.push(`Immobilisation retour J+${returnOffset} : ${immobilisation.label}`);
-    return parts.length ? parts.join('\n') : undefined;
-  }, [note, babySeat, wheelchair, largeLuggage, children, childAge, maxArrival, isHourly, waitingMinutes, immobilisation, returnOffset]);
-
-  const bookingBase = useMemo(() => {
-    if (!quote || !pickup || !dropoff || !date) return null;
-    return {
-      pickupAddress: pickup.label,
-      pickupLat: pickup.lat,
-      pickupLng: pickup.lng,
-      dropoffAddress: dropoff.label,
-      dropoffLat: dropoff.lat,
-      dropoffLng: dropoff.lng,
-      // Midi local : le même jour calendaire quel que soit le fuseau du serveur
-      pickupDate: toNoonISO(date),
-      pickupTime: time,
-      ...(isRoundTrip && returnDate ? { returnDate: toNoonISO(returnDate), returnTime } : {}),
-      ...(maxArrival ? { maxArrivalTime: maxArrival } : {}),
-      passengers: totalPassengers,
-      adults,
-      children,
-      ...(children > 0 ? { childAge } : {}),
-      babies,
-      luggage,
-      serviceType,
-      tripType: effectiveTrip,
-      ...(isHourly ? { hours } : { waitingMinutes, tollCost: quote.toll?.cost ?? 0 }),
-      distanceCA: quote.distanceCA,
-      distanceTP: quote.distanceTP,
-      distanceReturn: quote.distanceReturn,
-      distance: quote.distanceTP,
-      duration: quote.duration,
-      totalPrice: quote.totalTTC,
-      totalPriceHT: quote.totalHT,
-      totalPriceTTC: quote.totalTTC,
-      tvaAmount: quote.tva,
-      basePrice: isHourly ? quote.totalTTC : quote.totalHT,
-      isNightRate: quote.isNightRate,
-      rateType: quote.rateType,
-      breakdown: quote.breakdown,
-      priceBreakdown: quote.breakdown,
-      debugInfo: quote.debugInfo,
-      ...(isHourly ? { isForfait: true, forfaitName: quote.forfait?.name } : {}),
-      ...(notes ? { notes } : {}),
-    };
-  }, [
-    quote, pickup, dropoff, date, time, isRoundTrip, returnDate, returnTime, maxArrival, totalPassengers, adults, children,
-    childAge, babies, luggage, serviceType, effectiveTrip, isHourly, hours, waitingMinutes, notes,
-  ]);
-
-  /* ------------------------------- validations ------------------------------- */
-
-  const blocker = (s: Step): string | null => {
-    if (s === 1) {
-      if (!pickup) return pickupText.trim() ? 'Sélectionnez l’adresse de départ dans la liste de suggestions.' : 'Indiquez votre adresse de départ.';
-      if (!dropoff) return dropoffText.trim() ? 'Sélectionnez l’adresse d’arrivée dans la liste de suggestions.' : 'Indiquez votre adresse d’arrivée.';
-      if (sameCoords) return 'Le départ et la destination doivent être différents.';
-      return null;
-    }
-    if (s === 2) {
-      if (!date) return 'Choisissez votre date de départ.';
-      if (!time || !parseTime(time)) return 'Choisissez votre heure de départ.';
-      if (timeTooEarly) return 'Choisissez une heure de départ plus tardive.';
-      if (isRoundTrip) {
-        if (!returnOffset) return 'Choisissez la date de retour (1 à 3 jours après l’aller).';
-        if (!returnTime || !parseTime(returnTime)) return 'Choisissez l’heure de retour.';
+    if (!earliestPickup) return;
+    setSelectedDate((current) => {
+      if (current && current < startOfDay(earliestPickup)) {
+        setSelectedTime('');
+        setShowTimePicker(false);
+        return null;
       }
-      if (quoteLoading) return 'Calcul du tarif en cours…';
-      if (quoteError) return 'L’estimation est indisponible : utilisez « Réessayer » ou appelez-nous.';
-      if (arTooShort) return 'Un aller-retour de moins de 25 km n’est pas possible sur 1 à 3 jours : passez en aller simple.';
-      if (!quote) return 'Calcul du tarif en cours…';
-      return null;
-    }
-    if (s === 3) {
-      if (adults < 1) return 'Au moins un adulte est requis.';
-      if (totalPassengers > MAX_PASSENGERS) return `Maximum ${MAX_PASSENGERS} passagers.`;
-      return null;
-    }
-    return null;
-  };
-
-  const contactErrors = useMemo(() => {
-    const result = bookingStepThreeSchema.safeParse({
-      guestName: guestName.trim(),
-      guestEmail: guestEmail.trim(),
-      guestPhone: guestPhone.trim(),
-      cgvAccepted: cgv,
-      paymentMethod: 'cash',
+      return current;
     });
-    const errors: Partial<Record<'guestName' | 'guestEmail' | 'guestPhone' | 'cgvAccepted', string>> = {};
-    if (!result.success) {
-      for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof typeof errors;
-        if (key && !errors[key]) errors[key] = issue.message;
-      }
+  }, [earliestPickup]);
+
+  /* ------------------------------ estimation prix ---------------------------- */
+
+  const returnDaysAfter: ReturnDaysAfter | null = useMemo(() => {
+    if (direction !== 'round-trip' || !selectedDate || !returnDate) return null;
+    const diff = Math.round((startOfDay(returnDate).getTime() - startOfDay(selectedDate).getTime()) / 86400000);
+    return diff >= 1 && diff <= 3 ? (diff as ReturnDaysAfter) : null;
+  }, [direction, selectedDate, returnDate]);
+
+  useEffect(() => {
+    if (serviceType !== 'transfer' || !pickupPlace || !dropoffPlace || !selectedDate || !selectedTime) {
+      setQuote(null);
+      setQuoteError(null);
+      setQuoteLoading(false);
+      return;
     }
-    if (!errors.guestPhone && guestPhone.replace(/\D/g, '').length < 9) errors.guestPhone = 'Numéro de téléphone valide requis';
-    return errors;
-  }, [guestName, guestEmail, guestPhone, cgv]);
-  const contactValid = Object.keys(contactErrors).length === 0;
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const touch = (k: string) => setTouched((t) => (t[k] ? t : { ...t, [k]: true }));
-  const showErr = (k: keyof typeof contactErrors) => (attempted || touched[k] ? contactErrors[k] ?? null : null);
+
+    const controller = new AbortController();
+    setQuoteLoading(true);
+    setQuoteError(null);
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/pricing/estimate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pickupAddress: pickupPlace.label,
+            pickupLat: pickupPlace.lat,
+            pickupLng: pickupPlace.lng,
+            dropoffAddress: dropoffPlace.label,
+            dropoffLat: dropoffPlace.lat,
+            dropoffLng: dropoffPlace.lng,
+            pickupDate: toISODate(selectedDate),
+            pickupTime: selectedTime,
+            returnDate: returnDate ? toISODate(returnDate) : undefined,
+            returnTime: returnTime || undefined,
+            tripType: direction,
+            tollCost: 0,
+            waitingMinutes: 0,
+          }),
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || data.error || 'Estimation indisponible');
+        }
+        if (!controller.signal.aborted) setQuote(data.estimation as Estimation);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          setQuote(null);
+          setQuoteError((err as Error).message || 'Estimation indisponible');
+        }
+      } finally {
+        if (!controller.signal.aborted) setQuoteLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [serviceType, pickupPlace, dropoffPlace, selectedDate, selectedTime, returnDate, returnTime, direction]);
+
+  // Immobilisation MAD pour un A/R avec retour 1 à 3 jours après l'aller
+  const immobilisation = useMemo(() => {
+    const totalAR = quote?.distances.totalAR;
+    if (!returnDaysAfter || typeof totalAR !== 'number') return null;
+    return getImmobilisationMAD(totalAR, returnDaysAfter);
+  }, [quote, returnDaysAfter]);
+
+  // A/R 1–3 jours interdit sous 25 km (forfait agglomération conseillé)
+  const arTooShort = useMemo(() => {
+    const totalAR = quote?.distances.totalAR;
+    return !!returnDaysAfter && typeof totalAR === 'number' && !isAR13DaysAllowed(totalAR);
+  }, [quote, returnDaysAfter]);
+
+  const totalPrice = quote ? quote.pricing.totalTTC + (immobilisation?.priceTTC ?? 0) : null;
+
+  const priceLabel =
+    serviceType === 'hourly'
+      ? 'Sur devis'
+      : totalPrice !== null
+        ? `${totalPrice.toFixed(2).replace(/\.00$/, '')}€`
+        : '—';
 
   /* -------------------------------- navigation ------------------------------- */
 
-  const goTo = useCallback((s: Step) => {
-    setStep(s);
-    setAttempted(false);
-  }, []);
-
-  // Focus + défilement vers le titre de l'étape à chaque changement d'étape
-  useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    const el = headingRef.current;
-    if (!el) return;
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    el.focus({ preventScroll: true });
-    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-  }, [step, showOtp]);
-
-  const goNext = () => {
-    if (step < 4) {
-      const b = blocker(step);
-      if (b) {
-        setAttempted(true);
-        return;
+  const canContinue = (s: Step) => {
+    if (s === 1) return !!pickupPlace && (serviceType === 'hourly' || !!dropoffPlace);
+    if (s === 2) {
+      if (!selectedDate || !selectedTime) return false;
+      if (serviceType === 'hourly') return true;
+      if (direction === 'round-trip') {
+        if (!returnDate || !returnTime) return false;
+        if (arTooShort) return false;
       }
-      goTo((step + 1) as Step);
+      return !!quote && !quoteLoading && !quoteError;
     }
+    if (s === 3) return adults >= 1 && totalPassengers <= 4;
+    return (
+      acceptTerms &&
+      firstName.trim() !== '' &&
+      lastName.trim() !== '' &&
+      phone.trim().replace(/\D/g, '').length >= 9 &&
+      email.trim() !== '' &&
+      email.includes('@')
+    );
   };
 
-  /* ------------------------------ réservation + OTP -------------------------- */
+  const goNext = () => {
+    if (step < 4) setStep((step + 1) as Step);
+  };
+  const goBack = () => {
+    if (step > 1) setStep((step - 1) as Step);
+  };
 
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const id = setTimeout(() => setResendIn((n) => n - 1), 1000);
-    return () => clearTimeout(id);
-  }, [resendIn]);
+  const passengersText = () => {
+    const parts: string[] = [];
+    if (adults > 0) parts.push(`${adults} adulte${adults > 1 ? 's' : ''}`);
+    if (children > 0) parts.push(`${children} enfant${children > 1 ? 's' : ''}`);
+    if (babies > 0) parts.push(`${babies} bébé${babies > 1 ? 's' : ''}`);
+    return parts.join(', ');
+  };
 
-  const sendOtp = async (bookingId: number): Promise<boolean> => {
+  /* -------------------------- soumission & OTP ------------------------------ */
+
+  const handleBookingSubmit = async () => {
+    if (!canContinue(4) || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+
     try {
-      const res = await fetch('/api/bookings/send-otp', {
+      const destination = serviceType === 'hourly' && !dropoffPlace ? pickupPlace! : dropoffPlace!;
+
+      const payload = {
+        pickupAddress: pickupPlace!.label,
+        pickupLat: pickupPlace!.lat,
+        pickupLng: pickupPlace!.lng,
+        dropoffAddress: destination.label,
+        dropoffLat: destination.lat,
+        dropoffLng: destination.lng,
+        pickupDate: `${toISODate(selectedDate!)}T12:00:00.000Z`,
+        pickupTime: selectedTime,
+        ...(direction === 'round-trip' && returnDate ? {
+          returnDate: `${toISODate(returnDate)}T12:00:00.000Z`,
+          returnTime: returnTime,
+        } : {}),
+        passengers: totalPassengers,
+        adults,
+        children,
+        babies,
+        luggage: suitcases,
+        serviceType,
+        tripType: serviceType === 'hourly' ? 'one-way' : direction,
+        tollCost: quote?.pricing.tollInfo?.cost ?? 0,
+        waitingMinutes: 0,
+        distanceCA: quote?.distances.ca_out ?? 0,
+        distanceTP: quote?.distances.tp ?? 0,
+        distanceReturn: quote?.distances.ca_return ?? 0,
+        distance: quote?.distances.tp ?? 0,
+        duration: quote?.duration ?? 0,
+        isNightRate: quote?.pricing.isNightRate ?? false,
+        rateType: quote?.pricing.rateType ?? '',
+        totalPriceHT: quote?.pricing.totalHT ?? 0,
+        totalPriceTTC: totalPrice ?? 0,
+        tvaAmount: quote?.pricing.tva ?? 0,
+        basePrice: serviceType === 'hourly' ? (totalPrice ?? 0) : (quote?.pricing.totalHT ?? 0),
+        totalPrice: totalPrice ?? 0,
+        notes: [
+          note.trim() ? `Note client : ${note.trim()}` : null,
+          babySeat ? 'Siège bébé demandé' : null,
+          wheelchair ? 'Accessibilité PMR' : null,
+          largeLuggage ? 'Bagage volumineux' : null,
+          immobilisation?.label ? `Immobilisation : ${immobilisation.label}` : null,
+        ].filter(Boolean).join(' | '),
+        guestName: `${firstName.trim()} ${lastName.trim()}`,
+        guestEmail: email.trim(),
+        guestPhone: phone.trim(),
+        cgvAccepted: true,
+        paymentMethod: 'cash',
+      };
+
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.bookingId) {
+        throw new Error(data.error || 'Impossible d’enregistrer votre demande.');
+      }
+
+      const bookingId = data.bookingId as number;
+      setCreatedBookingId(bookingId);
+      setShowOtp(true);
+
+      const otpRes = await fetch('/api/bookings/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId }),
       });
-      const data = await res.json();
-      return !!data.success;
-    } catch {
-      return false;
+      const otpData = await otpRes.json();
+      if (otpData.success) {
+        setOtpInfo('Un code à 6 chiffres vous a été envoyé par e-mail.');
+        setResendIn(30);
+      } else {
+        setOtpError('Le code n’a pas pu être envoyé. Cliquez sur « Renvoyer le code ».');
+      }
+    } catch (err) {
+      setSubmitError((err as Error).message || 'Erreur lors de l’enregistrement de votre demande.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const submit = async () => {
-    setAttempted(true);
-    if (!bookingBase || !contactValid) {
-      setTimeout(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(), 0);
+  const handleOtpInput = (index: number, val: string) => {
+    const clean = val.replace(/\D/g, '');
+    if (!clean) {
+      const next = [...otpCode];
+      next[index] = '';
+      setOtpCode(next);
       return;
     }
-    if (submittingRef.current) return;
-    submittingRef.current = true;
-    setSubmitting(true);
-    setSubmitError('');
-    try {
-      // Le détail de debug et le doublon du breakdown ne servent qu'à l'affichage : on ne les envoie pas
-      const { debugInfo: _debugInfo, priceBreakdown: _priceBreakdown, ...bookingFields } = bookingBase;
-      const payload = {
-        ...bookingFields,
-        guestName: guestName.trim(),
-        guestEmail: guestEmail.trim(),
-        guestPhone: guestPhone.trim(),
-        cgvAccepted: true,
-        paymentMethod: 'cash',
-      };
-      const fingerprint = JSON.stringify(payload);
+    const next = [...otpCode];
+    clean.slice(0, 6 - index).split('').forEach((ch, i) => {
+      if (index + i < 6) next[index + i] = ch;
+    });
+    setOtpCode(next);
+    const nextIdx = Math.min(5, index + clean.length);
+    document.getElementById(`otp-input-${nextIdx}`)?.focus();
+  };
 
-      let bookingId = createdBookingId;
-      let created = false;
-      // Même demande déjà enregistrée (retour arrière depuis l'écran du code) : pas de doublon
-      if (!bookingId || fingerprint !== lastFingerprint.current) {
-        const res = await fetch('/api/bookings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, submittedAt: new Date().toISOString() }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!data.success || !data.bookingId) throw new Error('create-failed');
-        bookingId = data.bookingId as number;
-        created = true;
-        setCreatedBookingId(bookingId);
-        lastFingerprint.current = fingerprint;
-      }
-
-      setOtpCode(['', '', '', '', '', '']);
-      setOtpError('');
-      setShowOtp(true);
-      if (created) {
-        const sent = await sendOtp(bookingId as number);
-        if (sent) {
-          setOtpInfo('Code envoyé.');
-          setResendIn(30);
-        } else {
-          setOtpError('Le code n’a pas pu être envoyé. Utilisez « Renvoyer le code ».');
-        }
-      }
-    } catch {
-      setSubmitError(`Impossible d’enregistrer votre demande pour le moment. Réessayez dans un instant ou appelez-nous au ${CONTACT.phone}.`);
-    } finally {
-      submittingRef.current = false;
-      setSubmitting(false);
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
+      document.getElementById(`otp-input-${index - 1}`)?.focus();
     }
   };
 
@@ -545,11 +744,11 @@ function ReservationFlow() {
     if (!createdBookingId) return;
     const code = otpCode.join('');
     if (code.length !== 6) {
-      setOtpError('Saisissez le code à 6 chiffres.');
+      setOtpError('Veuillez saisir le code à 6 chiffres.');
       return;
     }
     setSubmitting(true);
-    setOtpError('');
+    setOtpError(null);
     try {
       const res = await fetch('/api/bookings/verify-otp', {
         method: 'POST',
@@ -558,868 +757,787 @@ function ReservationFlow() {
       });
       const data = await res.json();
       if (data.success && data.redirectUrl) {
-        addToHistory({ ...bookingBase, id: createdBookingId.toString(), status: 'confirmed' });
-        clearBookingDraft();
-        try {
-          window.localStorage.removeItem(DRAFT_KEY);
-        } catch {
-          /* ignore */
-        }
         window.location.href = data.redirectUrl;
-        return; // on garde l'état « chargement » pendant la redirection
+        return;
       }
       setOtpError(data.error || 'Code invalide ou expiré.');
     } catch {
-      setOtpError('Erreur de vérification. Réessayez.');
+      setOtpError('Erreur de vérification. Veuillez réessayer.');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const resendOtp = async () => {
     if (!createdBookingId || resendIn > 0) return;
     setOtpCode(['', '', '', '', '', '']);
-    setOtpError('');
-    setOtpInfo('');
-    const sent = await sendOtp(createdBookingId);
-    if (sent) {
-      setOtpInfo('Un nouveau code vient de vous être envoyé.');
-      setResendIn(30);
-    } else {
-      setOtpError('Le code n’a pas pu être envoyé. Réessayez dans un instant.');
+    setOtpError(null);
+    setOtpInfo(null);
+    try {
+      const res = await fetch('/api/bookings/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: createdBookingId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOtpInfo('Un nouveau code vient de vous être envoyé.');
+        setResendIn(30);
+      } else {
+        setOtpError('Le code n’a pas pu être envoyé. Réessayez dans un instant.');
+      }
+    } catch {
+      setOtpError('Erreur lors de l’envoi. Réessayez.');
     }
   };
 
-  /* ---------------------------------- actions -------------------------------- */
-
-  const swapAddresses = () => {
-    setPickup(dropoff);
-    setPickupText(dropoffText);
-    setDropoff(pickup);
-    setDropoffText(pickupText);
-  };
-
-  const updateDate = (d: Date) => {
-    setDate(d);
-    // le retour est toujours relatif à l'aller (J+1 à J+3) : il suit la nouvelle date
-  };
-
-  /* ----------------------------------- vue ----------------------------------- */
-
-  const stepBlocker = step < 4 ? blocker(step) : null;
-  const passengersText = [
-    `${adults} adulte${adults > 1 ? 's' : ''}`,
-    children > 0 && `${children} enfant${children > 1 ? 's' : ''}`,
-    babies > 0 && `${babies} bébé${babies > 1 ? 's' : ''}`,
-  ]
-    .filter(Boolean)
-    .join(', ');
-
-  const dateTimeText = date && time ? `${formatLongDate(date)} à ${time}` : '—';
-  const returnText = returnDate && returnTime ? `${formatLongDate(returnDate)} à ${returnTime}` : '—';
-
-  const recap: { label: string; value: string; step: Step }[] = [
-    { label: 'Service', value: isHourly ? `Mise à disposition ${formatHours(hours)}` : isRoundTrip ? 'Transfert aller-retour' : 'Transfert aller simple', step: 1 },
-    { label: 'Départ', value: pickup?.label ?? '—', step: 1 },
-    { label: 'Arrivée', value: dropoff?.label ?? '—', step: 1 },
-    { label: 'Aller', value: dateTimeText, step: 2 },
-    ...(isRoundTrip ? [{ label: 'Retour', value: returnText, step: 2 as Step }] : []),
-    ...(!isHourly && waitingMinutes > 0 ? [{ label: 'Attente (MAD)', value: `${waitingMinutes} min`, step: 2 as Step }] : []),
-    { label: 'Passagers', value: passengersText, step: 3 },
-    { label: 'Bagages', value: `${luggage} bagage${luggage > 1 ? 's' : ''}`, step: 3 },
-  ];
+  /* ----------------------------------- page ---------------------------------- */
 
   return (
-    <main className="min-h-screen relative overflow-x-clip" style={{ background: BACKGROUND }}>
-      {/* L'en-tête du site est collant : on laisse de la marge pour les éléments focalisés */}
-      <style>{`html { scroll-padding-top: 6rem; }`}</style>
+    <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0d2847 30%, #0f3060 50%, #0d2847 70%, #0a1628 100%)' }}>
       <HeroBg />
 
-      <div className="relative z-10 flex flex-col min-h-screen">
-        {/* En-tête + étapes */}
-        <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 pt-8 pb-4">
-          <div className="text-center mb-6">
-            <p className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs text-white/80">
-              <IconSparkles size={14} aria-hidden className="text-[#4BC449]" /> Devis instantané gratuit
-            </p>
-            <h1 className="mt-3 text-2xl sm:text-3xl font-bold text-white">
-              Réservez votre <span className="text-[#4BC449]">VTC</span> en Haute-Savoie
-            </h1>
+      <div className="relative z-10 min-h-screen flex flex-col">
+        {/* Step bar */}
+        <div className="max-w-3xl mx-auto w-full px-6 pt-8 pb-4">
+          <div className="flex items-center justify-between">
+            {STEP_LABELS.map((label, i) => {
+              const num = i + 1;
+              const active = step === num;
+              const done = step > num;
+              return (
+                <div key={label} className="flex items-center flex-1 last:flex-none">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                      done ? 'bg-[#4BC449] text-white' : active ? 'bg-white text-[#0d2847]' : 'bg-white/10 text-white/40'
+                    }`}>
+                      {done ? <IconCheck size={14} /> : num}
+                    </div>
+                    <span className={`text-[11px] font-medium transition-colors ${done ? 'text-[#4BC449]' : active ? 'text-white' : 'text-white/30'}`}>{label}</span>
+                  </div>
+                  {i < STEP_LABELS.length - 1 && (
+                    <div className={`flex-1 h-[2px] mx-3 mb-5 transition-colors duration-300 ${done ? 'bg-[#4BC449]' : 'bg-white/10'}`} />
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <nav aria-label="Progression de la réservation">
-            <ol className="flex items-center justify-between">
-              {STEP_LABELS.map((label, i) => {
-                const num = i + 1;
-                const active = step === num;
-                const done = step > num;
-                const clickable = done && !submitting;
-                const circle = `w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-colors duration-300 ${
-                  done ? 'bg-[#4BC449] text-[#0a1628]' : active ? 'bg-white text-[#0d2847]' : 'bg-white/10 text-white/50'
-                }`;
-                const inner = (
-                  <>
-                    <span className={circle} aria-hidden>
-                      {done ? <IconCheck size={15} /> : num}
-                    </span>
-                    <span className={`text-[11px] font-medium ${done ? 'text-[#4BC449]' : active ? 'text-white' : 'text-white/60'}`}>
-                      {label}
-                    </span>
-                  </>
-                );
-                return (
-                  <li key={label} className="flex items-center flex-1 last:flex-none" aria-current={active ? 'step' : undefined}>
-                    {clickable ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowOtp(false);
-                          goTo(num as Step);
-                        }}
-                        aria-label={`Revenir à l’étape ${num} : ${label}`}
-                        className="flex flex-col items-center gap-1.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
-                      >
-                        {inner}
-                      </button>
-                    ) : (
-                      <div className="flex flex-col items-center gap-1.5">
-                        {inner}
-                        <span className="sr-only">{active ? '(étape en cours)' : '(à venir)'}</span>
-                      </div>
-                    )}
-                    {i < STEP_LABELS.length - 1 && (
-                      <div aria-hidden className={`flex-1 h-[2px] mx-2 sm:mx-3 mb-5 transition-colors duration-300 ${done ? 'bg-[#4BC449]' : 'bg-white/15'}`} />
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
         </div>
 
-        {/* Contenu */}
-        <div className="flex-1 pb-6">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <div className="flex gap-8 items-start">
+        {/* Main area */}
+        <div className="flex-1 pb-8">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="flex gap-8">
               <div className="flex-1 min-w-0">
-                {/* ------------------------------ ÉTAPE 1 ------------------------------ */}
+
+                {/* STEP 1: WHERE */}
                 {step === 1 && (
                   <div className="space-y-5">
-                    <StepHeading headingRef={headingRef} title="Où allez-vous ?" sub="Choisissez votre service, puis votre itinéraire." />
+                    <div className="mb-2">
+                      <h2 className="text-2xl font-bold text-white mb-1">Où allez-vous ?</h2>
+                      <p className="text-white/50 text-sm">Indiquez votre point de départ et votre destination.</p>
+                    </div>
 
-                    <Card>
-                      <CardTitle>Type de service</CardTitle>
-                      <div role="radiogroup" aria-label="Type de service" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <Choice selected={!isHourly} onClick={() => setServiceType('transfer')} className="p-4 rounded-xl">
-                          <span className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                            <IconCar size={18} aria-hidden className="text-[#27802a]" /> Transfert
-                          </span>
-                          <span className="text-xs text-gray-600 block mt-1">Aller simple (A/S) ou aller-retour (A/R) de votre point de départ à votre destination.</span>
-                          <span className="text-xs font-semibold text-[#27802a] block mt-2">À partir de 33 €</span>
-                        </Choice>
-                        <Choice selected={isHourly} onClick={() => setServiceType('hourly')} className="p-4 rounded-xl">
-                          <span className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                            <IconClockHour4 size={18} aria-hidden className="text-blue-600" /> Transfert forfaitaire
-                          </span>
-                          <span className="text-xs text-gray-600 block mt-1">Mise à disposition d’un chauffeur de 1 h à 8 h (paliers de 30 min).</span>
-                          <span className="text-xs font-semibold text-blue-700 block mt-2">Forfaits sur mesure</span>
-                        </Choice>
-                      </div>
-
-                      {!isHourly ? (
-                        <div className="mt-5 pt-5 border-t border-gray-100">
-                          <p id="trip-type-label" className="text-sm font-medium text-gray-700 mb-2">Type de trajet</p>
-                          <div role="radiogroup" aria-labelledby="trip-type-label" className="grid grid-cols-2 gap-3">
-                            <Choice selected={tripType === 'one-way'} onClick={() => setTripType('one-way')} className="p-3.5 rounded-xl">
-                              <span className="block text-sm font-semibold text-gray-900">Aller simple</span>
-                              <span className="block text-xs text-gray-600 mt-0.5">Trajet unique</span>
-                            </Choice>
-                            <Choice selected={tripType === 'round-trip'} onClick={() => setTripType('round-trip')} className="p-3.5 rounded-xl">
-                              <span className="block text-sm font-semibold text-gray-900">Aller-retour</span>
-                              <span className="block text-xs text-gray-600 mt-0.5">Retour 1 à 3 jours après l’aller</span>
-                            </Choice>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-5 pt-5 border-t border-gray-100">
-                          <p id="duration-label" className="text-sm font-medium text-gray-700">Durée de mise à disposition</p>
-                          <p className="text-xs text-gray-500 mb-3">Paliers de 30 minutes · tarif jour affiché</p>
-                          <div role="radiogroup" aria-labelledby="duration-label" className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                            {FORFAITS.map((f) => (
-                              <Choice key={f.hours} selected={hours === f.hours} onClick={() => setHours(f.hours)} className="py-2.5 px-1 rounded-xl text-center">
-                                <span className="block text-sm font-bold text-gray-900">{formatHours(f.hours)}</span>
-                                <span className="block text-[11px] text-gray-600">{formatEuro(f.day)}</span>
-                              </Choice>
-                            ))}
-                          </div>
-                          <p className="mt-3 text-xs text-blue-800 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-relaxed">
-                            Les forfaits incluent la distance et le temps indiqué. Tout dépassement sera facturé au tarif en vigueur.
-                          </p>
-                        </div>
-                      )}
-                    </Card>
-
-                    <Card>
-                      <CardTitle hint="Sélectionnez une adresse dans la liste pour lancer le calcul du tarif.">Votre itinéraire</CardTitle>
-                      <div className="space-y-3">
+                    <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
+                      <AddressField
+                        label="Départ"
+                        placeholder="Adresse de départ"
+                        pinClass="text-[#4BC449]"
+                        value={pickupText}
+                        onTextChange={(t) => { setPickupText(t); setPickupPlace(null); }}
+                        onSelect={(p) => { setPickupText(p.label); setPickupPlace(p); }}
+                      />
+                      {serviceType === 'transfer' && (
                         <AddressField
-                          label="Adresse de départ"
-                          placeholder="D’où partez-vous ?"
-                          pinClass="text-[#4BC449]"
-                          value={pickupText}
-                          confirmed={!!pickup}
-                          hint="Pour une adresse en Haute-Savoie, précisez « 74 » ou le code postal si le mauvais département s’affiche."
-                          error={attempted && !pickup ? (pickupText.trim() ? 'Sélectionnez une adresse dans la liste.' : 'Adresse de départ requise.') : null}
-                          onTextChange={(t) => {
-                            setPickupText(t);
-                            setPickup(null);
-                          }}
-                          onSelect={(p) => {
-                            setPickupText(p.label);
-                            setPickup(p);
-                          }}
-                        />
-                        <div className="flex justify-center">
-                          <button
-                            type="button"
-                            onClick={swapAddresses}
-                            disabled={!pickupText && !dropoffText}
-                            aria-label="Inverser le départ et l’arrivée"
-                            className="w-9 h-9 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449]"
-                          >
-                            <IconArrowsUpDown size={16} />
-                          </button>
-                        </div>
-                        <AddressField
-                          label="Adresse d’arrivée"
-                          placeholder="Où allez-vous ?"
+                          label="Destination"
+                          placeholder="Adresse d'arrivée"
                           pinClass="text-red-400"
                           value={dropoffText}
-                          confirmed={!!dropoff}
-                          error={
-                            attempted && pickup && !dropoff
-                              ? dropoffText.trim() ? 'Sélectionnez une adresse dans la liste.' : 'Adresse d’arrivée requise.'
-                              : attempted && sameCoords ? 'Le départ et la destination doivent être différents.' : null
-                          }
-                          onTextChange={(t) => {
-                            setDropoffText(t);
-                            setDropoff(null);
-                          }}
-                          onSelect={(p) => {
-                            setDropoffText(p.label);
-                            setDropoff(p);
-                          }}
+                          onTextChange={(t) => { setDropoffText(t); setDropoffPlace(null); }}
+                          onSelect={(p) => { setDropoffText(p.label); setDropoffPlace(p); }}
                         />
-                      </div>
-                    </Card>
+                      )}
+                      <p className="text-xs text-gray-400">
+                        Sélectionnez une adresse dans la liste pour lancer le calcul du tarif.
+                      </p>
+                    </div>
 
-                    <Nav step={step} blocker={stepBlocker} attempted={attempted} onNext={goNext} onBack={() => undefined} price={null} />
+                    <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
+                      <label className="text-sm font-medium text-gray-700 block">Type de service</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { id: 'transfer' as const, label: 'Transfert', desc: 'Point A → Point B' },
+                          { id: 'hourly' as const, label: 'Mise à disposition', desc: 'Chauffeur à l\'heure' },
+                        ].map((t) => (
+                          <button key={t.id} type="button" onClick={() => setServiceType(t.id)}
+                            className={`p-4 rounded-xl border-2 text-left transition-all ${
+                              serviceType === t.id ? 'border-[#4BC449] bg-[#4BC449]/5' : 'border-gray-200 hover:border-gray-300'
+                            }`}>
+                            <span className={`text-sm font-semibold block ${serviceType === t.id ? 'text-[#4BC449]' : 'text-gray-900'}`}>{t.label}</span>
+                            <span className="text-xs text-gray-500">{t.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {serviceType === 'transfer' ? (
+                        <>
+                          <label className="text-sm font-medium text-gray-700 block pt-2">Direction</label>
+                          <div className="grid grid-cols-2 gap-3">
+                            {[
+                              { id: 'one-way' as const, label: 'Aller simple' },
+                              { id: 'round-trip' as const, label: 'Aller-retour' },
+                            ].map((d) => (
+                              <button key={d.id} type="button" onClick={() => setDirection(d.id)}
+                                className={`py-3 rounded-xl border-2 text-sm font-medium text-center transition-all ${
+                                  direction === d.id ? 'border-[#4BC449] bg-[#4BC449]/5 text-[#4BC449]' : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                                }`}>
+                                {d.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl p-3">
+                          La mise à disposition est facturée à l&apos;heure : le montant est établi sur devis après validation de votre demande.
+                        </p>
+                      )}
+                    </div>
+
+                    <Nav step={step} ok={canContinue(1)} next={goNext} back={goBack} />
                   </div>
                 )}
 
-                {/* ------------------------------ ÉTAPE 2 ------------------------------ */}
+                {/* STEP 2: WHEN */}
                 {step === 2 && (
                   <div className="space-y-5">
-                    <StepHeading headingRef={headingRef} title="Quand partez-vous ?" sub="Choisissez la date et l’heure de prise en charge." />
+                    <div className="mb-2">
+                      <h2 className="text-2xl font-bold text-white mb-1">Quand partez-vous ?</h2>
+                      <p className="text-white/50 text-sm">Choisissez votre date et horaire de départ.</p>
+                    </div>
 
-                    <Card>
-                      <CardTitle>{isRoundTrip ? 'Date de l’aller' : 'Date de départ'}</CardTitle>
+                    <div className="bg-white rounded-2xl shadow-xl p-6">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-4">Date de départ</h3>
                       <Calendar
-                        label="Date de départ"
                         viewMonth={viewMonth}
                         onMonthChange={setViewMonth}
-                        selected={date}
+                        selected={selectedDate}
                         minDate={minPickupDay}
-                        onSelect={updateDate}
+                        onSelect={(d) => {
+                          setSelectedDate(d);
+                          setShowTimePicker(true);
+                          if (returnDate && returnDate < d) {
+                            setReturnDate(null);
+                            setReturnTime('');
+                            setReturnChoice('');
+                            setShowReturnTime(false);
+                          }
+                        }}
                       />
-                      {earliestPickup && earliestPickup > now && (
-                        <p className="text-xs text-gray-500 mt-3 flex items-center gap-1.5">
-                          <IconClock size={13} aria-hidden />
-                          Première prise en charge possible : {formatMediumDate(earliestPickup)} à {formatTime(earliestPickup)}
+                      {earliestPickup && (
+                        <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">
+                          <IconClock size={13} />
+                          Première prise en charge possible : {formatShortDate(earliestPickup)} à {pad(earliestPickup.getHours())}:{pad(earliestPickup.getMinutes())}
                         </p>
                       )}
-                    </Card>
+                    </div>
 
-                    {date && (
-                      <Card>
-                        <CardTitle>{isRoundTrip ? 'Heure de l’aller' : 'Heure de prise en charge'}</CardTitle>
+                    {showTimePicker && selectedDate && (
+                      <div className="bg-white rounded-2xl shadow-xl p-6">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-4">Heure de départ</h3>
                         <TimeGrid
-                          label="Heure de départ"
-                          value={time}
-                          onChange={setTime}
-                          minDateTime={minPickup}
-                          day={date}
-                          minHint={`Première prise en charge possible à ${formatTime(minPickup)} ce jour-là.`}
+                          value={selectedTime}
+                          onChange={setSelectedTime}
+                          minDateTime={earliestPickup}
+                          day={selectedDate}
                         />
-                      </Card>
+                      </div>
                     )}
 
-                    {isRoundTrip && date && time && parseTime(time) && !timeTooEarly && (
-                      <Card>
-                        <CardTitle hint="Même trajet, retour entre 1 et 3 jours après l’aller (jusqu’à 23 h 59 le jour 3).">Trajet retour</CardTitle>
-                        <div role="radiogroup" aria-label="Date de retour" className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          {([1, 2, 3] as const).map((n) => {
-                            const d = addDays(date, n);
-                            return (
-                              <Choice key={n} selected={returnOffset === n} onClick={() => setReturnOffset(n)} className="p-3.5 rounded-xl">
-                                <span className="block text-xs font-semibold text-[#27802a]">J+{n}</span>
-                                <span className="block text-sm font-medium text-gray-900 mt-0.5">{formatMediumDate(d)}</span>
-                              </Choice>
-                            );
-                          })}
+                    {serviceType === 'transfer' && direction === 'round-trip' && selectedDate && selectedTime && (
+                      <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
+                        <h3 className="text-sm font-semibold text-gray-900">Retour</h3>
+                        <div className="space-y-2">
+                          {[
+                            { id: 'same' as const, label: 'Le même jour', detail: formatLongDate(selectedDate) },
+                            { id: 'next' as const, label: 'Le lendemain', detail: formatLongDate(addDays(selectedDate, 1)) },
+                            { id: 'custom' as const, label: 'Choisir une autre date', detail: '' },
+                          ].map((opt) => (
+                            <button key={opt.id} type="button"
+                              onClick={() => {
+                                setReturnChoice(opt.id);
+                                if (opt.id === 'same') { setReturnDate(selectedDate); setShowReturnTime(true); setShowReturnCalendar(false); }
+                                else if (opt.id === 'next') { setReturnDate(addDays(selectedDate, 1)); setShowReturnTime(true); setShowReturnCalendar(false); }
+                                else {
+                                  setReturnViewMonth(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+                                  setShowReturnCalendar(true);
+                                  setShowReturnTime(false);
+                                }
+                              }}
+                              className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                                returnChoice === opt.id ? 'border-[#4BC449] bg-[#4BC449]/5' : 'border-gray-200 hover:border-gray-300'
+                              }`}>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${returnChoice === opt.id ? 'border-[#4BC449]' : 'border-gray-300'}`}>
+                                {returnChoice === opt.id && <div className="w-2.5 h-2.5 rounded-full bg-[#4BC449]" />}
+                              </div>
+                              <div>
+                                <span className={`text-sm font-medium ${returnChoice === opt.id ? 'text-[#4BC449]' : 'text-gray-900'}`}>{opt.label}</span>
+                                {opt.detail && <span className="text-xs text-gray-400 ml-2">{opt.detail}</span>}
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                        {returnDate && (
-                          <div className="mt-5">
-                            <h4 className="text-xs font-semibold text-gray-700 mb-3">Heure de retour — {formatLongDate(returnDate)}</h4>
-                            <TimeGrid label="Heure de retour" value={returnTime} onChange={setReturnTime} minDateTime={null} day={returnDate} />
+
+                        {showReturnCalendar && (
+                          <div className="pt-2">
+                            <Calendar
+                              compact
+                              viewMonth={returnViewMonth}
+                              onMonthChange={setReturnViewMonth}
+                              selected={returnDate}
+                              minDate={selectedDate}
+                              onSelect={(d) => { setReturnDate(d); setShowReturnTime(true); }}
+                            />
                           </div>
                         )}
-                      </Card>
+
+                        {showReturnTime && returnDate && (
+                          <div className="pt-2">
+                            <h4 className="text-xs font-semibold text-gray-700 mb-3">Heure de retour</h4>
+                            <TimeGrid
+                              compact
+                              value={returnTime}
+                              onChange={setReturnTime}
+                              minDateTime={sameDay(returnDate, selectedDate) ? combineDateTime(selectedDate, selectedTime) : null}
+                              day={returnDate}
+                            />
+                          </div>
+                        )}
+
+                        {arTooShort && (
+                          <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3.5">
+                            <IconAlertTriangle size={16} className="text-amber-500 mt-0.5 shrink-0" />
+                            <p className="text-xs text-amber-800 leading-relaxed">
+                              Ce trajet fait moins de 25 km au total. Pour un aller-retour avec retour 1 à 3 jours après
+                              l&apos;aller, nous vous conseillons le forfait agglomération (aller simple).
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     )}
 
-                    {!isHourly && date && time && parseTime(time) && !timeTooEarly && (
-                      <Card>
-                        <CardTitle hint="Optionnel — le chauffeur vous attend sur place (par tranche de 15 minutes).">Mise à disposition (temps d’attente)</CardTitle>
-                        <Stepper
-                          label="Durée d’attente"
-                          sub="10 min gratuites, puis par tranche de 15 min"
-                          value={waitingMinutes}
-                          min={0}
-                          max={480}
-                          step={15}
-                          format={(v) => (v === 0 ? 'Aucune' : `${v} min`)}
-                          onChange={setWaitingMinutes}
-                        />
-                        <div className="mt-3 text-xs text-gray-600 bg-blue-50/60 border border-blue-100 rounded-lg px-3 py-2.5 space-y-1 leading-relaxed">
-                          <p className="font-semibold text-emerald-700">10 premières minutes gratuites</p>
-                          <p>
-                            Ensuite : <strong className="text-blue-800">1,20 € TTC / minute</strong> (jour) ·{' '}
-                            <strong className="text-indigo-800">1,80 € TTC / minute</strong> (nuit)
-                          </p>
-                          <p className="italic text-gray-500">Tarif jour ou nuit selon l’heure de prise en charge. Valable en aller simple comme en aller-retour.</p>
+                    {/* Estimation */}
+                    {serviceType === 'hourly' ? (
+                      <div className="bg-white rounded-2xl shadow-xl p-6">
+                        <h3 className="text-sm font-semibold text-gray-900">Estimation du prix</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Mise à disposition — tarif horaire</p>
+                        <p className="text-2xl font-bold text-[#4BC449] mt-3">Sur devis</p>
+                        <p className="text-xs text-gray-400 mt-1">Nous revenons vers vous avec un montant ferme sous 24 h.</p>
+                      </div>
+                    ) : quoteLoading ? (
+                      <div className="bg-white rounded-2xl shadow-xl p-6 flex items-center gap-3">
+                        <IconLoader2 size={18} className="text-[#4BC449] animate-spin" />
+                        <span className="text-sm text-gray-500">Calcul du tarif en cours…</span>
+                      </div>
+                    ) : quoteError ? (
+                      <div className="bg-white rounded-2xl shadow-xl p-6 flex items-start gap-3">
+                        <IconAlertTriangle size={18} className="text-red-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">Estimation indisponible</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{quoteError}</p>
                         </div>
-                      </Card>
-                    )}
+                      </div>
+                    ) : quote ? (
+                      <div className="bg-white rounded-2xl shadow-xl p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-sm font-semibold text-gray-900">Estimation du prix</h3>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {direction === 'round-trip' ? 'Aller-retour' : 'Aller simple'} • {quote.pricing.rateType}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-3xl font-bold text-[#4BC449]">{priceLabel}</span>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Prix estimé TTC</p>
+                          </div>
+                        </div>
 
-                    {quoteReady && (
-                      <QuoteCard
-                        quote={quote}
-                        loading={quoteLoading}
-                        error={quoteError}
-                        tripType={effectiveTrip}
-                        waitingMinutes={isHourly ? 0 : waitingMinutes}
-                        immobilisation={immobilisation}
-                        returnDaysAfter={returnOffset}
-                        arTooShort={arTooShort}
-                        onRetry={retry}
-                        onSwitchToOneWay={() => {
-                          setTripType('one-way');
-                          setReturnOffset(null);
-                          setReturnTime('');
-                        }}
-                        debugData={(bookingBase as Record<string, unknown>) ?? {}}
-                      />
-                    )}
+                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-500 flex items-center gap-1.5">
+                              <IconRoute size={13} className="text-gray-400" />
+                              Distance passager
+                            </span>
+                            <span className="text-gray-900 font-medium">{quote.distances.tp.toFixed(1)} km • {Math.round(quote.duration)} min</span>
+                          </div>
+                          {quote.pricing.tollInfo?.detected && (
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-gray-500">Péages inclus</span>
+                              <span className="text-gray-900 font-medium">{quote.pricing.tollInfo.totalIncluded.toFixed(2)}€</span>
+                            </div>
+                          )}
+                          {immobilisation && immobilisation.priceTTC > 0 && (
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-gray-500">Immobilisation</span>
+                              <span className="text-gray-900 font-medium">{immobilisation.label}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-500">Dont TVA</span>
+                            <span className="text-gray-900 font-medium">{quote.pricing.tva.toFixed(2)}€</span>
+                          </div>
+                        </div>
 
-                    <Nav
-                      step={step}
-                      blocker={stepBlocker}
-                      attempted={attempted}
-                      onNext={goNext}
-                      onBack={() => goTo(1)}
-                      price={quote && !quoteLoading ? priceLabel : null}
-                    />
+                        <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
+                          {[
+                            { icon: IconShieldCheck, text: 'Prix fixe garanti' },
+                            { icon: IconClock, text: '60 min d\'annulation gratuite' },
+                            { icon: IconClock, text: '10 min d\'attente gratuits' },
+                            { icon: IconCalendar, text: 'Aucun paiement immédiat' },
+                          ].map((chip) => (
+                            <div key={chip.text} className="flex items-center gap-1.5 bg-[#4BC449]/5 border border-[#4BC449]/15 rounded-full px-3 py-1.5">
+                              <chip.icon size={13} className="text-[#4BC449] shrink-0" />
+                              <span className="text-xs font-medium text-[#4BC449]">{chip.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <Nav step={step} ok={canContinue(2)} next={goNext} back={goBack} />
                   </div>
                 )}
 
-                {/* ------------------------------ ÉTAPE 3 ------------------------------ */}
+                {/* STEP 3: PASSENGERS */}
                 {step === 3 && (
                   <div className="space-y-5">
-                    <StepHeading headingRef={headingRef} title="Qui voyage ?" sub="Indiquez les passagers, les bagages et vos besoins." />
+                    <div className="mb-2">
+                      <h2 className="text-2xl font-bold text-white mb-1">Qui voyage ?</h2>
+                      <p className="text-white/50 text-sm">Indiquez le nombre de passagers et vos bagages.</p>
+                    </div>
 
-                    <Card>
-                      <CardTitle>Passagers</CardTitle>
+                    <div className="bg-white rounded-2xl shadow-xl p-6">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-4">Passagers</h3>
                       <div className="divide-y divide-gray-100">
-                        <Stepper
-                          label="Adultes et enfants de + de 10 ans"
-                          value={adults}
-                          min={1}
-                          max={MAX_PASSENGERS}
-                          incrementDisabled={totalPassengers >= MAX_PASSENGERS}
-                          onChange={setAdults}
-                        />
-                        <div>
-                          <Stepper
-                            label="Enfants de moins de 10 ans"
-                            sub="Avec âge (1 à 10 ans)"
-                            value={children}
-                            min={0}
-                            max={MAX_PASSENGERS}
-                            incrementDisabled={totalPassengers >= MAX_PASSENGERS}
-                            onChange={setChildren}
-                          />
-                          {children > 0 && (
-                            <div className="pb-3.5 -mt-1">
-                              <label htmlFor="child-age" className="text-xs text-gray-600 mr-2">
-                                Âge de l’enfant
-                              </label>
-                              <select
-                                id="child-age"
-                                value={childAge}
-                                onChange={(e) => setChildAge(Number(e.target.value))}
-                                className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-base sm:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/25 focus:border-[#4BC449]"
-                              >
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((age) => (
-                                  <option key={age} value={age}>
-                                    {age} an{age > 1 ? 's' : ''}
-                                  </option>
-                                ))}
-                              </select>
+                        {[
+                          { label: 'Adultes', sub: '13 ans et +', value: adults, set: setAdults, min: 1, max: 4 },
+                          { label: 'Enfants', sub: '2–12 ans', value: children, set: setChildren, min: 0, max: 3 },
+                          { label: 'Bébés', sub: 'Moins de 2 ans', value: babies, set: setBabies, min: 0, max: 2 },
+                        ].map((item) => (
+                          <div key={item.label} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+                            <div>
+                              <span className="text-sm font-medium text-gray-900">{item.label}</span>
+                              <span className="text-xs text-gray-400 ml-2">{item.sub}</span>
                             </div>
-                          )}
-                        </div>
-                        <Stepper
-                          label="Bébés"
-                          sub="Moins de 2 ans"
-                          value={babies}
-                          min={0}
-                          max={MAX_PASSENGERS}
-                          incrementDisabled={totalPassengers >= MAX_PASSENGERS}
-                          onChange={setBabies}
-                        />
-                      </div>
-                      <div className="mt-4 flex items-center justify-between rounded-xl bg-[#4BC449]/10 border border-[#4BC449]/20 px-3.5 py-2.5">
-                        <span className="text-xs font-medium text-gray-700">Total passagers</span>
-                        <span className="text-sm font-bold text-[#27802a]">
-                          {totalPassengers} / {MAX_PASSENGERS}
-                        </span>
-                      </div>
-                      {totalPassengers >= MAX_PASSENGERS && (
-                        <p className="mt-2 text-xs text-gray-500">
-                          Capacité maximale du véhicule atteinte. Pour un groupe plus important, appelez-nous au {CONTACT.phone}.
-                        </p>
-                      )}
-                    </Card>
-
-                    <Card>
-                      <CardTitle>Bagages et besoins</CardTitle>
-                      <Stepper label="Bagages" icon={IconLuggage} value={luggage} min={0} max={5} onChange={setLuggage} />
-
-                      <div className="border-t border-gray-100 mt-4 pt-4">
-                        <p className="text-sm font-semibold text-gray-900 mb-2">Besoins supplémentaires</p>
-                        <CheckRow checked={babySeat} onChange={setBabySeat}>Siège bébé / rehausseur</CheckRow>
-                        <CheckRow checked={wheelchair} onChange={setWheelchair}>Accessibilité PMR</CheckRow>
-                        <CheckRow checked={largeLuggage} onChange={setLargeLuggage}>Bagage volumineux</CheckRow>
-                      </div>
-
-                      <div className="border-t border-gray-100 mt-4 pt-4">
-                        <label htmlFor="max-arrival" className="text-sm font-semibold text-gray-900 block">
-                          Heure d’arrivée max <span className="text-gray-500 font-normal">(optionnel)</span>
-                        </label>
-                        <p className="text-xs text-gray-500 mb-2">Pour une correspondance train ou avion.</p>
-                        <input
-                          id="max-arrival"
-                          type="time"
-                          value={maxArrival}
-                          onChange={(e) => setMaxArrival(e.target.value)}
-                          className="px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-base sm:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/25 focus:border-[#4BC449]"
-                        />
-                      </div>
-                    </Card>
-
-                    <Nav
-                      step={step}
-                      blocker={stepBlocker}
-                      attempted={attempted}
-                      onNext={goNext}
-                      onBack={() => goTo(2)}
-                      price={quote ? priceLabel : null}
-                    />
-                  </div>
-                )}
-
-                {/* ------------------------------ ÉTAPE 4 ------------------------------ */}
-                {step === 4 && !showOtp && (
-                  <div className="space-y-5">
-                    <StepHeading headingRef={headingRef} title="Confirmation" sub="Vérifiez votre demande et laissez-nous vos coordonnées." />
-
-                    <Card>
-                      <CardTitle>Récapitulatif</CardTitle>
-                      <dl className="divide-y divide-gray-100">
-                        {recap.map((row) => (
-                          <div key={row.label} className="flex items-start justify-between gap-4 py-2.5">
-                            <dt className="text-sm text-gray-500 shrink-0">{row.label}</dt>
-                            <dd className="text-sm font-medium text-gray-900 text-right flex items-start gap-2 min-w-0">
-                              <span className="break-words min-w-0">{row.value}</span>
-                              <button
-                                type="button"
-                                onClick={() => goTo(row.step)}
-                                aria-label={`Modifier : ${row.label}`}
-                                className="text-xs font-medium text-[#27802a] hover:underline shrink-0 px-2 py-2.5 -mx-2 -my-2.5 focus-visible:outline-2 focus-visible:outline-[#4BC449] rounded"
-                              >
-                                Modifier
+                            <div className="flex items-center gap-4">
+                              <button type="button" onClick={() => item.set(Math.max(item.min, item.value - 1))} disabled={item.value <= item.min}
+                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                                <IconMinus size={14} />
                               </button>
-                            </dd>
+                              <span className="text-lg font-bold text-gray-900 w-6 text-center">{item.value}</span>
+                              <button type="button" onClick={() => item.set(Math.min(item.max, item.value + 1))} disabled={item.value >= item.max || totalPassengers >= 4}
+                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                                <IconPlus size={14} />
+                              </button>
+                            </div>
                           </div>
                         ))}
-                        {quote && (
-                          <>
-                            <div className="flex items-center justify-between gap-4 py-2.5">
-                              <dt className="text-sm text-gray-500">Sous-total HT · TVA</dt>
-                              <dd className="text-sm font-medium text-gray-900">
-                                {formatEuro(quote.totalHT)} · {formatEuro(quote.tva)}
-                              </dd>
-                            </div>
-                            {immobilisation && immobilisation.priceTTC > 0 && (
-                              <div className="flex items-center justify-between gap-4 py-2.5">
-                                <dt className="text-sm text-gray-500">Immobilisation (en sus)</dt>
-                                <dd className="text-sm font-medium text-gray-900">+ {formatEuro(immobilisation.priceTTC)} TTC</dd>
+                      </div>
+
+                      <div className="border-t border-gray-100 mt-4 pt-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-4">Bagages</h3>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900">Valises</span>
+                          <div className="flex items-center gap-4">
+                            <button type="button" onClick={() => setSuitcases(Math.max(0, suitcases - 1))} disabled={suitcases <= 0}
+                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                              <IconMinus size={14} />
+                            </button>
+                            <span className="text-lg font-bold text-gray-900 w-6 text-center">{suitcases}</span>
+                            <button type="button" onClick={() => setSuitcases(Math.min(6, suitcases + 1))} disabled={suitcases >= 6}
+                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                              <IconPlus size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-100 mt-4 pt-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Besoins supplémentaires</h3>
+                        <div className="space-y-2">
+                          {[
+                            { label: 'Siège bébé', active: babySeat, toggle: () => setBabySeat(!babySeat) },
+                            { label: 'Accessibilité PMR', active: wheelchair, toggle: () => setWheelchair(!wheelchair) },
+                            { label: 'Bagage volumineux', active: largeLuggage, toggle: () => setLargeLuggage(!largeLuggage) },
+                          ].map((opt) => (
+                            <label key={opt.label} className="flex items-center gap-3 cursor-pointer py-1">
+                              <div onClick={opt.toggle}
+                                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center transition-colors ${
+                                  opt.active ? 'bg-[#4BC449] border-[#4BC449]' : 'border-gray-300'
+                                }`}>
+                                {opt.active && <IconCheck size={11} className="text-white" />}
                               </div>
-                            )}
-                            <div className="flex items-center justify-between gap-4 pt-3">
-                              <dt className="text-sm font-semibold text-gray-900">Prix estimé TTC</dt>
-                              <dd className="text-xl font-bold text-[#27802a]">{priceLabel}</dd>
-                            </div>
-                          </>
-                        )}
-                      </dl>
-                    </Card>
-
-                    <Card>
-                      <form
-                        noValidate
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          void submit();
-                        }}
-                        className="space-y-4"
-                      >
-                        <CardTitle hint="Pour vous envoyer votre confirmation et vous joindre le jour du trajet.">Vos coordonnées</CardTitle>
-                        <TextField
-                          label="Nom complet"
-                          name="name"
-                          autoComplete="name"
-                          placeholder="Jean Dupont"
-                          value={guestName}
-                          onChange={setGuestName}
-                          onBlur={() => touch('guestName')}
-                          error={showErr('guestName')}
-                        />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <TextField
-                            label="E-mail"
-                            name="email"
-                            type="email"
-                            autoComplete="email"
-                            inputMode="email"
-                            placeholder="jean@exemple.com"
-                            value={guestEmail}
-                            onChange={setGuestEmail}
-                            onBlur={() => touch('guestEmail')}
-                            error={showErr('guestEmail')}
-                          />
-                          <TextField
-                            label="Téléphone"
-                            name="tel"
-                            type="tel"
-                            autoComplete="tel"
-                            inputMode="tel"
-                            placeholder="+33 6 00 00 00 00"
-                            value={guestPhone}
-                            onChange={setGuestPhone}
-                            onBlur={() => touch('guestPhone')}
-                            error={showErr('guestPhone')}
-                          />
+                              <span className="text-sm text-gray-700">{opt.label}</span>
+                            </label>
+                          ))}
                         </div>
-                        <TextField
-                          label="Note au chauffeur"
-                          optional
-                          multiline
-                          placeholder="Numéro de vol, accès particulier…"
-                          value={note}
-                          onChange={setNote}
-                        />
+                      </div>
+                    </div>
 
-                        <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4 text-sm text-emerald-900">
-                          <p className="flex items-center gap-2 font-semibold">
-                            <IconCash size={16} aria-hidden /> Paiement à la prise en charge
-                          </p>
-                          <p className="mt-1 text-xs leading-relaxed text-emerald-800">
-                            Espèces, carte bancaire (ou lien de paiement) ou virement. Une facture vous est remise obligatoirement pour tout
-                            paiement supérieur ou égal à 33 €.
-                          </p>
-                        </div>
-                        <div className="rounded-xl bg-amber-50 border border-amber-100 p-4 text-xs text-amber-900 leading-relaxed">
-                          <p className="font-semibold text-sm flex items-center gap-2">
-                            <IconClock size={16} aria-hidden /> Politique d’annulation
-                          </p>
-                          <ul className="mt-1.5 space-y-1 list-disc pl-5">
-                            <li>
-                              Plus de <strong>8 heures</strong> avant la prestation : <strong>annulation gratuite</strong>.
-                            </li>
-                            <li>
-                              Moins de <strong>8 heures</strong> avant : frais d’annulation de <strong>20 € TTC maximum</strong>.
-                            </li>
-                          </ul>
-                          <p className="mt-1.5">Prévenez MobiService VTC au plus vite en cas de problème.</p>
-                        </div>
-
-                        <div>
-                          <CheckRow
-                            checked={cgv}
-                            onChange={(v) => {
-                              setCgv(v);
-                              touch('cgvAccepted');
-                            }}
-                            invalid={!!showErr('cgvAccepted')}
-                            describedBy="cgv-error"
-                          >
-                            J’accepte les{' '}
-                            <Link href="/cgv" target="_blank" rel="noopener noreferrer" className="text-[#27802a] font-medium underline">
-                              conditions générales
-                            </Link>{' '}
-                            et la grille tarifaire
-                          </CheckRow>
-                          {showErr('cgvAccepted') && (
-                            <p id="cgv-error" role="alert" className="text-xs text-red-600 mt-1">
-                              Vous devez accepter les CGV et la grille tarifaire.
-                            </p>
-                          )}
-                        </div>
-
-                        {submitError && (
-                          <p role="alert" className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl p-3.5">
-                            <IconAlertTriangle size={16} aria-hidden className="mt-0.5 shrink-0" /> {submitError}
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-3 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => goTo(3)}
-                            disabled={submitting}
-                            className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449]"
-                          >
-                            <IconArrowLeft size={16} aria-hidden /> <span className="hidden sm:inline">Retour</span>
-                            <span className="sm:hidden sr-only">Retour</span>
-                          </button>
-                          <button
-                            type="submit"
-                            disabled={submitting || !bookingBase}
-                            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold bg-[#4BC449] hover:bg-[#3fb340] text-[#0a1628] shadow-lg shadow-[#4BC449]/25 disabled:opacity-60 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449]"
-                          >
-                            {submitting ? (
-                              <>
-                                <IconLoader2 size={16} aria-hidden className="animate-spin" /> Envoi en cours…
-                              </>
-                            ) : (
-                              <>
-                                Envoyer ma demande <IconArrowRight size={16} aria-hidden />
-                              </>
-                            )}
-                          </button>
-                        </div>
-                        <p className="text-center text-xs text-gray-500">Aucun paiement immédiat · un code de vérification vous sera envoyé par e-mail</p>
-                      </form>
-                    </Card>
+                    <Nav step={step} ok={canContinue(3)} next={goNext} back={goBack} />
                   </div>
                 )}
 
-                {step === 4 && showOtp && (
-                  <div className="space-y-5">
-                    <StepHeading headingRef={headingRef} title="Vérification" sub="Dernière étape : confirmez votre adresse e-mail." />
-                    <OtpStep
-                      email={guestEmail.trim()}
-                      code={otpCode}
-                      onCodeChange={(c) => {
-                        setOtpCode(c);
-                        setOtpError('');
-                      }}
-                      error={otpError}
-                      info={otpInfo}
-                      loading={submitting}
-                      resendIn={resendIn}
-                      onVerify={verifyOtp}
-                      onResend={resendOtp}
-                      onBack={() => {
-                        setShowOtp(false);
-                        setOtpCode(['', '', '', '', '', '']);
-                        setOtpError('');
-                      }}
-                      summary={[
-                        { label: 'Départ', value: pickup?.label ?? '' },
-                        { label: 'Arrivée', value: dropoff?.label ?? '' },
-                        { label: 'Date', value: dateTimeText },
-                      ]}
-                      total={priceLabel}
-                    />
-                  </div>
+                {/* STEP 4: CONFIRMATION OR OTP */}
+                {step === 4 && (
+                  showOtp ? (
+                    <div className="space-y-5">
+                      <div className="mb-2">
+                        <h2 className="text-2xl font-bold text-white mb-1">Vérification de sécurité</h2>
+                        <p className="text-white/50 text-sm">Confirmez votre demande avec le code reçu par e-mail.</p>
+                      </div>
+
+                      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md mx-auto text-center space-y-6">
+                        <div className="w-16 h-16 rounded-full bg-[#4BC449]/10 flex items-center justify-center mx-auto text-[#4BC449]">
+                          <IconShieldCheck size={36} />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900">Code de vérification</h3>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Un code à 6 chiffres a été envoyé par e-mail à <strong className="text-gray-800 break-all">{email}</strong>.
+                          </p>
+                        </div>
+
+                        <div className="flex justify-center gap-2">
+                          {otpCode.map((digit, idx) => (
+                            <input
+                              key={idx}
+                              id={`otp-input-${idx}`}
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={6}
+                              value={digit}
+                              onChange={(e) => handleOtpInput(idx, e.target.value)}
+                              onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                              className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold rounded-xl border-2 border-gray-200 focus:border-[#4BC449] focus:outline-none transition-colors"
+                            />
+                          ))}
+                        </div>
+
+                        {otpError && (
+                          <p className="text-xs text-red-600 font-medium">{otpError}</p>
+                        )}
+                        {otpInfo && (
+                          <p className="text-xs text-[#4BC449] font-medium">{otpInfo}</p>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={verifyOtp}
+                          disabled={submitting || otpCode.join('').length !== 6}
+                          className="w-full py-3.5 bg-[#4BC449] hover:bg-[#3fb340] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-lg shadow-[#4BC449]/25 flex items-center justify-center gap-2"
+                        >
+                          {submitting ? (
+                            <>
+                              <IconLoader2 size={18} className="animate-spin" />
+                              Vérification en cours…
+                            </>
+                          ) : (
+                            <>
+                              Confirmer ma réservation
+                              <IconArrowRight size={18} />
+                            </>
+                          )}
+                        </button>
+
+                        <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                          <button
+                            type="button"
+                            onClick={() => setShowOtp(false)}
+                            className="text-gray-600 hover:text-gray-900 underline"
+                          >
+                            Modifier mes informations
+                          </button>
+                          <button
+                            type="button"
+                            onClick={resendOtp}
+                            disabled={resendIn > 0}
+                            className="text-[#4BC449] font-medium hover:underline disabled:text-gray-400 disabled:no-underline"
+                          >
+                            {resendIn > 0 ? `Renvoyer (${resendIn}s)` : 'Renvoyer le code'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      <div className="mb-2">
+                        <h2 className="text-2xl font-bold text-white mb-1">Confirmation</h2>
+                        <p className="text-white/50 text-sm">Vérifiez votre réservation et finalisez.</p>
+                      </div>
+
+                      <div className="bg-white rounded-2xl shadow-xl p-6">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-4">Récapitulatif</h3>
+                        <div className="divide-y divide-gray-100">
+                          {[
+                            { label: 'Départ', value: pickupText.split(',')[0] },
+                            ...(serviceType === 'transfer' ? [{ label: 'Destination', value: dropoffText.split(',')[0] }] : []),
+                            { label: 'Date', value: selectedDate ? formatLongDate(selectedDate) : '—' },
+                            { label: 'Heure', value: selectedTime || '—' },
+                            ...(serviceType === 'transfer' && direction === 'round-trip' && returnDate
+                              ? [{ label: 'Retour', value: `${formatShortDate(returnDate)}${returnTime ? ` à ${returnTime}` : ''}` }]
+                              : []),
+                            ...(quote
+                              ? [{ label: 'Distance', value: `${quote.distances.tp.toFixed(1)} km • ${Math.round(quote.duration)} min` }]
+                              : []),
+                            { label: 'Passagers', value: passengersText() || '1 adulte' },
+                            { label: 'Bagages', value: `${suitcases} valise${suitcases > 1 ? 's' : ''}` },
+                            { label: 'Prix estimé', value: priceLabel, highlight: true },
+                          ].map((row) => (
+                            <div key={row.label} className="flex items-center justify-between py-3">
+                              <span className="text-sm text-gray-500">{row.label}</span>
+                              <span className={`text-sm font-medium ${(row as { highlight?: boolean }).highlight ? 'text-[#4BC449] text-lg font-bold' : 'text-gray-900'}`}>{row.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
+                        <h3 className="text-sm font-semibold text-gray-900">Vos coordonnées</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-medium text-gray-600 mb-1 block">Prénom</label>
+                            <input type="text" placeholder="Votre prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-gray-600 mb-1 block">Nom</label>
+                            <input type="text" placeholder="Votre nom" value={lastName} onChange={(e) => setLastName(e.target.value)}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-medium text-gray-600 mb-1 block">Téléphone</label>
+                            <input type="tel" placeholder="+33 6 00 00 00 00" value={phone} onChange={(e) => setPhone(e.target.value)}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-gray-600 mb-1 block">E-mail</label>
+                            <input type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-600 mb-1 block">Note au chauffeur (optionnel)</label>
+                          <textarea placeholder="Numéro de vol, accès particulier..." value={note} onChange={(e) => setNote(e.target.value)} rows={2}
+                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449] resize-none" />
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-2xl shadow-xl p-5">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <div onClick={() => setAcceptTerms(!acceptTerms)}
+                            className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center transition-colors shrink-0 ${
+                              acceptTerms ? 'bg-[#4BC449] border-[#4BC449]' : 'border-gray-300'
+                            }`}>
+                            {acceptTerms && <IconCheck size={11} className="text-white" />}
+                          </div>
+                          <span className="text-sm text-gray-700">
+                            J&apos;accepte les <Link href="/cgv" target="_blank" className="text-[#4BC449] font-medium hover:underline">conditions générales</Link>
+                          </span>
+                        </label>
+                      </div>
+
+                      {submitError && (
+                        <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl p-4 text-xs text-red-700">
+                          <IconAlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
+                          <span>{submitError}</span>
+                        </div>
+                      )}
+
+                      <Nav
+                        step={step}
+                        ok={canContinue(4) && !submitting}
+                        next={handleBookingSubmit}
+                        back={goBack}
+                        lastLabel={submitting ? 'Envoi en cours…' : 'Réserver maintenant'}
+                      />
+
+                      <div className="flex items-center justify-center gap-4 text-white/40 text-xs pb-2">
+                        <span className="flex items-center gap-1"><IconShieldCheck size={14} /> Paiement sécurisé</span>
+                        <span>•</span>
+                        <span>Aucun paiement immédiat</span>
+                        <span>•</span>
+                        <span>Confirmation rapide</span>
+                      </div>
+                    </div>
+                  )
                 )}
               </div>
 
-              {/* Récapitulatif latéral (≥ lg) */}
-              <aside aria-label="Votre trajet" className="hidden lg:block w-[270px] shrink-0">
-                <div className="sticky top-24 bg-white rounded-2xl shadow-xl overflow-hidden">
+              {/* Sticky sidebar */}
+              <div className="hidden lg:block w-[260px] shrink-0">
+                <div className="sticky top-6 bg-white rounded-2xl shadow-xl overflow-hidden">
                   <div className="p-5">
-                    <h2 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Votre trajet</h2>
-                    <ul className="space-y-3 text-sm">
-                      <li className="flex items-start gap-2.5">
-                        <IconMapPin size={14} aria-hidden className="text-[#4BC449] mt-0.5 shrink-0" />
-                        <span className="leading-snug text-gray-900 break-words min-w-0">
-                          {pickupText.split(',')[0] || <span className="text-gray-500">Départ</span>}
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <IconMapPin size={14} aria-hidden className="text-red-400 mt-0.5 shrink-0" />
-                        <span className="leading-snug text-gray-900 break-words min-w-0">
-                          {dropoffText.split(',')[0] || <span className="text-gray-500">Arrivée</span>}
-                        </span>
-                      </li>
-                      <li className="border-t border-gray-100 pt-3 flex items-center gap-2.5 text-gray-700">
-                        {isHourly ? <IconClockHour4 size={14} aria-hidden className="text-gray-500" /> : <IconRoute size={14} aria-hidden className="text-gray-500" />}
-                        {isHourly ? `Mise à disposition ${formatHours(hours)}` : isRoundTrip ? 'Aller-retour' : 'Aller simple'}
-                      </li>
-                      {date && (
-                        <li className="flex items-center gap-2.5 text-gray-700">
-                          <IconCalendar size={14} aria-hidden className="text-gray-500" />
-                          {formatMediumDate(date)}
-                          {time && ` · ${time}`}
-                        </li>
+                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Votre trajet</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2.5">
+                        <IconMapPin size={14} className="text-[#4BC449] mt-0.5 shrink-0" />
+                        <span className="text-sm leading-snug text-gray-900">{pickupText.split(',')[0] || <span className="text-gray-300">Départ</span>}</span>
+                      </div>
+                      {serviceType === 'transfer' && (
+                        <div className="flex items-start gap-2.5">
+                          <IconMapPin size={14} className="text-red-400 mt-0.5 shrink-0" />
+                          <span className="text-sm leading-snug text-gray-900">{dropoffText.split(',')[0] || <span className="text-gray-300">Destination</span>}</span>
+                        </div>
                       )}
-                      {isRoundTrip && returnDate && (
-                        <li className="flex items-center gap-2.5 text-gray-700">
-                          <IconCalendar size={14} aria-hidden className="text-gray-500" />
-                          Retour {formatMediumDate(returnDate)}
-                          {returnTime && ` · ${returnTime}`}
-                        </li>
+                      <div className="border-t border-gray-100 my-1" />
+                      {selectedDate && (
+                        <div className="flex items-center gap-2.5">
+                          <IconCalendar size={14} className="text-gray-400 shrink-0" />
+                          <span className="text-sm text-gray-700">{formatShortDate(selectedDate)}</span>
+                        </div>
+                      )}
+                      {selectedTime && (
+                        <div className="flex items-center gap-2.5">
+                          <IconClock size={14} className="text-gray-400 shrink-0" />
+                          <span className="text-sm text-gray-700">{selectedTime}</span>
+                        </div>
                       )}
                       {quote && (
-                        <li className="flex items-center gap-2.5 text-gray-700">
-                          <IconRoute size={14} aria-hidden className="text-gray-500" />
-                          {quote.distanceTP.toFixed(1).replace('.', ',')} km
-                        </li>
+                        <div className="flex items-center gap-2.5">
+                          <IconRoute size={14} className="text-gray-400 shrink-0" />
+                          <span className="text-sm text-gray-700">{quote.distances.tp.toFixed(1)} km • {Math.round(quote.duration)} min</span>
+                        </div>
                       )}
                       {step >= 3 && (
                         <>
-                          <li className="flex items-center gap-2.5 text-gray-700">
-                            <IconUsers size={14} aria-hidden className="text-gray-500" />
-                            {totalPassengers} passager{totalPassengers > 1 ? 's' : ''}
-                          </li>
-                          <li className="flex items-center gap-2.5 text-gray-700">
-                            <IconLuggage size={14} aria-hidden className="text-gray-500" />
-                            {luggage} bagage{luggage > 1 ? 's' : ''}
-                          </li>
+                          <div className="flex items-center gap-2.5">
+                            <IconUsers size={14} className="text-gray-400 shrink-0" />
+                            <span className="text-sm text-gray-700">{totalPassengers} passager{totalPassengers > 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="flex items-center gap-2.5">
+                            <IconLuggage size={14} className="text-gray-400 shrink-0" />
+                            <span className="text-sm text-gray-700">{suitcases} valise{suitcases > 1 ? 's' : ''}</span>
+                          </div>
                         </>
                       )}
-                      {(quote || quoteLoading) && (
-                        <li className="border-t border-gray-100 pt-3 flex items-center justify-between">
-                          <span className="text-xs text-gray-500">Prix estimé</span>
-                          {quoteLoading ? (
-                            <IconLoader2 size={16} aria-label="Calcul en cours" className="text-[#4BC449] animate-spin" />
-                          ) : (
-                            <span className="text-xl font-bold text-[#27802a] tabular-nums">{priceLabel}</span>
-                          )}
-                        </li>
+                      {(quote || quoteLoading || serviceType === 'hourly') && (
+                        <>
+                          <div className="border-t border-gray-100 my-1" />
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-xs text-gray-400">Prix estimé</span>
+                            {quoteLoading ? (
+                              <IconLoader2 size={16} className="text-[#4BC449] animate-spin" />
+                            ) : (
+                              <span className="text-xl font-bold text-[#4BC449]">{priceLabel}</span>
+                            )}
+                          </div>
+                        </>
                       )}
-                    </ul>
+                    </div>
                   </div>
                   <div className="bg-[#4BC449]/5 border-t border-[#4BC449]/10 px-5 py-3">
-                    <p className="text-[#27802a] text-xs font-semibold flex items-center gap-1.5">
-                      <IconPhone size={13} aria-hidden /> Besoin d’aide ?
+                    <p className="text-[#4BC449] text-xs font-semibold flex items-center gap-1.5">
+                      <IconPhone size={13} />
+                      Besoin d&apos;aide ?
                     </p>
                     <a href={`tel:${CONTACT.whatsapp}`} className="text-gray-900 text-sm font-bold mt-0.5 block hover:underline">
                       {CONTACT.phone}
                     </a>
                   </div>
                 </div>
-              </aside>
+              </div>
             </div>
           </div>
         </div>
-
-        <p className="text-center text-xs text-white/50 pb-6 px-4 flex items-center justify-center gap-1.5">
-          <IconInfoCircle size={13} aria-hidden /> Prix estimé calculé en temps réel · paiement à la prise en charge
-        </p>
       </div>
-    </main>
-  );
-}
-
-/* --------------------------------- helpers -------------------------------- */
-
-function StepHeading({ title, sub, headingRef }: { title: string; sub: string; headingRef: Ref<HTMLHeadingElement> }) {
-  return (
-    <div className="mb-1">
-      <h2 ref={headingRef} tabIndex={-1} className="text-2xl font-bold text-white mb-1 scroll-mt-24 focus:outline-none">
-        {title}
-      </h2>
-      <p className="text-white/70 text-sm">{sub}</p>
     </div>
   );
 }
 
-interface NavProps {
+function Nav({
+  step,
+  ok,
+  next,
+  back,
+  lastLabel,
+}: {
   step: Step;
-  blocker: string | null;
-  attempted: boolean;
-  onNext: () => void;
-  onBack: () => void;
-  /** Prix affiché dans la barre sur mobile (le récapitulatif latéral est masqué). */
-  price: string | null;
-}
-
-/**
- * Barre de navigation. Fragment : la barre doit être enfant direct du conteneur de l'étape
- * pour pouvoir rester collée en bas d'écran sur mobile (prix + action toujours visibles).
- */
-function Nav({ step, blocker, attempted, onNext, onBack, price }: NavProps) {
-  const blocked = !!blocker;
+  ok: boolean;
+  next: () => void;
+  back: () => void;
+  lastLabel?: string;
+}) {
   return (
-    <>
-      {blocker && (
-        <p
-          role={attempted ? 'alert' : undefined}
-          className={`text-xs flex items-start gap-1.5 ${attempted ? 'text-amber-200' : 'text-white/60'}`}
-        >
-          <IconInfoCircle size={14} aria-hidden className="mt-px shrink-0" />
-          {blocker}
-        </p>
-      )}
-      <div className="sticky bottom-0 z-20 -mx-4 px-4 py-3 sm:mx-0 sm:px-0 sm:py-0 bg-[#0d2847]/95 backdrop-blur sm:bg-transparent sm:backdrop-blur-none lg:static flex items-center gap-3 border-t border-white/10 sm:border-0">
-        {step > 1 && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-sm font-medium text-white hover:bg-white/15 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
-            <IconArrowLeft size={16} aria-hidden />
-            <span className="hidden sm:inline">Retour</span>
-            <span className="sr-only sm:hidden">Retour</span>
-          </button>
-        )}
-        {price && (
-          <div className="lg:hidden text-white leading-tight min-w-0">
-            <p className="text-[10px] text-white/60 uppercase tracking-wide">Prix estimé</p>
-            <p className="text-lg font-bold text-[#6fe06d] tabular-nums">{price}</p>
-          </div>
-        )}
+    <div className="flex items-center gap-4 pt-2">
+      {step > 1 && (
         <button
           type="button"
-          onClick={onNext}
-          aria-disabled={blocked}
-          className={`flex items-center gap-2 ml-auto px-6 py-3 rounded-xl text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
-            blocked ? 'bg-white/10 text-white/50 cursor-not-allowed' : 'bg-[#4BC449] hover:bg-[#3fb340] text-[#0a1628] shadow-lg shadow-[#4BC449]/25'
-          }`}
+          onClick={back}
+          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 border border-white/10 text-sm font-medium text-white hover:bg-white/15 transition-colors"
         >
-          Continuer
-          <IconArrowRight size={16} aria-hidden />
+          <IconArrowLeft size={16} />
+          Retour
         </button>
-      </div>
-    </>
+      )}
+      <button
+        type="button"
+        onClick={next}
+        disabled={!ok}
+        className={`flex items-center gap-2 ml-auto px-6 py-3 rounded-xl text-sm font-semibold transition-all ${
+          ok
+            ? 'bg-[#4BC449] hover:bg-[#3fb340] text-white shadow-lg shadow-[#4BC449]/25 cursor-pointer'
+            : 'bg-white/10 text-white/20 cursor-not-allowed'
+        }`}
+      >
+        {step === 4 ? (lastLabel || 'Confirmer') : 'Continuer'}
+        <IconArrowRight size={16} />
+      </button>
+    </div>
+  );
+}
+
+function HeroBg() {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute top-[40%] left-[45%] -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-[#1a6090]/25 rounded-full blur-[150px]" />
+      <div className="absolute bottom-[10%] right-[20%] w-[400px] h-[300px] bg-[#145580]/20 rounded-full blur-[100px]" />
+      <svg className="absolute top-[10%] left-[6%]" width="26" height="34" viewBox="0 0 24 32" fill="none">
+        <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="rgba(255,255,255,0.12)" />
+        <circle cx="12" cy="12" r="4" fill="rgba(255,255,255,0.2)" />
+      </svg>
+      <svg className="absolute top-[6%] left-[3%] w-[250px] h-[600px]" viewBox="0 0 250 600" fill="none">
+        <path d="M140 30 C 190 90, 40 140, 100 240 C 160 340, 30 380, 90 480 C 110 530, 70 570, 100 600" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="5 7" fill="none" />
+      </svg>
+      <div className="absolute top-[40%] left-[5.5%] w-3 h-3 rounded-full bg-[#4BC449] shadow-[0_0_16px_rgba(75,196,73,0.6)]" />
+      <svg className="absolute bottom-[12%] left-[9%]" width="22" height="30" viewBox="0 0 24 32" fill="none">
+        <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="rgba(255,255,255,0.1)" />
+        <circle cx="12" cy="12" r="4" fill="rgba(255,255,255,0.15)" />
+      </svg>
+      <svg className="absolute bottom-0 left-[20%] w-[60%] h-[220px] opacity-[0.06]" viewBox="0 0 800 220" fill="none" preserveAspectRatio="xMidYMax meet">
+        <path d="M0 220 L60 90 L100 140 L160 40 L220 130 L260 80 L320 150 L380 55 L440 135 L480 85 L540 155 L600 45 L660 125 L720 95 L800 220 Z" stroke="white" strokeWidth="1.2" fill="none" />
+        <rect x="230" y="155" width="22" height="65" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <rect x="258" y="135" width="28" height="85" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <rect x="292" y="145" width="18" height="75" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <rect x="316" y="120" width="16" height="100" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <rect x="338" y="140" width="24" height="80" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <rect x="368" y="150" width="20" height="70" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <rect x="394" y="118" width="14" height="102" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <rect x="414" y="155" width="26" height="65" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <path d="M446 150 L455 90 L464 150" stroke="white" strokeWidth="0.8" fill="none" />
+        <rect x="448" y="150" width="14" height="70" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <rect x="470" y="142" width="22" height="78" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <rect x="498" y="158" width="16" height="62" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
+        <path d="M180 220 C 300 195, 420 200, 560 220" stroke="white" strokeWidth="1" fill="none" />
+      </svg>
+    </div>
   );
 }
 
 export default function ReservationPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen" style={{ background: BACKGROUND }} />}>
+    <Suspense fallback={<div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0d2847 30%, #0f3060 50%, #0d2847 70%, #0a1628 100%)' }} />}>
       <ReservationFlow />
     </Suspense>
   );

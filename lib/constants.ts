@@ -180,7 +180,6 @@ export const NAV_ITEMS = [
   { label: 'Accueil', href: '/' },
   { label: 'Services', href: '/services' },
   { label: 'Tarifs', href: '/tarifs' },
-  { label: 'Notre idée', href: '/notre-idee' },
   { label: 'Contact', href: '/contact' },
 ];
 

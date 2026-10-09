@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Comparatif des formules de tarification VTC</title>
+<style>
+  @page { size: Letter; margin: 0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #dfe6ed; font-family: Arial, sans-serif; color: #172b4d; }
+  .page { width: 8.5in; height: 11in; margin: 0 auto 18px; background: white; padding: .43in .72in .43in; position: relative; page-break-after: always; overflow: hidden; }
+  header { height: .30in; border-bottom: 1px solid #d7e0e8; display: flex; justify-content: space-between; font-size: 8.5pt; font-weight: 700; letter-spacing: .08em; color: #60758a; }
+  main { padding-top: .20in; }
+  footer { position: absolute; left: .72in; right: .72in; bottom: .22in; border-top: 1px solid #d7e0e8; padding-top: 6px; display: flex; justify-content: space-between; font-size: 8pt; color: #60758a; }
+  h1 { margin: 0 0 12px; font-size: 18pt; line-height: 1.1; color: #1f6feb; }
+  h2 { margin: 15px 0 7px; font-size: 13pt; color: #1f6feb; }
+  h3 { margin: 11px 0 5px; font-size: 11pt; color: #102a43; }
+  p { margin: 0 0 7px; font-size: 9.7pt; line-height: 1.34; }
+  .kicker { margin: 0 0 5px; color: #1f8a5b; font-size: 9pt; font-weight: 700; letter-spacing: .12em; }
+  .cover-title { margin: 0; font-size: 26pt; line-height: 1.06; color: #102a43; }
+  .subtitle { margin: 8px 0 16px; color: #60758a; font-size: 13pt; }
+  .meta { color: #60758a; font-size: 9pt; margin-bottom: 3px; }
+  .meta b { color: #172b4d; }
+  .callout { border-left: 5px solid #1f6feb; background: #eaf2ff; padding: 12px 14px; margin: 12px 0; display: flex; gap: 12px; align-items: flex-start; font-size: 10pt; line-height: 1.34; }
+  .callout b { color: #1f6feb; font-size: 8.5pt; min-width: 88px; letter-spacing: .06em; }
+  .callout span { font-weight: 700; color: #102a43; }
+  .callout.green { background: #e9f7f0; border-color: #1f8a5b; }
+  .callout.green b { color: #1f8a5b; }
+  .callout.gold { background: #fff5d6; border-color: #a66b00; }
+  .callout.gold b { color: #a66b00; }
+  table { width: 100%; border-collapse: collapse; margin: 7px 0 11px; font-size: 8.7pt; line-height: 1.23; table-layout: fixed; }
+  th { background: #102a43; color: white; padding: 7px 8px; text-align: left; font-size: 8.4pt; }
+  td { border: 1px solid #cfd9e3; padding: 7px 8px; vertical-align: middle; }
+  tr:nth-child(even) td { background: #f4f7fa; }
+  .summary th:nth-child(1) { width: 19%; } .summary th:nth-child(2) { width: 32%; } .summary th:nth-child(3) { width: 30%; } .summary th:nth-child(4) { width: 19%; }
+  .summary td:last-child, .risk td:last-child { text-align: center; font-weight: 700; }
+  .rates th:nth-child(1) { width: 44%; } .rates th:nth-child(2) { width: 24%; } .rates th:nth-child(3) { width: 32%; }
+  .rates td:not(:first-child) { text-align: center; }
+  .example th:nth-child(1) { width: 28%; } .example th:nth-child(2) { width: 46%; } .example th:nth-child(3) { width: 26%; }
+  .example td:last-child { text-align: right; font-weight: 700; }
+  .example tr:last-child td { background: #e9f7f0; font-weight: 700; }
+  .risk { font-size: 8pt; }
+  .risk th:nth-child(1) { width: 17%; } .risk th:nth-child(2) { width: 34%; } .risk th:nth-child(3) { width: 34%; } .risk th:nth-child(4) { width: 15%; }
+  .formula { margin-top: 7px; background: #102a43; color: white; padding: 10px 13px; }
+  .formula-label { color: #a8c7fa; font-weight: 700; font-size: 8.5pt; letter-spacing: .08em; margin-bottom: 5px; }
+  pre { margin: 0; white-space: pre-wrap; font-family: Consolas, "Courier New", monospace; font-weight: 700; font-size: 9.7pt; line-height: 1.34; }
+  .formula-note { background: #f4f7fa; color: #60758a; padding: 7px 12px; font-size: 8.8pt; line-height: 1.25; margin-bottom: 9px; }
+  .muted { color: #60758a; font-size: 9pt; }
+  .item { margin-bottom: 7px; padding-left: 11px; border-left: 3px solid #d7e0e8; }
+  .verdict { font-size: 11pt; font-weight: 700; color: #102a43; line-height: 1.42; }
+  .sources { margin-top: 8px; font-size: 8.2pt; line-height: 1.45; color: #60758a; }
+</style></head><body>
+
+  <section class="page">
+    <header><span>MOBISERVICE VTC</span><span>COMPARATIF TARIFAIRE</span></header>
+    <main>
+  <div class="kicker">NOTE DE COMPARAISON</div>
+  <div class="cover-title">Formule actuelle de la plateforme<br>vs. formule transmise</div>
+  <div class="subtitle">Calcul des transferts VTC — aller simple et aller-retour</div>
+  <div class="meta"><b>Objet :</b> vérifier les écarts de calcul et les risques d’implémentation</div>
+  <div class="meta"><b>Périmètre :</b> calculateur public /api/pricing/estimate et enregistrement d’une réservation</div>
+  <div class="callout green"><b>CONCLUSION</b><span>La formule transmise est identique au calculateur public pour un aller simple, et donne bien 139,38 € TTC hors péage pour Cluses → Annecy. Les écarts importants proviennent surtout de l’implémentation lors de l’enregistrement de la réservation.</span></div>
+  <h1>Résultat en un coup d’œil</h1>
+  
+  <table class="summary">
+    <thead><tr><th>Point comparé</th><th>Plateforme affichée</th><th>Formule transmise</th><th>Verdict</th></tr></thead>
+    <tbody><tr><td>A/S</td><td>CA aller + TP + CA retour + péage ×1</td><td>Même formule</td><td>Identique</td></tr><tr><td>Départ Cluses</td><td>CA aller = 0</td><td>CA aller omis car nul</td><td>Identique</td></tr><tr><td>A/R</td><td>CA aller + 2×TP + CA retour + 2×péage + attente</td><td>Même formule</td><td>Identique</td></tr><tr><td>Attente</td><td>15 min gratuites, puis 1,20/1,80 €/min</td><td>Même règle</td><td>Identique</td></tr><tr><td>Sauvegarde</td><td>Recalcul séparé sans péage ni attente</td><td>Non prévu</td><td>Écart critique</td></tr></tbody>
+  </table>
+  <div class="callout gold"><b>DÉCISION RECOMMANDÉE</b><span>Conserver la formule transmise comme formule de référence, mais utiliser une seule fonction de calcul côté serveur pour l’estimation, la réservation, le devis et la facture.</span></div>
+</main>
+    <footer><span>Document de travail — 31 juillet 2026</span><span>1</span></footer>
+  </section>
+
+  <section class="page">
+    <header><span>MOBISERVICE VTC</span><span>COMPARATIF TARIFAIRE</span></header>
+    <main>
+  <h1>1. Les deux formules, mises à plat</h1>
+  <p class="muted">Les distances sont calculées depuis le dépôt fixe : 4 rue des Artisans, 74300 Cluses.</p>
+  <h2>Formule actuellement affichée par la plateforme</h2>
+  
+  <div class="formula"><div class="formula-label">ALLER SIMPLE</div><pre>Prix TTC = (CA aller × tarif CA) + (TP × tarif TP)
+          + (CA retour × tarif CA) + péage client</pre></div>
+  <div class="formula-note">CA retour est toujours inclus. Le péage du trajet client est compté une seule fois.</div>
+  
+  <div class="formula"><div class="formula-label">ALLER-RETOUR</div><pre>Prix TTC = (CA aller × tarif CA) + (2 × TP × tarif TP)
+          + (CA retour × tarif CA) + (2 × péage)
+          + attente facturable</pre></div>
+  <div class="formula-note">Pour un A/R, CA retour est fixé égal à CA aller, car le client revient au point de prise en charge.</div>
+  <h2>Formule transmise</h2>
+  
+  <div class="formula"><div class="formula-label">ALLER SIMPLE</div><pre>Prix total = CA aller + trajet client (TP)
+           + CA retour + péage client</pre></div>
+  <div class="formula-note">Chaque composant CA/TP est bien distance × tarif. Péage facturé une seule fois.</div>
+  
+  <div class="formula"><div class="formula-label">PRISE EN CHARGE DIRECTEMENT À CLUSES</div><pre>Prix = (distance client × tarif TP)
+     + (distance retour × tarif CA) + péage</pre></div>
+  <div class="formula-note">Cette écriture ne supprime pas CA aller : elle constate simplement que sa distance est égale à zéro.</div>
+  <div class="callout green"><b>ÉQUIVALENCE</b><span>Pour un aller simple, les deux écritures produisent exactement le même résultat lorsque les mêmes distances, paliers et péages sont utilisés.</span></div>
+</main>
+    <footer><span>Document de travail — 31 juillet 2026</span><span>2</span></footer>
+  </section>
+
+  <section class="page">
+    <header><span>MOBISERVICE VTC</span><span>COMPARATIF TARIFAIRE</span></header>
+    <main>
+  <h1>2. Tarifs et exemple de contrôle</h1>
+  <h2>Grille utilisée dans les deux formules</h2>
+  
+  <table class="rates">
+    <thead><tr><th>Élément</th><th>Jour</th><th>Nuit / dimanche / jour férié</th></tr></thead>
+    <tbody><tr><td>Trajet client (TP)</td><td>1,32 €/km</td><td>1,90 €/km</td></tr><tr><td>CA — palier >25–50 km</td><td>1,32 €/km</td><td>1,70 €/km</td></tr><tr><td>CA — palier >50–75 km</td><td>1,10 €/km</td><td>1,40 €/km</td></tr><tr><td>CA — palier >75–100 km</td><td>0,90 €/km</td><td>1,10 €/km</td></tr><tr><td>CA — palier >100 km</td><td>0,70 €/km</td><td>0,70 €/km</td></tr><tr><td>Forfait ≤25 km</td><td>33,00 € TTC</td><td>47,50 € TTC</td></tr><tr><td>Attente A/R après 15 min</td><td>1,20 €/min</td><td>1,80 €/min</td></tr></tbody>
+  </table>
+  <p class="muted">Plage jour : 07:00–19:59, hors dimanche et jours fériés français. Plage nuit : 20:00–06:59, dimanche et jours fériés 24 h/24.</p>
+  <h2>Exemple commun : Cluses → Annecy</h2>
+  <p class="muted">Hypothèses : prise en charge à Cluses, 69 km, tarif jour, aller simple, hors péage.</p>
+  
+  <table class="example">
+    <thead><tr><th>Composant</th><th>Calcul</th><th>Montant</th></tr></thead>
+    <tbody><tr><td>CA aller</td><td>0 km × tarif CA</td><td>0,00 €</td></tr><tr><td>Trajet client (TP)</td><td>69 km × 1,32 €/km</td><td>91,08 €</td></tr><tr><td>CA retour</td><td>69 km × 0,70 €/km</td><td>48,30 €</td></tr><tr><td>Péage</td><td>Hors exemple</td><td>0,00 €</td></tr><tr><td>TOTAL TTC</td><td>91,08 € + 48,30 €</td><td>139,38 €</td></tr></tbody>
+  </table>
+  <div class="callout green"><b>RÉSULTAT</b><span>Plateforme affichée : 139,38 € TTC. Formule transmise : 139,38 € TTC. Écart : 0,00 €.</span></div>
+  <p class="verdict">La formule ne contient ni prise en charge fixe de 10 €, ni prix de trajet à la minute, ni coefficient de retour à vide, ni supplément automatique J+1.</p>
+</main>
+    <footer><span>Document de travail — 31 juillet 2026</span><span>3</span></footer>
+  </section>
+
+  <section class="page">
+    <header><span>MOBISERVICE VTC</span><span>COMPARATIF TARIFAIRE</span></header>
+    <main>
+  <h1>3. Différences réelles et risques actuels</h1>
+  <p class="muted">Les différences ci-dessous ne viennent pas de la formule commerciale transmise. Elles viennent des chemins de calcul distincts présents dans la plateforme.</p>
+  
+  <table class="risk">
+    <thead><tr><th>Sujet</th><th>Comportement constaté</th><th>Conséquence</th><th>Priorité</th></tr></thead>
+    <tbody><tr><td>Enregistrement</td><td>Le serveur recalcule sans péage ni attente.</td><td>Prix enregistré potentiellement inférieur au prix affiché.</td><td>Critique</td></tr><tr><td>Deux moteurs</td><td>L’estimateur utilise des constantes ; la sauvegarde peut utiliser la base.</td><td>Deux tarifs différents pour une même course.</td><td>Critique</td></tr><tr><td>Attente affichée</td><td>L’écran annonce 10 min gratuites ; le moteur en déduit 15.</td><td>Information client incohérente.</td><td>Haute</td></tr><tr><td>Palier A/R</td><td>Le palier CA est choisi avec CA aller + 1×TP + CA retour.</td><td>Le TP retour est facturé mais ne participe pas au choix du palier.</td><td>Haute</td></tr><tr><td>J+1 à J+3</td><td>L’immobilisation est calculée séparément mais non ajoutée au total.</td><td>Le supplément peut manquer au devis.</td><td>Haute</td></tr><tr><td>TVA sauvegardée</td><td>La réservation stocke un taux global de 10 %.</td><td>Le détail à 20 % des péages/MAD peut être perdu.</td><td>Moyenne</td></tr></tbody>
+  </table>
+  <h2>Interprétation du palier</h2>
+  <p class="item"><b>Aller simple —</b> la plateforme choisit le tarif CA à partir de CA aller + TP + CA retour. C’est cohérent avec l’exemple Cluses → Annecy : 0 + 69 + 69 = 138 km, donc palier >100 km.</p>
+  <p class="item"><b>Aller-retour —</b> le prix facture 2×TP, mais le palier reste déterminé avec un seul TP. Cette règle doit être confirmée explicitement avant de figer la nouvelle formule.</p>
+  <div class="callout gold"><b>POINT À VALIDER</b><span>Pour un A/R, le palier CA doit-il être déterminé avec CA aller + TP + CA retour ou avec la distance réellement facturée CA aller + 2×TP + CA retour ?</span></div>
+</main>
+    <footer><span>Document de travail — 31 juillet 2026</span><span>4</span></footer>
+  </section>
+
+  <section class="page">
+    <header><span>MOBISERVICE VTC</span><span>COMPARATIF TARIFAIRE</span></header>
+    <main>
+  <h1>4. Recommandation de mise en œuvre</h1>
+  <div class="callout green"><b>FORMULE CIBLE</b><span>Prix TTC = CA aller + TP facturé + CA retour + péage client + attente/MAD applicable. Aucune prise en charge fixe, aucun prix à la minute pour le trajet et aucun coefficient de retour à vide.</span></div>
+  <h2>Règles à figer dans une seule fonction serveur</h2>
+  <p class="item"><b>1. Distances —</b> figer CA aller, TP et CA retour issus de la même matrice routière.</p>
+  <p class="item"><b>2. Horaire —</b> choisir jour/nuit selon l’heure locale de prise en charge, dimanche et jours fériés inclus.</p>
+  <p class="item"><b>3. Palier —</b> documenter l’assiette exacte du palier CA, particulièrement pour les A/R.</p>
+  <p class="item"><b>4. Péages —</b> facturer ×1 en A/S et ×2 en A/R, uniquement lorsque le client est transporté.</p>
+  <p class="item"><b>5. Attente —</b> afficher et appliquer 15 minutes gratuites, puis 1,20 €/min jour ou 1,80 €/min nuit.</p>
+  <p class="item"><b>6. TVA —</b> conserver séparément transport à 10 % et péage/MAD à 20 %.</p>
+  <p class="item"><b>7. Persistance —</b> enregistrer exactement le prix calculé par la fonction serveur, avec son détail et sa version tarifaire.</p>
+  <h2>Verdict final</h2>
+  <p class="verdict">La formule transmise peut servir de formule commerciale de référence : elle correspond au calculateur public actuel pour les cas décrits. Le chantier nécessaire n’est pas un changement de formule, mais l’unification et la sécurisation de son exécution dans toute la plateforme.</p>
+  <h2>Sources techniques vérifiées</h2>
+  <p class="sources">app/api/pricing/estimate/route.ts — construction des distances, péages et appel du calculateur public<br>
+  lib/pricing/tariffs-2026.ts — tarifs, forfait, formule A/S-A/R, attente et TVA<br>
+  app/api/bookings/route.ts — recalcul et enregistrement serveur<br>
+  lib/pricing.ts — deuxième moteur et chargement des tarifs configurables<br>
+  app/(public)/reservation/page.tsx — affichage client et immobilisation J+1 à J+3</p>
+</main>
+    <footer><span>Document de travail — 31 juillet 2026</span><span>5</span></footer>
+  </section>
+</body></html>
