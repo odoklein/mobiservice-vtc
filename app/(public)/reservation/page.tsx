@@ -12,6 +12,8 @@ import {
   IconMinus,
   IconChevronLeft,
   IconChevronRight,
+  IconChevronDown,
+  IconChevronUp,
   IconMapPin,
   IconCalendar,
   IconUsers,
@@ -21,6 +23,9 @@ import {
   IconLoader2,
   IconAlertTriangle,
   IconRoute,
+  IconCalculator,
+  IconCode,
+  IconReceipt,
 } from '@tabler/icons-react';
 import { CONTACT } from '@/lib/constants';
 import { getImmobilisationMAD, isAR13DaysAllowed, type ReturnDaysAfter } from '@/lib/booking/immobilisation-mad';
@@ -67,6 +72,21 @@ interface Estimation {
     rateType: string;
     dayName: string;
     tollInfo?: { detected: boolean; cost: number; details: string; totalIncluded: number };
+    breakdown?: {
+      costCA_out?: number;
+      costTP?: number;
+      costCA_return?: number;
+      tollCost?: number;
+      madCost?: number;
+      isForfaitAgglomeration?: boolean;
+      bracket?: string;
+      pricePerKmCA?: number;
+      pricePerKmTP?: number;
+      rateOut?: string;
+      rateReturn?: string;
+      isMixedRate?: boolean;
+      forfaitName?: string;
+    };
     forfait?: {
       name?: string;
       adjusted?: boolean;
@@ -311,7 +331,7 @@ function Calendar({
           type="button"
           disabled={!canGoPrev}
           onClick={() => onMonthChange(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
-          className="text-gray-400 hover:text-gray-600 disabled:opacity-25 disabled:cursor-not-allowed"
+          className="text-gray-400 hover:text-gray-600 disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
         >
           <IconChevronLeft size={compact ? 18 : 20} />
         </button>
@@ -322,7 +342,7 @@ function Calendar({
         <button
           type="button"
           onClick={() => onMonthChange(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}
-          className="text-gray-400 hover:text-gray-600"
+          className="text-gray-400 hover:text-gray-600 cursor-pointer"
         >
           <IconChevronRight size={compact ? 18 : 20} />
         </button>
@@ -353,7 +373,7 @@ function Calendar({
                     ? 'bg-[#4BC449] text-white font-bold'
                     : disabled
                       ? 'text-gray-300 cursor-not-allowed'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      : 'text-gray-700 hover:bg-gray-50 cursor-pointer'
                 }`}
               >
                 {day.getDate()}
@@ -402,7 +422,7 @@ function TimeGrid({
                   ? 'bg-[#4BC449] text-white border-[#4BC449]'
                   : disabled
                     ? 'border-gray-100 text-gray-300 cursor-not-allowed'
-                    : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                    : 'border-gray-200 text-gray-700 hover:border-gray-300 cursor-pointer'
               }`}
             >
               {t}
@@ -419,6 +439,263 @@ function TimeGrid({
           className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]"
         />
       </div>
+    </div>
+  );
+}
+
+/* -------------------------- debug calculations sidebar -------------------- */
+
+function PricingDebugSidebar({
+  pickupPlace,
+  dropoffPlace,
+  serviceType,
+  direction,
+  hours,
+  selectedDate,
+  selectedTime,
+  returnDate,
+  returnTime,
+  quote,
+  quoteLoading,
+  quoteError,
+  immobilisation,
+  totalPrice,
+  priceLabel,
+}: {
+  pickupPlace: Place | null;
+  dropoffPlace: Place | null;
+  serviceType: 'transfer' | 'hourly';
+  direction: 'one-way' | 'round-trip';
+  hours: number;
+  selectedDate: Date | null;
+  selectedTime: string;
+  returnDate: Date | null;
+  returnTime: string;
+  quote: Estimation | null;
+  quoteLoading: boolean;
+  quoteError: string | null;
+  immobilisation: { label: string; priceTTC: number } | null;
+  totalPrice: number | null;
+  priceLabel: string;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const [showJson, setShowJson] = useState(false);
+
+  return (
+    <div className="bg-[#0b1320] border border-emerald-500/20 rounded-2xl overflow-hidden shadow-xl text-white">
+      {/* Header */}
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-3.5 bg-emerald-500/10 hover:bg-emerald-500/15 border-b border-emerald-500/20 text-left transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-2 h-2 rounded-full bg-[#4BC449] animate-pulse shrink-0" />
+          <span className="font-mono text-xs font-bold text-white tracking-wider flex items-center gap-1.5">
+            <IconCalculator size={14} className="text-[#4BC449]" />
+            DEBUG CALCULS
+          </span>
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+            {quoteLoading ? 'CALCUL…' : quote ? 'ACTIF' : 'ATTENTE'}
+          </span>
+        </div>
+        {expanded ? <IconChevronUp size={16} className="text-gray-400" /> : <IconChevronDown size={16} className="text-gray-400" />}
+      </button>
+
+      {expanded && (
+        <div className="p-3.5 space-y-3 font-mono text-[11px] leading-relaxed">
+          {/* Statut */}
+          {quoteLoading ? (
+            <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 p-2 rounded-lg">
+              <IconLoader2 size={13} className="animate-spin shrink-0" />
+              <span>Calcul en cours via Mapbox & API...</span>
+            </div>
+          ) : quoteError ? (
+            <div className="text-red-400 bg-red-500/10 p-2 rounded-lg text-[10px]">
+              ⚠️ {quoteError}
+            </div>
+          ) : null}
+
+          {/* Règle 1: Dépôt */}
+          <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1">
+            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <IconMapPin size={12} className="text-[#4BC449]" /> Règle N°1 : Dépôt VTC
+            </div>
+            <div className="text-gray-300">Cluses : 4 rue des artisans</div>
+            <div className="text-[10px] text-gray-500">[46.0624, 6.5813] • CA obligatoire</div>
+          </div>
+
+          {/* Segments kilométriques */}
+          <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1.5">
+            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <IconRoute size={12} className="text-blue-400" /> Segments Distance (CA/TP)
+            </div>
+            <div className="flex justify-between text-gray-300">
+              <span className="text-gray-400">1. CA Aller (Dépôt ➔ Départ) :</span>
+              <span className="font-semibold text-white">{quote?.distances.ca_out ? `${quote.distances.ca_out.toFixed(1)} km` : '—'}</span>
+            </div>
+            <div className="flex justify-between text-gray-300">
+              <span className="text-gray-400">2. TP Passager (Départ ➔ Fin) :</span>
+              <span className="font-semibold text-emerald-400">{quote?.distances.tp ? `${quote.distances.tp.toFixed(1)} km` : '—'}</span>
+            </div>
+            <div className="flex justify-between text-gray-300">
+              <span className="text-gray-400">3. CA Retour (Fin ➔ Dépôt) :</span>
+              <span className="font-semibold text-white">{quote?.distances.ca_return ? `${quote.distances.ca_return.toFixed(1)} km` : '—'}</span>
+            </div>
+            <div className="border-t border-white/10 pt-1 flex justify-between font-bold">
+              <span className="text-gray-300">Total trajet :</span>
+              <span className="text-white">{quote?.distances.total ? `${quote.distances.total.toFixed(1)} km` : '—'}</span>
+            </div>
+            {quote?.distances.totalAR && (
+              <div className="flex justify-between text-emerald-300 text-[10px]">
+                <span>Total A/R (1-3 jours) :</span>
+                <span>{quote.distances.totalAR.toFixed(1)} km</span>
+              </div>
+            )}
+            <div className="flex justify-between text-gray-400 text-[10px]">
+              <span>Durée de route estimée :</span>
+              <span className="text-white">{quote?.duration ? `${Math.round(quote.duration)} min` : '—'}</span>
+            </div>
+          </div>
+
+          {/* Tarification & Régime */}
+          <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1.5">
+            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <IconClock size={12} className="text-amber-400" /> Régime & Heures
+            </div>
+            <div className="flex justify-between text-gray-300">
+              <span className="text-gray-400">Régime horaire :</span>
+              <span className={quote?.pricing.isNightRate ? 'text-amber-300 font-bold' : 'text-blue-300 font-bold'}>
+                {quote?.pricing.isNightRate ? '🌙 Tarif Nuit / Dim' : '☀️ Tarif Jour'}
+              </span>
+            </div>
+            <div className="flex justify-between text-gray-300">
+              <span className="text-gray-400">Type de tarif :</span>
+              <span className="text-white text-right break-words">{quote?.pricing.rateType || '—'}</span>
+            </div>
+            {serviceType === 'hourly' ? (
+              <>
+                <div className="flex justify-between text-gray-300">
+                  <span className="text-gray-400">Forfait choisi :</span>
+                  <span className="text-emerald-400 font-bold">{formatHours(hours)}</span>
+                </div>
+                <div className="flex justify-between text-gray-300">
+                  <span className="text-gray-400">Distance incluse :</span>
+                  <span className="text-white">{hours * 90} km max</span>
+                </div>
+              </>
+            ) : (
+              <>
+                {quote?.pricing.breakdown?.bracket && (
+                  <div className="flex justify-between text-gray-300">
+                    <span className="text-gray-400">Palier distance :</span>
+                    <span className="text-white">{quote.pricing.breakdown.bracket}</span>
+                  </div>
+                )}
+                {quote?.pricing.breakdown?.pricePerKmCA && (
+                  <div className="flex justify-between text-gray-300 text-[10px]">
+                    <span className="text-gray-400">Barème CA :</span>
+                    <span className="text-white">{quote.pricing.breakdown.pricePerKmCA} €/km</span>
+                  </div>
+                )}
+                {quote?.pricing.breakdown?.pricePerKmTP && (
+                  <div className="flex justify-between text-gray-300 text-[10px]">
+                    <span className="text-gray-400">Barème TP :</span>
+                    <span className="text-white">{quote.pricing.breakdown.pricePerKmTP} €/km</span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Détail du calcul financier */}
+          {quote && (
+            <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1.5">
+              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <IconReceipt size={12} className="text-purple-400" /> Détail du Total
+              </div>
+              {serviceType === 'transfer' && quote.pricing.breakdown && (
+                <>
+                  {quote.pricing.breakdown.costCA_out !== undefined && (
+                    <div className="flex justify-between text-gray-400 text-[10px]">
+                      <span>Coût CA Aller :</span>
+                      <span className="text-gray-200">{quote.pricing.breakdown.costCA_out.toFixed(2)} €</span>
+                    </div>
+                  )}
+                  {quote.pricing.breakdown.costTP !== undefined && (
+                    <div className="flex justify-between text-gray-400 text-[10px]">
+                      <span>Coût TP :</span>
+                      <span className="text-gray-200">{quote.pricing.breakdown.costTP.toFixed(2)} €</span>
+                    </div>
+                  )}
+                  {quote.pricing.breakdown.costCA_return !== undefined && (
+                    <div className="flex justify-between text-gray-400 text-[10px]">
+                      <span>Coût CA Retour :</span>
+                      <span className="text-gray-200">{quote.pricing.breakdown.costCA_return.toFixed(2)} €</span>
+                    </div>
+                  )}
+                </>
+              )}
+              {quote.pricing.tollInfo?.detected && (
+                <div className="flex justify-between text-amber-300 text-[10px]">
+                  <span>Péages autoroute :</span>
+                  <span>+{quote.pricing.tollInfo.totalIncluded.toFixed(2)} €</span>
+                </div>
+              )}
+              {immobilisation && immobilisation.priceTTC > 0 && (
+                <div className="flex justify-between text-amber-300 text-[10px]">
+                  <span>Immobilisation retour :</span>
+                  <span>+{immobilisation.priceTTC.toFixed(2)} €</span>
+                </div>
+              )}
+              <div className="border-t border-white/10 pt-1 flex justify-between text-gray-300">
+                <span>Total HT :</span>
+                <span className="font-semibold">{quote.pricing.totalHT.toFixed(2)} €</span>
+              </div>
+              <div className="flex justify-between text-gray-400 text-[10px]">
+                <span>TVA (10%) :</span>
+                <span>{quote.pricing.tva.toFixed(2)} €</span>
+              </div>
+              <div className="border-t border-white/10 pt-1 flex justify-between font-bold text-sm text-emerald-400">
+                <span>Total TTC :</span>
+                <span>{priceLabel}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Raw JSON toggle */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setShowJson(!showJson)}
+              className="w-full text-center text-[10px] text-gray-400 hover:text-white py-1.5 px-2 rounded bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <IconCode size={12} />
+              {showJson ? 'Masquer JSON brut' : 'Voir JSON brut'}
+            </button>
+            {showJson && (
+              <pre className="mt-2 p-2 bg-black/60 rounded-lg text-[9px] text-emerald-300 overflow-x-auto max-h-48 overflow-y-auto font-mono">
+                {JSON.stringify({
+                  input: {
+                    serviceType,
+                    direction,
+                    hours: serviceType === 'hourly' ? hours : undefined,
+                    pickupPlace,
+                    dropoffPlace,
+                    selectedDate: selectedDate ? toISODate(selectedDate) : null,
+                    selectedTime,
+                    returnDate: returnDate ? toISODate(returnDate) : null,
+                    returnTime,
+                  },
+                  quote,
+                  immobilisation,
+                  totalPrice,
+                }, null, 2)}
+              </pre>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -881,8 +1158,8 @@ function ReservationFlow() {
 
         {/* Main area */}
         <div className="flex-1 pb-8">
-          <div className="max-w-5xl mx-auto px-6">
-            <div className="flex gap-8">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="flex gap-8 items-start">
               <div className="flex-1 min-w-0">
 
                 {/* STEP 1: WHERE */}
@@ -979,7 +1256,7 @@ function ReservationFlow() {
                                 key={f.hours}
                                 type="button"
                                 onClick={() => setHours(f.hours)}
-                                className={`py-2.5 px-2 rounded-xl border-2 text-center transition-all ${
+                                className={`py-2.5 px-2 rounded-xl border-2 text-center transition-all cursor-pointer ${
                                   hours === f.hours
                                     ? 'border-[#4BC449] bg-[#4BC449]/10 text-[#0d2847] font-bold shadow-sm'
                                     : 'border-gray-200 text-gray-700 hover:border-gray-300'
@@ -1075,7 +1352,7 @@ function ReservationFlow() {
                                   setShowReturnTime(false);
                                 }
                               }}
-                              className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                              className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
                                 returnChoice === opt.id ? 'border-[#4BC449] bg-[#4BC449]/5' : 'border-gray-200 hover:border-gray-300'
                               }`}>
                               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${returnChoice === opt.id ? 'border-[#4BC449]' : 'border-gray-300'}`}>
@@ -1250,12 +1527,12 @@ function ReservationFlow() {
                             </div>
                             <div className="flex items-center gap-4">
                               <button type="button" onClick={() => item.set(Math.max(item.min, item.value - 1))} disabled={item.value <= item.min}
-                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
                                 <IconMinus size={14} />
                               </button>
                               <span className="text-lg font-bold text-gray-900 w-6 text-center">{item.value}</span>
                               <button type="button" onClick={() => item.set(Math.min(item.max, item.value + 1))} disabled={item.value >= item.max || totalPassengers >= 4}
-                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
                                 <IconPlus size={14} />
                               </button>
                             </div>
@@ -1269,12 +1546,12 @@ function ReservationFlow() {
                           <span className="text-sm font-medium text-gray-900">Valises</span>
                           <div className="flex items-center gap-4">
                             <button type="button" onClick={() => setSuitcases(Math.max(0, suitcases - 1))} disabled={suitcases <= 0}
-                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
                               <IconMinus size={14} />
                             </button>
                             <span className="text-lg font-bold text-gray-900 w-6 text-center">{suitcases}</span>
                             <button type="button" onClick={() => setSuitcases(Math.min(6, suitcases + 1))} disabled={suitcases >= 6}
-                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
                               <IconPlus size={14} />
                             </button>
                           </div>
@@ -1506,96 +1783,139 @@ function ReservationFlow() {
                     </div>
                   )
                 )}
+
+                {/* Mobile Debug Inspector */}
+                <div className="lg:hidden mt-8">
+                  <PricingDebugSidebar
+                    pickupPlace={pickupPlace}
+                    dropoffPlace={dropoffPlace}
+                    serviceType={serviceType}
+                    direction={direction}
+                    hours={hours}
+                    selectedDate={selectedDate}
+                    selectedTime={selectedTime}
+                    returnDate={returnDate}
+                    returnTime={returnTime}
+                    quote={quote}
+                    quoteLoading={quoteLoading}
+                    quoteError={quoteError}
+                    immobilisation={immobilisation}
+                    totalPrice={totalPrice}
+                    priceLabel={priceLabel}
+                  />
+                </div>
               </div>
 
-              {/* Sticky sidebar */}
-              <div className="hidden lg:block w-[260px] shrink-0">
-                <div className="sticky top-6 bg-white rounded-2xl shadow-xl overflow-hidden">
-                  <div className="p-5">
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Votre trajet</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-2.5">
-                        <IconMapPin size={14} className="text-[#4BC449] mt-0.5 shrink-0" />
-                        <span className="text-sm leading-snug text-gray-900">{pickupText.split(',')[0] || <span className="text-gray-300">Départ</span>}</span>
+              {/* Sticky sidebar + Debug Inspector */}
+              <div className="hidden lg:block w-[300px] shrink-0">
+                <div className="sticky top-6 space-y-4 max-h-[calc(100vh-2rem)] overflow-y-auto pr-1">
+                  {/* Your Trip Card */}
+                  <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div className="p-5">
+                      <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Votre trajet</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-2.5">
+                          <IconMapPin size={14} className="text-[#4BC449] mt-0.5 shrink-0" />
+                          <span className="text-sm leading-snug text-gray-900">{pickupText.split(',')[0] || <span className="text-gray-300">Départ</span>}</span>
+                        </div>
+
+                        {serviceType === 'transfer' ? (
+                          <div className="flex items-start gap-2.5">
+                            <IconMapPin size={14} className="text-red-400 mt-0.5 shrink-0" />
+                            <span className="text-sm leading-snug text-gray-900">{dropoffText.split(',')[0] || <span className="text-gray-300">Destination</span>}</span>
+                          </div>
+                        ) : dropoffText ? (
+                          <div className="flex items-start gap-2.5">
+                            <IconMapPin size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                            <span className="text-sm leading-snug text-gray-900">{dropoffText.split(',')[0]}</span>
+                          </div>
+                        ) : null}
+
+                        <div className="border-t border-gray-100 my-1" />
+
+                        {serviceType === 'hourly' && (
+                          <div className="flex items-center gap-2.5">
+                            <IconClock size={14} className="text-[#4BC449] shrink-0" />
+                            <span className="text-sm font-semibold text-gray-800">
+                              {formatHours(hours)} ({hours * 90} km inclus)
+                            </span>
+                          </div>
+                        )}
+
+                        {selectedDate && (
+                          <div className="flex items-center gap-2.5">
+                            <IconCalendar size={14} className="text-gray-400 shrink-0" />
+                            <span className="text-sm text-gray-700">{formatShortDate(selectedDate)}</span>
+                          </div>
+                        )}
+                        {selectedTime && (
+                          <div className="flex items-center gap-2.5">
+                            <IconClock size={14} className="text-gray-400 shrink-0" />
+                            <span className="text-sm text-gray-700">{selectedTime}</span>
+                          </div>
+                        )}
+                        {serviceType === 'transfer' && quote && (
+                          <div className="flex items-center gap-2.5">
+                            <IconRoute size={14} className="text-gray-400 shrink-0" />
+                            <span className="text-sm text-gray-700">{quote.distances.tp.toFixed(1)} km • {Math.round(quote.duration)} min</span>
+                          </div>
+                        )}
+                        {step >= 3 && (
+                          <>
+                            <div className="flex items-center gap-2.5">
+                              <IconUsers size={14} className="text-gray-400 shrink-0" />
+                              <span className="text-sm text-gray-700">{totalPassengers} passager{totalPassengers > 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="flex items-center gap-2.5">
+                              <IconLuggage size={14} className="text-gray-400 shrink-0" />
+                              <span className="text-sm text-gray-700">{suitcases} valise{suitcases > 1 ? 's' : ''}</span>
+                            </div>
+                          </>
+                        )}
+                        {(quote || quoteLoading) && (
+                          <>
+                            <div className="border-t border-gray-100 my-1" />
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-xs text-gray-400">Prix estimé</span>
+                              {quoteLoading ? (
+                                <IconLoader2 size={16} className="text-[#4BC449] animate-spin" />
+                              ) : (
+                                <span className="text-xl font-bold text-[#4BC449]">{priceLabel}</span>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
-
-                      {serviceType === 'transfer' ? (
-                        <div className="flex items-start gap-2.5">
-                          <IconMapPin size={14} className="text-red-400 mt-0.5 shrink-0" />
-                          <span className="text-sm leading-snug text-gray-900">{dropoffText.split(',')[0] || <span className="text-gray-300">Destination</span>}</span>
-                        </div>
-                      ) : dropoffText ? (
-                        <div className="flex items-start gap-2.5">
-                          <IconMapPin size={14} className="text-blue-500 mt-0.5 shrink-0" />
-                          <span className="text-sm leading-snug text-gray-900">{dropoffText.split(',')[0]}</span>
-                        </div>
-                      ) : null}
-
-                      <div className="border-t border-gray-100 my-1" />
-
-                      {serviceType === 'hourly' && (
-                        <div className="flex items-center gap-2.5">
-                          <IconClock size={14} className="text-[#4BC449] shrink-0" />
-                          <span className="text-sm font-semibold text-gray-800">
-                            {formatHours(hours)} ({hours * 90} km inclus)
-                          </span>
-                        </div>
-                      )}
-
-                      {selectedDate && (
-                        <div className="flex items-center gap-2.5">
-                          <IconCalendar size={14} className="text-gray-400 shrink-0" />
-                          <span className="text-sm text-gray-700">{formatShortDate(selectedDate)}</span>
-                        </div>
-                      )}
-                      {selectedTime && (
-                        <div className="flex items-center gap-2.5">
-                          <IconClock size={14} className="text-gray-400 shrink-0" />
-                          <span className="text-sm text-gray-700">{selectedTime}</span>
-                        </div>
-                      )}
-                      {serviceType === 'transfer' && quote && (
-                        <div className="flex items-center gap-2.5">
-                          <IconRoute size={14} className="text-gray-400 shrink-0" />
-                          <span className="text-sm text-gray-700">{quote.distances.tp.toFixed(1)} km • {Math.round(quote.duration)} min</span>
-                        </div>
-                      )}
-                      {step >= 3 && (
-                        <>
-                          <div className="flex items-center gap-2.5">
-                            <IconUsers size={14} className="text-gray-400 shrink-0" />
-                            <span className="text-sm text-gray-700">{totalPassengers} passager{totalPassengers > 1 ? 's' : ''}</span>
-                          </div>
-                          <div className="flex items-center gap-2.5">
-                            <IconLuggage size={14} className="text-gray-400 shrink-0" />
-                            <span className="text-sm text-gray-700">{suitcases} valise{suitcases > 1 ? 's' : ''}</span>
-                          </div>
-                        </>
-                      )}
-                      {(quote || quoteLoading) && (
-                        <>
-                          <div className="border-t border-gray-100 my-1" />
-                          <div className="flex items-center justify-between pt-1">
-                            <span className="text-xs text-gray-400">Prix estimé</span>
-                            {quoteLoading ? (
-                              <IconLoader2 size={16} className="text-[#4BC449] animate-spin" />
-                            ) : (
-                              <span className="text-xl font-bold text-[#4BC449]">{priceLabel}</span>
-                            )}
-                          </div>
-                        </>
-                      )}
+                    </div>
+                    <div className="bg-[#4BC449]/5 border-t border-[#4BC449]/10 px-5 py-3">
+                      <p className="text-[#4BC449] text-xs font-semibold flex items-center gap-1.5">
+                        <IconPhone size={13} />
+                        Besoin d&apos;aide ?
+                      </p>
+                      <a href={`tel:${CONTACT.whatsapp}`} className="text-gray-900 text-sm font-bold mt-0.5 block hover:underline">
+                        {CONTACT.phone}
+                      </a>
                     </div>
                   </div>
-                  <div className="bg-[#4BC449]/5 border-t border-[#4BC449]/10 px-5 py-3">
-                    <p className="text-[#4BC449] text-xs font-semibold flex items-center gap-1.5">
-                      <IconPhone size={13} />
-                      Besoin d&apos;aide ?
-                    </p>
-                    <a href={`tel:${CONTACT.whatsapp}`} className="text-gray-900 text-sm font-bold mt-0.5 block hover:underline">
-                      {CONTACT.phone}
-                    </a>
-                  </div>
+
+                  {/* Live Debug Calculations Section */}
+                  <PricingDebugSidebar
+                    pickupPlace={pickupPlace}
+                    dropoffPlace={dropoffPlace}
+                    serviceType={serviceType}
+                    direction={direction}
+                    hours={hours}
+                    selectedDate={selectedDate}
+                    selectedTime={selectedTime}
+                    returnDate={returnDate}
+                    returnTime={returnTime}
+                    quote={quote}
+                    quoteLoading={quoteLoading}
+                    quoteError={quoteError}
+                    immobilisation={immobilisation}
+                    totalPrice={totalPrice}
+                    priceLabel={priceLabel}
+                  />
                 </div>
               </div>
             </div>
