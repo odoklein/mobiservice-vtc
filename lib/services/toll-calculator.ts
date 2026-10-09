@@ -180,6 +180,8 @@ export async function calculateTollForTrip(params: {
     tollCostOneWay: number; // Always the single direction cost
     hasTolls: boolean;
     details: string;
+    /** false if the detection service could not be reached (the result 0 € is then not reliable) */
+    reliable: boolean;
     segments: {
         mainTrip: { hasTolls: boolean; cost: number; sections: string[] };
         depotToPickup: { hasTolls: boolean; cost: number; sections: string[]; note: string };
@@ -246,6 +248,7 @@ export async function calculateTollForTrip(params: {
             tollCostOneWay: Math.round(billableTollCost * 100) / 100,
             hasTolls,
             details,
+            reliable: mainTripSegment.confidence === 'high',
             segments: {
                 mainTrip: {
                     hasTolls: mainTripSegment.hasTolls,
@@ -274,6 +277,7 @@ export async function calculateTollForTrip(params: {
             tollCostOneWay: 0,
             hasTolls: false,
             details: 'Erreur lors de la détection des péages',
+            reliable: false,
             segments: {
                 mainTrip: { hasTolls: false, cost: 0, sections: [] },
                 depotToPickup: { hasTolls: false, cost: 0, sections: [], note: 'NON FACTURÉ' },

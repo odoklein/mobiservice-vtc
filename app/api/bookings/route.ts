@@ -5,7 +5,16 @@ import { eq, desc } from 'drizzle-orm';
 import { completeBookingSchema } from '@/lib/validations/booking';
 import { Resend } from 'resend';
 import { DRIVER } from '@/lib/constants';
-import { calculatePrice } from '@/lib/pricing';
+import { recomputeBookingPrice, type ServerPrice } from '@/lib/pricing/booking-price';
+
+// Échappe le texte saisi par le client avant insertion dans l'e-mail HTML du chauffeur
+const esc = (value: unknown): string =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,32 +27,21 @@ export async function POST(request: NextRequest) {
     // Même pour un aller simple, le retour du véhicule est facturé
     // Ne pas modifier distanceReturn - il doit toujours être > 0
 
-    // Recalculate price server-side using database pricing rules for security
-    let serverCalculatedPrice;
+    // Recalculate the price server-side. It is the SAME calculation as the estimate shown to the
+    // customer (lib/pricing/transfer-quote.ts: tolls, waiting time, day/night per leg, admin tariffs),
+    // so the saved price equals the displayed price and cannot be tampered with.
+    let serverCalculatedPrice: ServerPrice;
     try {
-      // Build pickup datetime for price calculation
-      let pickupDateTime: Date | undefined;
-      if (validatedData.pickupDate && validatedData.pickupTime) {
-        pickupDateTime = new Date(validatedData.pickupDate);
-        const [hours, minutes] = validatedData.pickupTime.split(':').map(Number);
-        pickupDateTime.setHours(hours, minutes, 0, 0);
+      serverCalculatedPrice = await recomputeBookingPrice(validatedData);
+      const shown = validatedData.totalPriceTTC ?? validatedData.totalPrice;
+      if (typeof shown === 'number' && Math.abs(shown - serverCalculatedPrice.totalPrice) > 0.01) {
+        console.warn(
+          `[BOOKING] Saved price ${serverCalculatedPrice.totalPrice}€ differs from the price displayed to the customer (${shown}€) — tariffs changed or inputs differ`
+        );
       }
-
-      serverCalculatedPrice = await calculatePrice({
-        serviceType: validatedData.serviceType,
-        tripType: validatedData.tripType || 'one-way',
-        distanceCA: validatedData.distanceCA ? parseFloat(validatedData.distanceCA.toString()) : undefined,
-        distanceTP: validatedData.distanceTP ? parseFloat(validatedData.distanceTP.toString()) : undefined,
-        distanceReturn: validatedData.distanceReturn ? parseFloat(validatedData.distanceReturn.toString()) : undefined,
-        distance: validatedData.distance ? parseFloat(validatedData.distance.toString()) : undefined,
-        duration: validatedData.duration,
-        hours: validatedData.hours,
-        airportType: validatedData.dropoffAddress?.toLowerCase().includes('lyon') ? 'lyon' : (validatedData.dropoffAddress?.toLowerCase().includes('genev') || validatedData.dropoffAddress?.toLowerCase().includes('geneva') ? 'geneva' : undefined),
-        pickupTime: pickupDateTime,
-      });
     } catch (priceError) {
       console.error('[BOOKING] Error recalculating price:', priceError);
-      // Fallback to client-provided price if server calculation fails
+      // Last resort (no coordinates and no measures): keep the client-provided price
       serverCalculatedPrice = {
         totalPrice: validatedData.totalPrice,
         totalPriceHT: validatedData.totalPriceHT || Math.round((validatedData.totalPrice / 1.10) * 100) / 100,
@@ -53,8 +51,11 @@ export async function POST(request: NextRequest) {
         rateType: validatedData.rateType || '',
         isForfait: validatedData.isForfait || false,
         breakdown: validatedData.breakdown || {},
+        source: 'browser-measures',
       };
     }
+    // Distances measured server-side replace the browser's values
+    const measured = serverCalculatedPrice.measures;
 
     // Use server-calculated price (more secure - prevents price manipulation)
     const totalPriceTTC = serverCalculatedPrice.totalPrice;
@@ -84,14 +85,14 @@ export async function POST(request: NextRequest) {
         tripType: validatedData.tripType || 'one-way',
 
         // Trip metrics
-        distance: validatedData.distance?.toString(),
-        duration: validatedData.duration,
+        distance: (measured?.distanceTP ?? validatedData.distance)?.toString(),
+        duration: measured?.duration ?? validatedData.duration,
         hours: validatedData.hours,
 
         // 3-segment distances (CA/TP system)
-        distanceCA: validatedData.distanceCA?.toString(),
-        distanceTP: validatedData.distanceTP?.toString(),
-        distanceReturn: validatedData.distanceReturn?.toString(),
+        distanceCA: (measured?.distanceCA ?? validatedData.distanceCA)?.toString(),
+        distanceTP: (measured?.distanceTP ?? validatedData.distanceTP)?.toString(),
+        distanceReturn: (measured?.distanceReturn ?? validatedData.distanceReturn)?.toString(),
 
         // Pricing - 2025/2026 Tariff Grid (from server calculation)
         isNightRate: serverCalculatedPrice.isNightRate,
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
         await resend.emails.send({
           from: `MobiService VTC <${fromEmail}>`,
           to: [DRIVER.email],
-          subject: `📄 Nouvelle demande de devis #${booking.id} - ${validatedData.guestName}`,
+          subject: `📄 Nouvelle demande de devis #${booking.id} - ${esc(validatedData.guestName)}`,
           html: `<!DOCTYPE html>
             <html>
             <head>
@@ -156,28 +157,28 @@ export async function POST(request: NextRequest) {
                 
                 <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 24px 0;">
                   <p style="margin: 0 0 12px 0; font-weight: bold; font-size: 14px;">👤 Client</p>
-                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Nom :</strong> ${validatedData.guestName}</p>
-                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Email :</strong> ${validatedData.guestEmail}</p>
-                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Téléphone :</strong> ${validatedData.guestPhone}</p>
+                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Nom :</strong> ${esc(validatedData.guestName)}</p>
+                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Email :</strong> ${esc(validatedData.guestEmail)}</p>
+                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Téléphone :</strong> ${esc(validatedData.guestPhone)}</p>
                 </div>
 
                 <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 24px 0;">
                   <p style="margin: 0 0 12px 0; font-weight: bold; font-size: 14px;">📍 Trajet</p>
                   <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Date :</strong> ${validatedData.pickupDate ? new Date(validatedData.pickupDate).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}</p>
                   <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Heure :</strong> ${validatedData.pickupTime}</p>
-                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Départ :</strong> ${validatedData.pickupAddress}</p>
-                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Arrivée :</strong> ${validatedData.dropoffAddress}</p>
+                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Départ :</strong> ${esc(validatedData.pickupAddress)}</p>
+                  <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Arrivée :</strong> ${esc(validatedData.dropoffAddress)}</p>
                   <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Type :</strong> ${validatedData.tripType === 'round-trip' ? 'Aller-Retour (A/R)' : 'Aller Simple (A/S)'}</p>
                   <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Passagers :</strong> ${validatedData.passengers}</p>
                   <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Bagages :</strong> ${validatedData.luggage}</p>
-                  ${validatedData.distance ? `<p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Distance :</strong> ${validatedData.distance} km</p>` : ''}
+                  ${(measured?.distanceTP ?? validatedData.distance) ? `<p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Distance :</strong> ${measured?.distanceTP ?? validatedData.distance} km</p>` : ''}
                   ${validatedData.duration ? `<p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Durée estimée :</strong> ~${validatedData.duration} min</p>` : ''}
                 </div>
 
                 <div style="background: #e8f8e7; padding: 20px; border-radius: 8px; margin: 24px 0; text-align: center;">
                   <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 16px;">💰 Estimation</p>
-                  <p style="margin: 0; font-size: 24px; font-weight: bold; color: #0A0A0A;">${validatedData.totalPrice}€ TTC</p>
-                  ${validatedData.rateType ? `<p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">${validatedData.rateType}</p>` : ''}
+                  <p style="margin: 0; font-size: 24px; font-weight: bold; color: #0A0A0A;">${totalPriceTTC}€ TTC</p>
+                  ${serverCalculatedPrice.rateType ? `<p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">${esc(serverCalculatedPrice.rateType)}</p>` : ''}
                 </div>
 
                 <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #ffc107;">
@@ -192,7 +193,7 @@ export async function POST(request: NextRequest) {
                 ${validatedData.notes ? `
                 <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; margin: 24px 0;">
                   <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 14px;">📝 Notes</p>
-                  <p style="margin: 0; font-size: 14px; color: #333;">${validatedData.notes}</p>
+                  <p style="margin: 0; font-size: 14px; color: #333; white-space: pre-line;">${esc(validatedData.notes)}</p>
                 </div>
                 ` : ''}
 

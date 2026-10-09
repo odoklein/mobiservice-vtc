@@ -25,8 +25,9 @@ export const bookingStepOneSchema = z.object({
   luggage: z.number().min(0).max(5, 'Maximum 5 bagages'),
   serviceType: z.enum(['transfer', 'hourly']), // Only Point à Point and Mise à Disposition
   tripType: z.enum(['one-way', 'round-trip']).default('one-way'),
-  hours: z.number().min(1).max(8).optional(), // For hourly/forfait bookings (1-8h, paliers 30 min)
-  waitingMinutes: z.number().min(0).max(480).optional(), // For round-trip MAD (waiting duration)
+  hours: z.number().min(0.5).max(8).optional(), // For hourly/forfait bookings (0.5-8h, paliers 30 min)
+  waitingMinutes: z.number().min(0).max(480).optional(), // Waiting time requested (MAD), A/S and A/R
+  tollCost: z.number().min(0).max(500).optional(), // Toll for one direction (fallback if server routing is unavailable)
 });
 
 export const bookingStepTwoSchema = z.object({
