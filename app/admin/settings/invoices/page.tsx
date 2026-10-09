@@ -59,6 +59,10 @@ interface InvoiceSettings {
   quoteValidityDays: number;
   showDetailedBreakdown: boolean;
   showDistanceSegments: boolean;
+  tvaApplicable: boolean;
+  tvaRate: number;
+  tvaDisplayClient: boolean;
+  tvaLegalMention: string;
 }
 
 interface Document {
@@ -141,6 +145,10 @@ export default function InvoiceSettingsPage() {
     quoteValidityDays: 30,
     showDetailedBreakdown: true,
     showDistanceSegments: true,
+    tvaApplicable: true,
+    tvaRate: 10,
+    tvaDisplayClient: true,
+    tvaLegalMention: 'TVA non applicable, art. 293 B du CGI',
   });
 
   // Documents state
@@ -170,7 +178,7 @@ export default function InvoiceSettingsPage() {
       if (response.ok) {
         const data = await response.json();
         if (data.companySettings) setCompanySettings(data.companySettings);
-        if (data.invoiceSettings) setInvoiceSettings(data.invoiceSettings);
+        if (data.invoiceSettings) setInvoiceSettings((prev) => ({ ...prev, ...data.invoiceSettings }));
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -812,6 +820,68 @@ export default function InvoiceSettingsPage() {
                   </span>
                 </label>
               </div>
+            </CardContent>
+          </Card>
+
+
+          {/* TVA */}
+          <Card className="border-2 border-slate-200 shadow-lg">
+            <CardContent className="p-6 space-y-4">
+              <h2 className="text-2xl font-bold text-slate-800">TVA</h2>
+              <label className="flex items-center gap-4 cursor-pointer p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={invoiceSettings.tvaApplicable}
+                  onChange={(e) => setInvoiceSettings({ ...invoiceSettings, tvaApplicable: e.target.checked })}
+                  className="w-6 h-6 rounded border-2 border-slate-300 text-slate-800 focus:ring-slate-500"
+                />
+                <span className="text-lg text-slate-700 font-medium">
+                  Je suis assujetti à la TVA (décocher = franchise en base, sans TVA)
+                </span>
+              </label>
+
+              {invoiceSettings.tvaApplicable ? (
+                <>
+                  <div>
+                    <Label htmlFor="tvaRate" className="text-base font-semibold text-slate-700 mb-2 block">
+                      Taux de TVA affiché (%)
+                    </Label>
+                    <Input
+                      id="tvaRate"
+                      type="number"
+                      min={0}
+                      max={30}
+                      step="0.1"
+                      value={invoiceSettings.tvaRate}
+                      onChange={(e) => setInvoiceSettings({ ...invoiceSettings, tvaRate: parseFloat(e.target.value) || 0 })}
+                      className="h-14 text-lg border-2 border-slate-200 rounded-xl"
+                    />
+                  </div>
+                  <label className="flex items-center gap-4 cursor-pointer p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={invoiceSettings.tvaDisplayClient}
+                      onChange={(e) => setInvoiceSettings({ ...invoiceSettings, tvaDisplayClient: e.target.checked })}
+                      className="w-6 h-6 rounded border-2 border-slate-300 text-slate-800 focus:ring-slate-500"
+                    />
+                    <span className="text-lg text-slate-700 font-medium">
+                      Afficher le détail de la TVA au client sur le site
+                    </span>
+                  </label>
+                </>
+              ) : (
+                <div>
+                  <Label htmlFor="tvaLegalMention" className="text-base font-semibold text-slate-700 mb-2 block">
+                    Mention légale (affichée sur le site et les documents)
+                  </Label>
+                  <Input
+                    id="tvaLegalMention"
+                    value={invoiceSettings.tvaLegalMention}
+                    onChange={(e) => setInvoiceSettings({ ...invoiceSettings, tvaLegalMention: e.target.value })}
+                    className="h-14 text-lg border-2 border-slate-200 rounded-xl"
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 

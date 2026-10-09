@@ -120,6 +120,30 @@ const formatHours = (h: number) => {
 };
 
 /** Grille du mois, semaines commençant le lundi. */
+interface TvaSettings {
+  tvaApplicable: boolean;
+  tvaRate: number;
+  tvaDisplayClient: boolean;
+  tvaLegalMention: string;
+}
+
+/** Réglages TVA gérés par l'admin (Paramètres > Factures). */
+function useTvaSettings(): TvaSettings {
+  const [tva, setTva] = useState<TvaSettings>({
+    tvaApplicable: true,
+    tvaRate: 10,
+    tvaDisplayClient: true,
+    tvaLegalMention: '',
+  });
+  useEffect(() => {
+    fetch('/api/settings/tva')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setTva(d))
+      .catch(() => {});
+  }, []);
+  return tva;
+}
+
 function buildMonthGrid(year: number, month: number): Date[][] {
   const first = new Date(year, month, 1);
   const offset = (first.getDay() + 6) % 7; // lundi = 0
@@ -522,6 +546,7 @@ function PricingDebugSidebar({
   totalPrice: number | null;
   priceLabel: string;
 }) {
+  const tvaSettings = useTvaSettings();
   const [expanded, setExpanded] = useState(true);
   const [showJson, setShowJson] = useState(false);
 
@@ -700,10 +725,12 @@ function PricingDebugSidebar({
                 <span>Total HT :</span>
                 <span className="font-semibold">{quote.pricing.totalHT.toFixed(2)} €</span>
               </div>
-              <div className="flex justify-between text-gray-400 text-[10px]">
-                <span>TVA (10%) :</span>
-                <span>{quote.pricing.tva.toFixed(2)} €</span>
-              </div>
+              {tvaSettings.tvaApplicable && (
+                <div className="flex justify-between text-gray-400 text-[10px]">
+                  <span>TVA ({tvaSettings.tvaRate}%) :</span>
+                  <span>{quote.pricing.tva.toFixed(2)} €</span>
+                </div>
+              )}
               <div className="border-t border-white/10 pt-1 flex justify-between font-bold text-sm text-emerald-400">
                 <span>Total TTC :</span>
                 <span>{priceLabel}</span>
@@ -751,6 +778,7 @@ function PricingDebugSidebar({
 /* ----------------------------- reservation flow --------------------------- */
 
 function ReservationFlow() {
+  const tvaSettings = useTvaSettings();
   const searchParams = useSearchParams();
   const initialType = searchParams.get('type') === 'hourly' ? 'hourly' : 'transfer';
   const paramHours = parseFloat(searchParams.get('hours') || '2');
@@ -1479,7 +1507,7 @@ function ReservationFlow() {
                           </div>
                           <div className="text-right">
                             <span className="text-3xl font-bold text-[#4BC449]">{priceLabel}</span>
-                            <p className="text-[10px] text-gray-400 mt-0.5">Prix forfaitaire TTC</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">{tvaSettings.tvaApplicable ? 'Prix forfaitaire TTC' : 'Prix forfaitaire'}{!tvaSettings.tvaApplicable && tvaSettings.tvaLegalMention ? ` — ${tvaSettings.tvaLegalMention}` : ''}</p>
                           </div>
                         </div>
 
@@ -1524,10 +1552,12 @@ function ReservationFlow() {
                               )}
                             </>
                           )}
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Dont TVA (10%)</span>
-                            <span className="text-gray-900 font-medium">{quote.pricing.tva.toFixed(2)}€</span>
-                          </div>
+                          {tvaSettings.tvaApplicable && tvaSettings.tvaDisplayClient && (
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-gray-500">Dont TVA ({tvaSettings.tvaRate}%)</span>
+                              <span className="text-gray-900 font-medium">{quote.pricing.tva.toFixed(2)}€</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2">

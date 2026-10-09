@@ -35,6 +35,11 @@ export interface InvoiceSettings {
   showQRCode?: boolean;
   qrCodeData?: string;
   termsAndConditions?: string;
+  // TVA Settings managed by Patrice/admin
+  tvaApplicable: boolean; // true = assujetti TVA, false = franchise en base
+  tvaRate: number; // Taux de TVA (par défaut 10)
+  tvaDisplayClient: boolean; // true = afficher la mention TVA au client, false = masquer
+  tvaLegalMention: string; // Ex: "TVA non applicable, art. 293 B du CGI"
 }
 
 /**
@@ -65,6 +70,10 @@ const DEFAULT_INVOICE_SETTINGS: InvoiceSettings = {
   showDetailedBreakdown: true,
   showDistanceSegments: true,
   showQRCode: false,
+  tvaApplicable: true,
+  tvaRate: 10,
+  tvaDisplayClient: true,
+  tvaLegalMention: 'TVA non applicable, art. 293 B du CGI',
 };
 
 /**

@@ -183,6 +183,9 @@ export const InvoicePDF: React.FC<PDFDocumentProps> = ({ type, booking, company,
   const tva = parseFloat(booking.tvaAmount?.toString() || '0');
   const totalTTC = parseFloat(booking.totalPriceTTC?.toString() || booking.totalPrice?.toString() || '0');
 
+  const tvaApplicable = invoice.tvaApplicable !== false;
+  const tvaRate = invoice.tvaRate ?? 10;
+
   const validityDate = new Date();
   if (isDevis) {
     validityDate.setDate(validityDate.getDate() + (invoice.quoteValidityDays || 30));
@@ -290,14 +293,18 @@ export const InvoicePDF: React.FC<PDFDocumentProps> = ({ type, booking, company,
 
         {/* Totals */}
         <View style={styles.totalsSection}>
-          <View style={styles.totalLine}>
-            <Text>Sous-total HT</Text>
-            <Text>{totalHT.toFixed(2)}€</Text>
-          </View>
-          <View style={styles.totalLine}>
-            <Text>TVA (10%)</Text>
-            <Text>{tva.toFixed(2)}€</Text>
-          </View>
+          {tvaApplicable && (
+            <>
+              <View style={styles.totalLine}>
+                <Text>Sous-total HT</Text>
+                <Text>{totalHT.toFixed(2)}€</Text>
+              </View>
+              <View style={styles.totalLine}>
+                <Text>TVA ({tvaRate}%)</Text>
+                <Text>{tva.toFixed(2)}€</Text>
+              </View>
+            </>
+          )}
           <View style={styles.totalFinal}>
             <Text>Total TTC</Text>
             <Text style={styles.totalAmount}>{totalTTC.toFixed(2)}€</Text>
@@ -335,7 +342,7 @@ export const InvoicePDF: React.FC<PDFDocumentProps> = ({ type, booking, company,
           </Text>
           <Text>Merci de votre confiance</Text>
           <Text style={{ marginTop: 10, fontSize: 8 }}>
-            TVA non applicable, art. 293 B du CGI{'\n'}
+            {tvaApplicable ? '' : `${invoice.tvaLegalMention || 'TVA non applicable, art. 293 B du CGI'}\n`}
             Document généré le {new Date().toLocaleDateString('fr-FR')}
           </Text>
         </View>
