@@ -35,6 +35,20 @@ const MONTH_NAMES = [
 ];
 const DAY_NAMES = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 
+const HOURLY_FORFAITS = [
+  { hours: 1, label: '1h', maxKm: 90 },
+  { hours: 1.5, label: '1h30', maxKm: 135 },
+  { hours: 2, label: '2h', maxKm: 180 },
+  { hours: 2.5, label: '2h30', maxKm: 225 },
+  { hours: 3, label: '3h', maxKm: 270 },
+  { hours: 3.5, label: '3h30', maxKm: 315 },
+  { hours: 4, label: '4h', maxKm: 360 },
+  { hours: 5, label: '5h', maxKm: 450 },
+  { hours: 6, label: '6h', maxKm: 540 },
+  { hours: 7, label: '7h', maxKm: 630 },
+  { hours: 8, label: '8h', maxKm: 720 },
+];
+
 interface Place {
   label: string;
   lat: number;
@@ -42,6 +56,7 @@ interface Place {
 }
 
 interface Estimation {
+  kind?: 'transfer' | 'hourly';
   distances: { ca_out: number; tp: number; ca_return: number; total: number; totalAR?: number };
   duration: number;
   pricing: {
@@ -51,7 +66,14 @@ interface Estimation {
     isNightRate: boolean;
     rateType: string;
     dayName: string;
-    tollInfo: { detected: boolean; cost: number; details: string; totalIncluded: number };
+    tollInfo?: { detected: boolean; cost: number; details: string; totalIncluded: number };
+    forfait?: {
+      name?: string;
+      adjusted?: boolean;
+      requestedHours?: number;
+      appliedHours?: number;
+      message?: string;
+    };
   };
 }
 
@@ -67,6 +89,12 @@ const sameDay = (a: Date | null, b: Date | null) =>
 const formatLongDate = (d: Date) =>
   `${DAY_NAMES[d.getDay()].charAt(0).toUpperCase()}${DAY_NAMES[d.getDay()].slice(1)} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 const formatShortDate = (d: Date) => `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0, 4)}.`;
+
+const formatHours = (h: number) => {
+  const whole = Math.floor(h);
+  const minutes = Math.round((h - whole) * 60);
+  return minutes > 0 ? `${whole}h${minutes}` : `${whole}h`;
+};
 
 /** Grille du mois, semaines commençant le lundi. */
 function buildMonthGrid(year: number, month: number): Date[][] {
@@ -102,6 +130,7 @@ function AddressField({
   placeholder,
   pinClass,
   value,
+  optional = false,
   onTextChange,
   onSelect,
 }: {
@@ -109,6 +138,7 @@ function AddressField({
   placeholder: string;
   pinClass: string;
   value: string;
+  optional?: boolean;
   onTextChange: (text: string) => void;
   onSelect: (place: Place) => void;
 }) {
@@ -188,7 +218,10 @@ function AddressField({
 
   return (
     <div ref={wrapRef} className="relative">
-      <label className="text-sm font-medium text-gray-700 mb-1.5 block">{label}</label>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-sm font-medium text-gray-700 block">{label}</label>
+        {optional && <span className="text-xs text-gray-400 font-normal">Optionnel</span>}
+      </div>
       <div className="relative">
         <IconMapPin size={18} className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${pinClass}`} />
         <input
@@ -395,6 +428,7 @@ function TimeGrid({
 function ReservationFlow() {
   const searchParams = useSearchParams();
   const initialType = searchParams.get('type') === 'hourly' ? 'hourly' : 'transfer';
+  const paramHours = parseFloat(searchParams.get('hours') || '2');
 
   const [step, setStep] = useState<Step>(1);
 
@@ -404,6 +438,7 @@ function ReservationFlow() {
   const [dropoffPlace, setDropoffPlace] = useState<Place | null>(null);
   const [serviceType, setServiceType] = useState<'transfer' | 'hourly'>(initialType);
   const [direction, setDirection] = useState<'one-way' | 'round-trip'>('one-way');
+  const [hours, setHours] = useState<number>(!isNaN(paramHours) && paramHours >= 1 && paramHours <= 8 ? paramHours : 2);
 
   const [today] = useState(() => startOfDay(new Date()));
   const [viewMonth, setViewMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
@@ -510,12 +545,22 @@ function ReservationFlow() {
   }, [direction, selectedDate, returnDate]);
 
   useEffect(() => {
-    if (serviceType !== 'transfer' || !pickupPlace || !dropoffPlace || !selectedDate || !selectedTime) {
+    if (!pickupPlace || !selectedDate || !selectedTime) {
       setQuote(null);
       setQuoteError(null);
       setQuoteLoading(false);
       return;
     }
+
+    if (serviceType === 'transfer' && !dropoffPlace) {
+      setQuote(null);
+      setQuoteError(null);
+      setQuoteLoading(false);
+      return;
+    }
+
+    const destination = dropoffPlace ?? pickupPlace;
+    if (!destination) return;
 
     const controller = new AbortController();
     setQuoteLoading(true);
@@ -527,17 +572,19 @@ function ReservationFlow() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            serviceType,
             pickupAddress: pickupPlace.label,
             pickupLat: pickupPlace.lat,
             pickupLng: pickupPlace.lng,
-            dropoffAddress: dropoffPlace.label,
-            dropoffLat: dropoffPlace.lat,
-            dropoffLng: dropoffPlace.lng,
+            dropoffAddress: destination.label,
+            dropoffLat: destination.lat,
+            dropoffLng: destination.lng,
             pickupDate: toISODate(selectedDate),
             pickupTime: selectedTime,
-            returnDate: returnDate ? toISODate(returnDate) : undefined,
-            returnTime: returnTime || undefined,
-            tripType: direction,
+            returnDate: serviceType === 'transfer' && direction === 'round-trip' && returnDate ? toISODate(returnDate) : undefined,
+            returnTime: serviceType === 'transfer' && direction === 'round-trip' && returnTime ? returnTime : undefined,
+            tripType: serviceType === 'hourly' ? 'one-way' : direction,
+            hours: serviceType === 'hourly' ? hours : undefined,
             tollCost: 0,
             waitingMinutes: 0,
           }),
@@ -562,38 +609,40 @@ function ReservationFlow() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [serviceType, pickupPlace, dropoffPlace, selectedDate, selectedTime, returnDate, returnTime, direction]);
+  }, [serviceType, pickupPlace, dropoffPlace, selectedDate, selectedTime, returnDate, returnTime, direction, hours]);
 
   // Immobilisation MAD pour un A/R avec retour 1 à 3 jours après l'aller
   const immobilisation = useMemo(() => {
     const totalAR = quote?.distances.totalAR;
-    if (!returnDaysAfter || typeof totalAR !== 'number') return null;
+    if (serviceType !== 'transfer' || !returnDaysAfter || typeof totalAR !== 'number') return null;
     return getImmobilisationMAD(totalAR, returnDaysAfter);
-  }, [quote, returnDaysAfter]);
+  }, [serviceType, quote, returnDaysAfter]);
 
   // A/R 1–3 jours interdit sous 25 km (forfait agglomération conseillé)
   const arTooShort = useMemo(() => {
     const totalAR = quote?.distances.totalAR;
-    return !!returnDaysAfter && typeof totalAR === 'number' && !isAR13DaysAllowed(totalAR);
-  }, [quote, returnDaysAfter]);
+    return serviceType === 'transfer' && !!returnDaysAfter && typeof totalAR === 'number' && !isAR13DaysAllowed(totalAR);
+  }, [serviceType, quote, returnDaysAfter]);
 
   const totalPrice = quote ? quote.pricing.totalTTC + (immobilisation?.priceTTC ?? 0) : null;
 
   const priceLabel =
-    serviceType === 'hourly'
-      ? 'Sur devis'
-      : totalPrice !== null
-        ? `${totalPrice.toFixed(2).replace(/\.00$/, '')}€`
-        : '—';
+    totalPrice !== null
+      ? `${totalPrice.toFixed(2).replace(/\.00$/, '')}€`
+      : '—';
 
   /* -------------------------------- navigation ------------------------------- */
 
   const canContinue = (s: Step) => {
-    if (s === 1) return !!pickupPlace && (serviceType === 'hourly' || !!dropoffPlace);
+    if (s === 1) {
+      if (!pickupPlace) return false;
+      if (serviceType === 'transfer') return !!dropoffPlace;
+      if (serviceType === 'hourly') return hours >= 0.5 && hours <= 8;
+      return true;
+    }
     if (s === 2) {
       if (!selectedDate || !selectedTime) return false;
-      if (serviceType === 'hourly') return true;
-      if (direction === 'round-trip') {
+      if (serviceType === 'transfer' && direction === 'round-trip') {
         if (!returnDate || !returnTime) return false;
         if (arTooShort) return false;
       }
@@ -633,7 +682,7 @@ function ReservationFlow() {
     setSubmitError(null);
 
     try {
-      const destination = serviceType === 'hourly' && !dropoffPlace ? pickupPlace! : dropoffPlace!;
+      const destination = dropoffPlace ?? pickupPlace!;
 
       const payload = {
         pickupAddress: pickupPlace!.label,
@@ -644,7 +693,7 @@ function ReservationFlow() {
         dropoffLng: destination.lng,
         pickupDate: `${toISODate(selectedDate!)}T12:00:00.000Z`,
         pickupTime: selectedTime,
-        ...(direction === 'round-trip' && returnDate ? {
+        ...(serviceType === 'transfer' && direction === 'round-trip' && returnDate ? {
           returnDate: `${toISODate(returnDate)}T12:00:00.000Z`,
           returnTime: returnTime,
         } : {}),
@@ -655,6 +704,11 @@ function ReservationFlow() {
         luggage: suitcases,
         serviceType,
         tripType: serviceType === 'hourly' ? 'one-way' : direction,
+        ...(serviceType === 'hourly' ? {
+          hours,
+          isForfait: true,
+          forfaitName: quote?.pricing.forfait?.name || `Forfait ${formatHours(hours)}`,
+        } : {}),
         tollCost: quote?.pricing.tollInfo?.cost ?? 0,
         waitingMinutes: 0,
         distanceCA: quote?.distances.ca_out ?? 0,
@@ -671,6 +725,7 @@ function ReservationFlow() {
         totalPrice: totalPrice ?? 0,
         notes: [
           note.trim() ? `Note client : ${note.trim()}` : null,
+          serviceType === 'hourly' ? `Mise à disposition ${formatHours(hours)} (${hours * 90} km inclus)` : null,
           babySeat ? 'Siège bébé demandé' : null,
           wheelchair ? 'Accessibilité PMR' : null,
           largeLuggage ? 'Bagage volumineux' : null,
@@ -835,19 +890,20 @@ function ReservationFlow() {
                   <div className="space-y-5">
                     <div className="mb-2">
                       <h2 className="text-2xl font-bold text-white mb-1">Où allez-vous ?</h2>
-                      <p className="text-white/50 text-sm">Indiquez votre point de départ et votre destination.</p>
+                      <p className="text-white/50 text-sm">Indiquez votre point de départ et le service souhaité.</p>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
                       <AddressField
-                        label="Départ"
+                        label="Point de départ"
                         placeholder="Adresse de départ"
                         pinClass="text-[#4BC449]"
                         value={pickupText}
                         onTextChange={(t) => { setPickupText(t); setPickupPlace(null); }}
                         onSelect={(p) => { setPickupText(p.label); setPickupPlace(p); }}
                       />
-                      {serviceType === 'transfer' && (
+
+                      {serviceType === 'transfer' ? (
                         <AddressField
                           label="Destination"
                           placeholder="Adresse d'arrivée"
@@ -856,7 +912,18 @@ function ReservationFlow() {
                           onTextChange={(t) => { setDropoffText(t); setDropoffPlace(null); }}
                           onSelect={(p) => { setDropoffText(p.label); setDropoffPlace(p); }}
                         />
+                      ) : (
+                        <AddressField
+                          label="Arrêt final ou destination"
+                          placeholder="Optionnel — par défaut retour au point de départ"
+                          pinClass="text-blue-500"
+                          value={dropoffText}
+                          optional
+                          onTextChange={(t) => { setDropoffText(t); setDropoffPlace(null); }}
+                          onSelect={(p) => { setDropoffText(p.label); setDropoffPlace(p); }}
+                        />
                       )}
+
                       <p className="text-xs text-gray-400">
                         Sélectionnez une adresse dans la liste pour lancer le calcul du tarif.
                       </p>
@@ -867,7 +934,7 @@ function ReservationFlow() {
                       <div className="grid grid-cols-2 gap-3">
                         {[
                           { id: 'transfer' as const, label: 'Transfert', desc: 'Point A → Point B' },
-                          { id: 'hourly' as const, label: 'Mise à disposition', desc: 'Chauffeur à l\'heure' },
+                          { id: 'hourly' as const, label: 'Mise à disposition', desc: 'Chauffeur à l\'heure (forfaits)' },
                         ].map((t) => (
                           <button key={t.id} type="button" onClick={() => setServiceType(t.id)}
                             className={`p-4 rounded-xl border-2 text-left transition-all ${
@@ -897,9 +964,36 @@ function ReservationFlow() {
                           </div>
                         </>
                       ) : (
-                        <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl p-3">
-                          La mise à disposition est facturée à l&apos;heure : le montant est établi sur devis après validation de votre demande.
-                        </p>
+                        <div className="pt-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-sm font-medium text-gray-700 block">
+                              Durée de mise à disposition (temps)
+                            </label>
+                            <span className="text-xs font-semibold text-[#4BC449] bg-[#4BC449]/10 px-2.5 py-1 rounded-full">
+                              {formatHours(hours)} ({hours * 90} km inclus)
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                            {HOURLY_FORFAITS.map((f) => (
+                              <button
+                                key={f.hours}
+                                type="button"
+                                onClick={() => setHours(f.hours)}
+                                className={`py-2.5 px-2 rounded-xl border-2 text-center transition-all ${
+                                  hours === f.hours
+                                    ? 'border-[#4BC449] bg-[#4BC449]/10 text-[#0d2847] font-bold shadow-sm'
+                                    : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                                }`}
+                              >
+                                <span className="block text-sm font-semibold">{f.label}</span>
+                                <span className="block text-[10px] text-gray-500 mt-0.5">{f.maxKm} km</span>
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl p-3 mt-3">
+                            Chauffeur privé à disposition pour une durée de {formatHours(hours)}. Inclut jusqu&apos;à {hours * 90} km de trajet.
+                          </p>
+                        </div>
                       )}
                     </div>
 
@@ -912,11 +1006,17 @@ function ReservationFlow() {
                   <div className="space-y-5">
                     <div className="mb-2">
                       <h2 className="text-2xl font-bold text-white mb-1">Quand partez-vous ?</h2>
-                      <p className="text-white/50 text-sm">Choisissez votre date et horaire de départ.</p>
+                      <p className="text-white/50 text-sm">
+                        {serviceType === 'hourly'
+                          ? `Choisissez la date et l'heure de début de votre mise à disposition (${formatHours(hours)}).`
+                          : 'Choisissez votre date et horaire de départ.'}
+                      </p>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-xl p-6">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4">Date de départ</h3>
+                      <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                        {serviceType === 'hourly' ? 'Date de mise à disposition' : 'Date de départ'}
+                      </h3>
                       <Calendar
                         viewMonth={viewMonth}
                         onMonthChange={setViewMonth}
@@ -943,7 +1043,9 @@ function ReservationFlow() {
 
                     {showTimePicker && selectedDate && (
                       <div className="bg-white rounded-2xl shadow-xl p-6">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-4">Heure de départ</h3>
+                        <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                          {serviceType === 'hourly' ? 'Heure de prise en charge' : 'Heure de départ'}
+                        </h3>
                         <TimeGrid
                           value={selectedTime}
                           onChange={setSelectedTime}
@@ -1026,14 +1128,7 @@ function ReservationFlow() {
                     )}
 
                     {/* Estimation */}
-                    {serviceType === 'hourly' ? (
-                      <div className="bg-white rounded-2xl shadow-xl p-6">
-                        <h3 className="text-sm font-semibold text-gray-900">Estimation du prix</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Mise à disposition — tarif horaire</p>
-                        <p className="text-2xl font-bold text-[#4BC449] mt-3">Sur devis</p>
-                        <p className="text-xs text-gray-400 mt-1">Nous revenons vers vous avec un montant ferme sous 24 h.</p>
-                      </div>
-                    ) : quoteLoading ? (
+                    {quoteLoading ? (
                       <div className="bg-white rounded-2xl shadow-xl p-6 flex items-center gap-3">
                         <IconLoader2 size={18} className="text-[#4BC449] animate-spin" />
                         <span className="text-sm text-gray-500">Calcul du tarif en cours…</span>
@@ -1052,37 +1147,60 @@ function ReservationFlow() {
                           <div>
                             <h3 className="text-sm font-semibold text-gray-900">Estimation du prix</h3>
                             <p className="text-xs text-gray-400 mt-0.5">
-                              {direction === 'round-trip' ? 'Aller-retour' : 'Aller simple'} • {quote.pricing.rateType}
+                              {serviceType === 'hourly'
+                                ? `Mise à disposition ${formatHours(hours)} • ${quote.pricing.rateType}`
+                                : `${direction === 'round-trip' ? 'Aller-retour' : 'Aller simple'} • ${quote.pricing.rateType}`}
                             </p>
                           </div>
                           <div className="text-right">
                             <span className="text-3xl font-bold text-[#4BC449]">{priceLabel}</span>
-                            <p className="text-[10px] text-gray-400 mt-0.5">Prix estimé TTC</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Prix forfaitaire TTC</p>
                           </div>
                         </div>
 
                         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500 flex items-center gap-1.5">
-                              <IconRoute size={13} className="text-gray-400" />
-                              Distance passager
-                            </span>
-                            <span className="text-gray-900 font-medium">{quote.distances.tp.toFixed(1)} km • {Math.round(quote.duration)} min</span>
-                          </div>
-                          {quote.pricing.tollInfo?.detected && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-gray-500">Péages inclus</span>
-                              <span className="text-gray-900 font-medium">{quote.pricing.tollInfo.totalIncluded.toFixed(2)}€</span>
-                            </div>
+                          {serviceType === 'hourly' ? (
+                            <>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-gray-500 flex items-center gap-1.5">
+                                  <IconClock size={13} className="text-gray-400" />
+                                  Durée du forfait
+                                </span>
+                                <span className="text-gray-900 font-medium">{formatHours(hours)}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-gray-500 flex items-center gap-1.5">
+                                  <IconRoute size={13} className="text-gray-400" />
+                                  Distance incluse
+                                </span>
+                                <span className="text-gray-900 font-medium">Jusqu&apos;à {hours * 90} km</span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-gray-500 flex items-center gap-1.5">
+                                  <IconRoute size={13} className="text-gray-400" />
+                                  Distance passager
+                                </span>
+                                <span className="text-gray-900 font-medium">{quote.distances.tp.toFixed(1)} km • {Math.round(quote.duration)} min</span>
+                              </div>
+                              {quote.pricing.tollInfo?.detected && (
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-gray-500">Péages inclus</span>
+                                  <span className="text-gray-900 font-medium">{quote.pricing.tollInfo.totalIncluded.toFixed(2)}€</span>
+                                </div>
+                              )}
+                              {immobilisation && immobilisation.priceTTC > 0 && (
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-gray-500">Immobilisation</span>
+                                  <span className="text-gray-900 font-medium">{immobilisation.label}</span>
+                                </div>
+                              )}
+                            </>
                           )}
-                          {immobilisation && immobilisation.priceTTC > 0 && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-gray-500">Immobilisation</span>
-                              <span className="text-gray-900 font-medium">{immobilisation.label}</span>
-                            </div>
-                          )}
                           <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Dont TVA</span>
+                            <span className="text-gray-500">Dont TVA (10%)</span>
                             <span className="text-gray-900 font-medium">{quote.pricing.tva.toFixed(2)}€</span>
                           </div>
                         </div>
@@ -1091,7 +1209,9 @@ function ReservationFlow() {
                           {[
                             { icon: IconShieldCheck, text: 'Prix fixe garanti' },
                             { icon: IconClock, text: '60 min d\'annulation gratuite' },
-                            { icon: IconClock, text: '10 min d\'attente gratuits' },
+                            ...(serviceType === 'hourly'
+                              ? [{ icon: IconRoute, text: `${hours * 90} km inclus` }]
+                              : [{ icon: IconClock, text: '10 min d\'attente gratuits' }]),
                             { icon: IconCalendar, text: 'Aucun paiement immédiat' },
                           ].map((chip) => (
                             <div key={chip.text} className="flex items-center gap-1.5 bg-[#4BC449]/5 border border-[#4BC449]/15 rounded-full px-3 py-1.5">
@@ -1234,7 +1354,7 @@ function ReservationFlow() {
                           type="button"
                           onClick={verifyOtp}
                           disabled={submitting || otpCode.join('').length !== 6}
-                          className="w-full py-3.5 bg-[#4BC449] hover:bg-[#3fb340] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-lg shadow-[#4BC449]/25 flex items-center justify-center gap-2"
+                          className="w-full py-3.5 bg-[#4BC449] hover:bg-[#3fb340] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-lg shadow-[#4BC449]/25 flex items-center justify-center gap-2 cursor-pointer"
                         >
                           {submitting ? (
                             <>
@@ -1253,7 +1373,7 @@ function ReservationFlow() {
                           <button
                             type="button"
                             onClick={() => setShowOtp(false)}
-                            className="text-gray-600 hover:text-gray-900 underline"
+                            className="text-gray-600 hover:text-gray-900 underline cursor-pointer"
                           >
                             Modifier mes informations
                           </button>
@@ -1261,7 +1381,7 @@ function ReservationFlow() {
                             type="button"
                             onClick={resendOtp}
                             disabled={resendIn > 0}
-                            className="text-[#4BC449] font-medium hover:underline disabled:text-gray-400 disabled:no-underline"
+                            className="text-[#4BC449] font-medium hover:underline disabled:text-gray-400 disabled:no-underline cursor-pointer"
                           >
                             {resendIn > 0 ? `Renvoyer (${resendIn}s)` : 'Renvoyer le code'}
                           </button>
@@ -1279,14 +1399,27 @@ function ReservationFlow() {
                         <h3 className="text-sm font-semibold text-gray-900 mb-4">Récapitulatif</h3>
                         <div className="divide-y divide-gray-100">
                           {[
+                            {
+                              label: 'Service',
+                              value: serviceType === 'hourly'
+                                ? `Mise à disposition (${formatHours(hours)})`
+                                : direction === 'round-trip'
+                                  ? 'Transfert aller-retour'
+                                  : 'Transfert aller simple',
+                            },
                             { label: 'Départ', value: pickupText.split(',')[0] },
-                            ...(serviceType === 'transfer' ? [{ label: 'Destination', value: dropoffText.split(',')[0] }] : []),
+                            ...(serviceType === 'transfer' || dropoffText
+                              ? [{ label: 'Destination', value: dropoffText.split(',')[0] || pickupText.split(',')[0] }]
+                              : [{ label: 'Destination', value: 'Retour au point de départ' }]),
+                            ...(serviceType === 'hourly'
+                              ? [{ label: 'Durée & Distance', value: `${formatHours(hours)} • jusqu’à ${hours * 90} km inclus` }]
+                              : []),
                             { label: 'Date', value: selectedDate ? formatLongDate(selectedDate) : '—' },
                             { label: 'Heure', value: selectedTime || '—' },
                             ...(serviceType === 'transfer' && direction === 'round-trip' && returnDate
                               ? [{ label: 'Retour', value: `${formatShortDate(returnDate)}${returnTime ? ` à ${returnTime}` : ''}` }]
                               : []),
-                            ...(quote
+                            ...(serviceType === 'transfer' && quote
                               ? [{ label: 'Distance', value: `${quote.distances.tp.toFixed(1)} km • ${Math.round(quote.duration)} min` }]
                               : []),
                             { label: 'Passagers', value: passengersText() || '1 adulte' },
@@ -1329,7 +1462,7 @@ function ReservationFlow() {
                         </div>
                         <div>
                           <label className="text-xs font-medium text-gray-600 mb-1 block">Note au chauffeur (optionnel)</label>
-                          <textarea placeholder="Numéro de vol, accès particulier..." value={note} onChange={(e) => setNote(e.target.value)} rows={2}
+                          <textarea placeholder="Numéro de vol, accès particulier, itinéraire souhaité..." value={note} onChange={(e) => setNote(e.target.value)} rows={2}
                             className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449] resize-none" />
                         </div>
                       </div>
@@ -1385,13 +1518,30 @@ function ReservationFlow() {
                         <IconMapPin size={14} className="text-[#4BC449] mt-0.5 shrink-0" />
                         <span className="text-sm leading-snug text-gray-900">{pickupText.split(',')[0] || <span className="text-gray-300">Départ</span>}</span>
                       </div>
-                      {serviceType === 'transfer' && (
+
+                      {serviceType === 'transfer' ? (
                         <div className="flex items-start gap-2.5">
                           <IconMapPin size={14} className="text-red-400 mt-0.5 shrink-0" />
                           <span className="text-sm leading-snug text-gray-900">{dropoffText.split(',')[0] || <span className="text-gray-300">Destination</span>}</span>
                         </div>
-                      )}
+                      ) : dropoffText ? (
+                        <div className="flex items-start gap-2.5">
+                          <IconMapPin size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                          <span className="text-sm leading-snug text-gray-900">{dropoffText.split(',')[0]}</span>
+                        </div>
+                      ) : null}
+
                       <div className="border-t border-gray-100 my-1" />
+
+                      {serviceType === 'hourly' && (
+                        <div className="flex items-center gap-2.5">
+                          <IconClock size={14} className="text-[#4BC449] shrink-0" />
+                          <span className="text-sm font-semibold text-gray-800">
+                            {formatHours(hours)} ({hours * 90} km inclus)
+                          </span>
+                        </div>
+                      )}
+
                       {selectedDate && (
                         <div className="flex items-center gap-2.5">
                           <IconCalendar size={14} className="text-gray-400 shrink-0" />
@@ -1404,7 +1554,7 @@ function ReservationFlow() {
                           <span className="text-sm text-gray-700">{selectedTime}</span>
                         </div>
                       )}
-                      {quote && (
+                      {serviceType === 'transfer' && quote && (
                         <div className="flex items-center gap-2.5">
                           <IconRoute size={14} className="text-gray-400 shrink-0" />
                           <span className="text-sm text-gray-700">{quote.distances.tp.toFixed(1)} km • {Math.round(quote.duration)} min</span>
@@ -1422,7 +1572,7 @@ function ReservationFlow() {
                           </div>
                         </>
                       )}
-                      {(quote || quoteLoading || serviceType === 'hourly') && (
+                      {(quote || quoteLoading) && (
                         <>
                           <div className="border-t border-gray-100 my-1" />
                           <div className="flex items-center justify-between pt-1">
@@ -1475,7 +1625,7 @@ function Nav({
         <button
           type="button"
           onClick={back}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 border border-white/10 text-sm font-medium text-white hover:bg-white/15 transition-colors"
+          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 border border-white/10 text-sm font-medium text-white hover:bg-white/15 transition-colors cursor-pointer"
         >
           <IconArrowLeft size={16} />
           Retour
