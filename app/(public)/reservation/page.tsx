@@ -65,6 +65,8 @@ interface Estimation {
   kind?: 'transfer' | 'hourly';
   distances: { ca_out: number; tp: number; ca_return: number; total: number; totalAR?: number };
   duration: number;
+  totalDuration?: number;
+  durations?: { ca_out: number; tp: number; ca_return: number; total: number };
   pricing: {
     totalTTC: number;
     totalHT: number;
@@ -594,9 +596,13 @@ function PricingDebugSidebar({
                 <span>{quote.distances.totalAR.toFixed(1)} km</span>
               </div>
             )}
+            <div className="flex justify-between text-gray-300 text-[10px]">
+              <span className="text-gray-400">Durée passager (TP seul) :</span>
+              <span className="text-emerald-400 font-semibold">{quote?.duration ? `${Math.round(quote.duration)} min` : '—'}</span>
+            </div>
             <div className="flex justify-between text-gray-400 text-[10px]">
-              <span>Durée de route estimée :</span>
-              <span className="text-white">{quote?.duration ? `${Math.round(quote.duration)} min` : '—'}</span>
+              <span>Durée totale chauffeur (A/R dépôt) :</span>
+              <span className="text-white">{quote?.totalDuration ? `${Math.round(quote.totalDuration)} min` : quote?.duration ? `${Math.round(quote.duration)} min` : '—'}</span>
             </div>
           </div>
 

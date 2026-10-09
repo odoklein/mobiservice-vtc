@@ -97,7 +97,14 @@ export async function computeTransferQuote(input: TransferQuoteInput) {
       distanceCA_out,
       distanceTP,
       distanceCA_return,
-      duration: segments.totalDuration,
+      duration: segments.durationTP, // Passenger duration (TP)
+      totalDuration: segments.totalDuration, // Driver round-trip duration
+      durations: {
+        ca_out: segments.durationCA,
+        tp: segments.durationTP,
+        ca_return: segments.durationReturn,
+        total: segments.totalDuration,
+      },
       tripType,
       pickupDateTime,
       returnDateTime,
@@ -107,7 +114,14 @@ export async function computeTransferQuote(input: TransferQuoteInput) {
       freeMinutes: config.mda.freeMinutes,
       pricing,
     }),
-    measures: { distanceCA_out, distanceTP, distanceCA_return, duration: segments.totalDuration, tollCostOneWay },
+    measures: {
+      distanceCA_out,
+      distanceTP,
+      distanceCA_return,
+      duration: segments.durationTP,
+      totalDuration: segments.totalDuration,
+      tollCostOneWay,
+    },
     pricing,
     config,
   };
@@ -144,6 +158,8 @@ function buildTransferEstimation(p: {
   distanceTP: number;
   distanceCA_return: number;
   duration: number;
+  totalDuration?: number;
+  durations?: { ca_out: number; tp: number; ca_return: number; total: number };
   tripType: TripType;
   pickupDateTime: Date;
   returnDateTime: Date | null;
@@ -171,6 +187,8 @@ function buildTransferEstimation(p: {
       ...(isRT && { totalAR: p.distanceCA_out * 2 + p.distanceTP * 2 }),
     },
     duration: p.duration,
+    totalDuration: p.totalDuration,
+    durations: p.durations,
     pricing: {
       totalTTC: pricing.totalTTC,
       totalHT: pricing.totalHT,
