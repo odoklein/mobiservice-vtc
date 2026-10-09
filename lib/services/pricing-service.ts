@@ -40,7 +40,7 @@ const TVA_RATE = 0.10;
 // Cache configuration
 let pricingCache: PricingConfig | null = null;
 let cacheTimestamp: number = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 30 * 1000; // 30 s (le cache est propre à chaque instance serveur)
 
 export interface PricingConfig {
   forfaits: Array<{
@@ -214,8 +214,10 @@ export function buildConfigFromRules(rules: any[]): PricingConfig {
     }
 
     // Min price
-    if (rule.ruleType === 'min_price' && rule.minPrice) {
-      config.minPrice = parseFloat(rule.minPrice);
+    // (l'admin modifie le prix TTC : il prime sur l'ancienne colonne min_price)
+    if (rule.ruleType === 'min_price') {
+      const min = priceTTC > 0 ? priceTTC : parseFloat(rule.minPrice || '0');
+      if (min > 0) config.minPrice = min;
     }
   }
 

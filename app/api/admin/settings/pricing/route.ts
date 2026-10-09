@@ -2,32 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { pricingRules } from '@/lib/db/schema';
 import { getAdminFromRequest } from '@/lib/auth/admin';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { invalidatePricingCache } from '@/lib/services/pricing-service';
+import {
+  pricingRuleSchema,
+  toPricingRuleColumns,
+  formatPricingRuleError,
+} from '@/lib/validations/pricing-rule';
 import { z } from 'zod';
-
-const TVA_RATE = 0.10;
-
-// Validation schema for pricing rule
-const pricingRuleSchema = z.object({
-  id: z.number().optional(),
-  ruleType: z.enum(['forfait', 'per_km', 'airport', 'mda', 'extra_hour', 'min_price']),
-  serviceType: z.string().optional(),
-  timeSlot: z.enum(['day', 'night']),
-  priceHT: z.string().or(z.number()),
-  priceTTC: z.string().or(z.number()),
-  forfaitHours: z.number().optional(),
-  forfaitMaxKm: z.number().optional(),
-  hourlyRateTTC: z.string().or(z.number()).optional(),
-  zoneType: z.string().optional(),
-  maxKm: z.number().nullable().optional(),
-  perKm: z.string().or(z.number()).optional(),
-  perMinute: z.string().or(z.number()).optional(),
-  perHour: z.string().or(z.number()).optional(),
-  minPrice: z.string().or(z.number()).optional(),
-  description: z.string().optional(),
-  isActive: z.boolean().optional(),
-});
 
 /**
  * GET /api/admin/settings/pricing
@@ -89,29 +71,13 @@ export async function PUT(request: NextRequest) {
       // Validate
       const validated = pricingRuleSchema.parse(ruleData);
 
+      const columns: any = { ...toPricingRuleColumns(validated), isActive: validated.isActive ?? true };
+
       if (validated.id) {
         // Update existing
         const [updated] = await db
           .update(pricingRules)
-          .set({
-            ruleType: validated.ruleType,
-            serviceType: validated.serviceType || null,
-            timeSlot: validated.timeSlot,
-            priceHT: validated.priceHT.toString(),
-            priceTTC: validated.priceTTC.toString(),
-            forfaitHours: validated.forfaitHours || null,
-            forfaitMaxKm: validated.forfaitMaxKm || null,
-            hourlyRateTTC: validated.hourlyRateTTC?.toString() || null,
-            zoneType: validated.zoneType || null,
-            maxKm: validated.maxKm ?? null,
-            perKm: validated.perKm?.toString() || null,
-            perMinute: validated.perMinute?.toString() || null,
-            perHour: validated.perHour?.toString() || null,
-            minPrice: validated.minPrice?.toString() || null,
-            description: validated.description || null,
-            isActive: validated.isActive ?? true,
-            updatedAt: new Date(),
-          })
+          .set({ ...columns, updatedAt: new Date() })
           .where(eq(pricingRules.id, validated.id))
           .returning();
 
@@ -120,27 +86,7 @@ export async function PUT(request: NextRequest) {
         }
       } else {
         // Create new
-        const [created] = await db
-          .insert(pricingRules)
-          .values({
-            ruleType: validated.ruleType,
-            serviceType: validated.serviceType || null,
-            timeSlot: validated.timeSlot,
-            priceHT: validated.priceHT.toString(),
-            priceTTC: validated.priceTTC.toString(),
-            forfaitHours: validated.forfaitHours || null,
-            forfaitMaxKm: validated.forfaitMaxKm || null,
-            hourlyRateTTC: validated.hourlyRateTTC?.toString() || null,
-            zoneType: validated.zoneType || null,
-            maxKm: validated.maxKm ?? null,
-            perKm: validated.perKm?.toString() || null,
-            perMinute: validated.perMinute?.toString() || null,
-            perHour: validated.perHour?.toString() || null,
-            minPrice: validated.minPrice?.toString() || null,
-            description: validated.description || null,
-            isActive: validated.isActive ?? true,
-          })
-          .returning();
+        const [created] = await db.insert(pricingRules).values(columns).returning();
 
         if (created) {
           updatedRules.push(created);
@@ -159,14 +105,14 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating pricing rules:', error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ message: 'Validation échouée', errors: error.errors }, { status: 400 });
+      return NextResponse.json({ message: formatPricingRuleError(error), errors: error.errors }, { status: 400 });
     }
     return NextResponse.json({ message: 'Erreur serveur' }, { status: 500 });
   }
 }
 
 /**
- * POST /api/admin/settings/pricing/reset
+ * POST /api/admin/settings/pricing?action=reset
  * Reset pricing rules to default values
  */
 export async function POST(request: NextRequest) {
@@ -181,12 +127,10 @@ export async function POST(request: NextRequest) {
     const action = searchParams.get('action');
 
     if (action === 'reset') {
-      // Delete all existing rules
-      await db.delete(pricingRules);
-
-      // Re-seed from seed script
-      const { seedPricingRules } = await import('@/lib/db/seed-pricing');
-      const result = await seedPricingRules();
+      // Delete + re-seed in one transaction: if the insert fails, the current rules are kept
+      const { buildDefaultPricingRules } = await import('@/lib/db/seed-pricing');
+      const defaults = buildDefaultPricingRules();
+      await db.batch([db.delete(pricingRules), db.insert(pricingRules).values(defaults)]);
 
       // Invalidate cache
       invalidatePricingCache();
@@ -194,7 +138,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'Tarification réinitialisée aux valeurs par défaut',
-        count: result.count,
+        count: defaults.length,
       });
     }
 

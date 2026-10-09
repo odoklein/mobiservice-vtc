@@ -16,15 +16,10 @@ function calculateHT(ttc: number): number {
 }
 
 /**
- * Seed all pricing rules
+ * Default pricing rules (used by the seed and by the admin "Réinitialiser" button)
  */
-export async function seedPricingRules() {
-  console.log('🌱 Seeding pricing rules...');
-
-  // Clear existing rules (optional - comment out if you want to keep existing)
-  // await db.delete(pricingRules);
-
-  const rulesToInsert = [];
+export function buildDefaultPricingRules(): (typeof pricingRules.$inferInsert)[] {
+  const rulesToInsert: (typeof pricingRules.$inferInsert)[] = [];
 
   // ============================================================================
   // FORFAITS (Hourly Packages)
@@ -288,6 +283,17 @@ export async function seedPricingRules() {
     description: 'Prix minimum (Forfait agglomération jour)',
     isActive: true,
   });
+
+  return rulesToInsert;
+}
+
+/**
+ * Seed all pricing rules
+ */
+export async function seedPricingRules() {
+  console.log('🌱 Seeding pricing rules...');
+
+  const rulesToInsert = buildDefaultPricingRules();
 
   // Insert all rules
   try {

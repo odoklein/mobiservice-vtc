@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, decimal, boolean, jsonb, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, text, serial, timestamp, integer, decimal, doublePrecision, boolean, jsonb, uuid } from 'drizzle-orm/pg-core';
 
 // Users table (customers and driver)
 export const users = pgTable('users', {
@@ -218,7 +218,7 @@ export const pricingRules = pgTable('pricing_rules', {
   priceTTC: decimal('price_ttc', { precision: 10, scale: 2 }).notNull(),
 
   // For forfaits
-  forfaitHours: integer('forfait_hours'), // 3, 4, 5, 6, 7, 8
+  forfaitHours: doublePrecision('forfait_hours'), // 2, 2.5, 3 … 8 (demi-heures)
   forfaitMaxKm: integer('forfait_max_km'), // 270, 360, 450, 540, 630, 720
   hourlyRateTTC: decimal('hourly_rate_ttc', { precision: 10, scale: 2 }), // effective hourly rate
 

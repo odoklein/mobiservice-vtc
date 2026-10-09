@@ -103,7 +103,7 @@ export default function PricingSettingsPage() {
 
     setSaving(true);
     try {
-      const response = await fetch('/api/admin/settings/pricing/reset?action=reset', {
+      const response = await fetch('/api/admin/settings/pricing?action=reset', {
         method: 'POST',
       });
 
