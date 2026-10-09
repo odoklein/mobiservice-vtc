@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PricingTable } from '@/components/admin/pricing-table';
+import { HourlyForfaitsEditor } from '@/components/admin/hourly-forfaits-editor';
 import { AdminPageHeader, AdminPageContainer } from '@/components/admin/admin-components';
 import { DollarSign, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 
@@ -41,8 +42,9 @@ export default function PricingSettingsPage() {
     loadPricingRules();
   }, []);
 
-  const loadPricingRules = async () => {
-    setLoading(true);
+  // silent: reload after a save without the full-page spinner (keeps the tables mounted)
+  const loadPricingRules = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const response = await fetch('/api/admin/settings/pricing');
       const data = await response.json();
@@ -88,7 +90,7 @@ export default function PricingSettingsPage() {
       }
 
       // Reload rules
-      await loadPricingRules();
+      await loadPricingRules({ silent: true });
     } catch (error) {
       throw error;
     } finally {
@@ -145,42 +147,7 @@ export default function PricingSettingsPage() {
 
     switch (activeTab) {
       case 'forfaits':
-        return (
-          <PricingTable
-            rules={grouped.forfaits || []}
-            columns={[
-              { key: 'forfaitHours', label: 'Heures', editable: true, type: 'number' },
-              { key: 'forfaitMaxKm', label: 'Max Km', editable: true, type: 'number' },
-              {
-                key: 'timeSlot',
-                label: 'Période',
-                editable: true,
-                type: 'select',
-                options: [
-                  { value: 'day', label: 'Jour' },
-                  { value: 'night', label: 'Nuit' },
-                ],
-              },
-              {
-                key: 'priceTTC',
-                label: 'Prix TTC (€)',
-                editable: true,
-                type: 'number',
-                format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
-              },
-              {
-                key: 'priceHT',
-                label: 'Prix HT (€)',
-                editable: true,
-                type: 'number',
-                format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
-              },
-              { key: 'description', label: 'Description', editable: true },
-            ]}
-            onSave={handleSaveRule}
-            title="Forfaits horaires"
-          />
-        );
+        return <HourlyForfaitsEditor rules={grouped.forfaits || []} onChange={() => loadPricingRules({ silent: true })} />;
 
       case 'day-rates':
         return (
@@ -421,7 +388,7 @@ export default function PricingSettingsPage() {
         actions={
           <>
             <Button
-              onClick={loadPricingRules}
+              onClick={() => loadPricingRules()}
               disabled={loading}
               variant="admin-outline"
               size="admin"

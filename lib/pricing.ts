@@ -154,9 +154,11 @@ function getDistanceBracket(totalDistanceRoundTrip: number): string {
 /**
  * Find best forfait for hourly services
  */
-function findBestForfait(forfaits: Array<{ hours: number; maxKm: number; day: number; night: number }>, hours: number, km: number, isNight: boolean) {
+// Smallest forfait covering the duration (forfaits are sorted by hours). The km included
+// are set per forfait in the admin, so they are not used to pick it.
+function findBestForfait(forfaits: Array<{ hours: number; maxKm: number; day: number; night: number }>, hours: number, isNight: boolean) {
   for (const forfait of forfaits) {
-    if (hours <= forfait.hours && km <= forfait.maxKm) {
+    if (hours <= forfait.hours) {
       return {
         ...forfait,
         price: isNight ? forfait.night : forfait.day,
@@ -284,11 +286,8 @@ function calculatePriceWithConfig(input: PricingInput, config: any): PricingResu
       }
     }
 
-    // Estimate distance based on hours (assuming 90km/h average)
-    const estimatedKm = actualHours * 90;
-
     // Find the matching forfait from the grid
-    const forfait = findBestForfait(config.forfaits, actualHours, estimatedKm, night);
+    const forfait = findBestForfait(config.forfaits, actualHours, night);
     totalPrice = forfait.price;
     breakdown.forfaitApplied = true;
     breakdown.forfaitName = `Forfait ${forfait.hours}H`;
@@ -334,7 +333,7 @@ function calculatePriceWithConfig(input: PricingInput, config: any): PricingResu
   // ===== BUSINESS SERVICE =====
   else if (input.serviceType === 'business') {
     const estHours = input.hours || 4;
-    const forfait = findBestForfait(config.forfaits, estHours, estHours * 90, night);
+    const forfait = findBestForfait(config.forfaits, estHours, night);
     totalPrice = forfait.price;
     breakdown.forfaitApplied = true;
     breakdown.forfaitName = `Forfait ${forfait.hours}H`;

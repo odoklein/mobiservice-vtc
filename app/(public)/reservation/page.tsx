@@ -41,18 +41,19 @@ const MONTH_NAMES = [
 ];
 const DAY_NAMES = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 
-const HOURLY_FORFAITS = [
-  { hours: 1, label: '1h', maxKm: 90 },
-  { hours: 1.5, label: '1h30', maxKm: 135 },
-  { hours: 2, label: '2h', maxKm: 180 },
-  { hours: 2.5, label: '2h30', maxKm: 225 },
-  { hours: 3, label: '3h', maxKm: 270 },
-  { hours: 3.5, label: '3h30', maxKm: 315 },
-  { hours: 4, label: '4h', maxKm: 360 },
-  { hours: 5, label: '5h', maxKm: 450 },
-  { hours: 6, label: '6h', maxKm: 540 },
-  { hours: 7, label: '7h', maxKm: 630 },
-  { hours: 8, label: '8h', maxKm: 720 },
+// Forfaits horaires par défaut : remplacés par ceux de l'admin (GET /api/pricing/forfaits)
+const DEFAULT_HOURLY_FORFAITS = [
+  { hours: 1, maxKm: 90 },
+  { hours: 1.5, maxKm: 135 },
+  { hours: 2, maxKm: 180 },
+  { hours: 2.5, maxKm: 225 },
+  { hours: 3, maxKm: 270 },
+  { hours: 3.5, maxKm: 315 },
+  { hours: 4, maxKm: 360 },
+  { hours: 5, maxKm: 450 },
+  { hours: 6, maxKm: 540 },
+  { hours: 7, maxKm: 630 },
+  { hours: 8, maxKm: 720 },
 ];
 
 interface Place {
@@ -529,6 +530,7 @@ function PricingDebugSidebar({
   immobilisation,
   totalPrice,
   priceLabel,
+  includedKm,
 }: {
   pickupPlace: Place | null;
   dropoffPlace: Place | null;
@@ -545,6 +547,7 @@ function PricingDebugSidebar({
   immobilisation: { label: string; priceTTC: number } | null;
   totalPrice: number | null;
   priceLabel: string;
+  includedKm: number;
 }) {
   const tvaSettings = useTvaSettings();
   const [expanded, setExpanded] = useState(true);
@@ -654,7 +657,7 @@ function PricingDebugSidebar({
                 </div>
                 <div className="flex justify-between text-gray-300">
                   <span className="text-gray-400">Distance incluse :</span>
-                  <span className="text-white">{hours * 90} km max</span>
+                  <span className="text-white">{includedKm} km max</span>
                 </div>
               </>
             ) : (
@@ -791,7 +794,9 @@ function ReservationFlow() {
   const [dropoffPlace, setDropoffPlace] = useState<Place | null>(null);
   const [serviceType, setServiceType] = useState<'transfer' | 'hourly'>(initialType);
   const [direction, setDirection] = useState<'one-way' | 'round-trip'>('one-way');
-  const [hours, setHours] = useState<number>(!isNaN(paramHours) && paramHours >= 1 && paramHours <= 8 ? paramHours : 2);
+  const [hours, setHours] = useState<number>(!isNaN(paramHours) && paramHours >= 0.5 && paramHours <= 24 ? paramHours : 2);
+  const [hourlyForfaits, setHourlyForfaits] = useState(DEFAULT_HOURLY_FORFAITS);
+  const includedKm = hourlyForfaits.find((f) => f.hours === hours)?.maxKm ?? Math.round(hours * 90);
 
   const [today] = useState(() => startOfDay(new Date()));
   const [viewMonth, setViewMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
@@ -840,6 +845,23 @@ function ReservationFlow() {
   const [createdBookingId, setCreatedBookingId] = useState<number | null>(null);
 
   const totalPassengers = adults + children + babies;
+
+  /* ----------------------- forfaits horaires (admin) ------------------------- */
+
+  useEffect(() => {
+    fetch('/api/pricing/forfaits')
+      .then((res) => res.json())
+      .then((data) => {
+        const list: Array<{ hours: number; maxKm: number }> = data?.forfaits ?? [];
+        if (!data?.success || list.length === 0) return;
+        setHourlyForfaits(list);
+        // Durée choisie absente de la liste : forfait le plus proche au-dessus (sinon le plus long)
+        setHours((h) => (list.some((f) => f.hours === h) ? h : (list.find((f) => f.hours >= h) ?? list[list.length - 1]).hours));
+      })
+      .catch(() => {
+        // Garde la liste par défaut
+      });
+  }, []);
 
   /* ----------------------- timer de renvoi OTP ------------------------------- */
 
@@ -990,7 +1012,7 @@ function ReservationFlow() {
     if (s === 1) {
       if (!pickupPlace) return false;
       if (serviceType === 'transfer') return !!dropoffPlace;
-      if (serviceType === 'hourly') return hours >= 0.5 && hours <= 8;
+      if (serviceType === 'hourly') return hourlyForfaits.some((f) => f.hours === hours);
       return true;
     }
     if (s === 2) {
@@ -1078,7 +1100,7 @@ function ReservationFlow() {
         totalPrice: totalPrice ?? 0,
         notes: [
           note.trim() ? `Note client : ${note.trim()}` : null,
-          serviceType === 'hourly' ? `Mise à disposition ${formatHours(hours)} (${hours * 90} km inclus)` : null,
+          serviceType === 'hourly' ? `Mise à disposition ${formatHours(hours)} (${includedKm} km inclus)` : null,
           babySeat ? 'Siège bébé demandé' : null,
           wheelchair ? 'Accessibilité PMR' : null,
           largeLuggage ? 'Bagage volumineux' : null,
@@ -1323,11 +1345,11 @@ function ReservationFlow() {
                               Durée de mise à disposition (temps)
                             </label>
                             <span className="text-xs font-semibold text-[#4BC449] bg-[#4BC449]/10 px-2.5 py-1 rounded-full">
-                              {formatHours(hours)} ({hours * 90} km inclus)
+                              {formatHours(hours)} ({includedKm} km inclus)
                             </span>
                           </div>
                           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                            {HOURLY_FORFAITS.map((f) => (
+                            {hourlyForfaits.map((f) => (
                               <button
                                 key={f.hours}
                                 type="button"
@@ -1338,13 +1360,13 @@ function ReservationFlow() {
                                     : 'border-gray-200 text-gray-700 hover:border-gray-300'
                                 }`}
                               >
-                                <span className="block text-sm font-semibold">{f.label}</span>
+                                <span className="block text-sm font-semibold">{formatHours(f.hours)}</span>
                                 <span className="block text-[10px] text-gray-500 mt-0.5">{f.maxKm} km</span>
                               </button>
                             ))}
                           </div>
                           <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl p-3 mt-3">
-                            Chauffeur privé à disposition pour une durée de {formatHours(hours)}. Inclut jusqu&apos;à {hours * 90} km de trajet.
+                            Chauffeur privé à disposition pour une durée de {formatHours(hours)}. Inclut jusqu&apos;à {includedKm} km de trajet.
                           </p>
                         </div>
                       )}
@@ -1526,7 +1548,7 @@ function ReservationFlow() {
                                   <IconRoute size={13} className="text-gray-400" />
                                   Distance incluse
                                 </span>
-                                <span className="text-gray-900 font-medium">Jusqu&apos;à {hours * 90} km</span>
+                                <span className="text-gray-900 font-medium">Jusqu&apos;à {includedKm} km</span>
                               </div>
                             </>
                           ) : (
@@ -1565,7 +1587,7 @@ function ReservationFlow() {
                             { icon: IconShieldCheck, text: 'Prix fixe garanti' },
                             { icon: IconClock, text: '60 min d\'annulation gratuite' },
                             ...(serviceType === 'hourly'
-                              ? [{ icon: IconRoute, text: `${hours * 90} km inclus` }]
+                              ? [{ icon: IconRoute, text: `${includedKm} km inclus` }]
                               : [{ icon: IconClock, text: '10 min d\'attente gratuits' }]),
                             { icon: IconCalendar, text: 'Aucun paiement immédiat' },
                           ].map((chip) => (
@@ -1767,7 +1789,7 @@ function ReservationFlow() {
                               ? [{ label: 'Destination', value: dropoffText.split(',')[0] || pickupText.split(',')[0] }]
                               : [{ label: 'Destination', value: 'Retour au point de départ' }]),
                             ...(serviceType === 'hourly'
-                              ? [{ label: 'Durée & Distance', value: `${formatHours(hours)} • jusqu’à ${hours * 90} km inclus` }]
+                              ? [{ label: 'Durée & Distance', value: `${formatHours(hours)} • jusqu’à ${includedKm} km inclus` }]
                               : []),
                             { label: 'Date', value: selectedDate ? formatLongDate(selectedDate) : '—' },
                             { label: 'Heure', value: selectedTime || '—' },
@@ -1880,6 +1902,7 @@ function ReservationFlow() {
                     immobilisation={immobilisation}
                     totalPrice={totalPrice}
                     priceLabel={priceLabel}
+                    includedKm={includedKm}
                   />
                 </div>
               </div>
@@ -1915,7 +1938,7 @@ function ReservationFlow() {
                           <div className="flex items-center gap-2.5">
                             <IconClock size={14} className="text-[#4BC449] shrink-0" />
                             <span className="text-sm font-semibold text-gray-800">
-                              {formatHours(hours)} ({hours * 90} km inclus)
+                              {formatHours(hours)} ({includedKm} km inclus)
                             </span>
                           </div>
                         )}
@@ -1993,6 +2016,7 @@ function ReservationFlow() {
                     immobilisation={immobilisation}
                     totalPrice={totalPrice}
                     priceLabel={priceLabel}
+                    includedKm={includedKm}
                   />
                 </div>
               </div>

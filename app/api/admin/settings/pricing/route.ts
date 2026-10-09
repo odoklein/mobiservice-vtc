@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { pricingRules } from '@/lib/db/schema';
 import { getAdminFromRequest } from '@/lib/auth/admin';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { invalidatePricingCache } from '@/lib/services/pricing-service';
 import {
   pricingRuleSchema,
@@ -67,10 +67,33 @@ export async function PUT(request: NextRequest) {
 
     const updatedRules = [];
 
-    for (const ruleData of rules) {
-      // Validate
-      const validated = pricingRuleSchema.parse(ruleData);
+    // Validate everything before writing, so a forfait is never half-saved (day without night)
+    const validatedRules = rules.map((ruleData) => pricingRuleSchema.parse(ruleData));
 
+    // One hourly forfait per duration and period, otherwise the engine cannot pick one
+    for (const validated of validatedRules) {
+      if (validated.ruleType !== 'forfait' || validated.serviceType !== 'hourly' || !validated.forfaitHours) continue;
+      const clashes = await db
+        .select({ id: pricingRules.id })
+        .from(pricingRules)
+        .where(
+          and(
+            eq(pricingRules.ruleType, 'forfait'),
+            eq(pricingRules.serviceType, 'hourly'),
+            eq(pricingRules.timeSlot, validated.timeSlot),
+            eq(pricingRules.forfaitHours, validated.forfaitHours),
+            eq(pricingRules.isActive, true)
+          )
+        );
+      if (clashes.some((r: { id: number }) => r.id !== validated.id)) {
+        return NextResponse.json(
+          { message: `Un forfait de ${String(validated.forfaitHours).replace('.', ',')} h existe déjà` },
+          { status: 400 }
+        );
+      }
+    }
+
+    for (const validated of validatedRules) {
       const columns: any = { ...toPricingRuleColumns(validated), isActive: validated.isActive ?? true };
 
       if (validated.id) {

@@ -96,8 +96,8 @@ export interface PricingConfig {
  * Build the pricing configuration from database rules (pure function, unit-testable).
  *
  * Anything that is not defined in the database keeps its default value, so a partial
- * rule set can never leave a hole in the price grid. In particular, hourly forfaits that
- * are missing from the database (e.g. 30 min, 1 h, 1 h 30) are completed from the defaults.
+ * rule set can never leave a hole in the price grid. Hourly forfaits are the exception:
+ * the list defined in the admin is used as is (see below).
  */
 export function buildConfigFromRules(rules: any[]): PricingConfig {
   const defaults = getHardcodedPricing();
@@ -221,16 +221,17 @@ export function buildConfigFromRules(rules: any[]): PricingConfig {
     }
   }
 
-  // Complete the forfait grid with defaults for durations (or day/night slots) missing in the database
-  for (const fallback of defaults.forfaits) {
-    const existing = config.forfaits.find((f) => f.hours === fallback.hours);
-    if (!existing) {
-      config.forfaits.push({ ...fallback });
-    } else {
-      if (!existing.day) existing.day = fallback.day;
-      if (!existing.night) existing.night = fallback.night;
-      if (!existing.maxKm) existing.maxKm = fallback.maxKm;
-    }
+  // The admin owns the hourly forfait grid: once it has forfaits, only those are offered
+  // (a forfait deleted in the admin must not come back). Defaults are used only when the
+  // database has none, or to fill a missing day/night price.
+  if (config.forfaits.length === 0) {
+    config.forfaits = defaults.forfaits.map((f) => ({ ...f }));
+  }
+  for (const forfait of config.forfaits) {
+    const fallback = defaults.forfaits.find((f) => f.hours === forfait.hours);
+    if (!forfait.day) forfait.day = fallback?.day || forfait.night;
+    if (!forfait.night) forfait.night = fallback?.night || forfait.day;
+    if (!forfait.maxKm) forfait.maxKm = fallback?.maxKm || Math.round(forfait.hours * 90);
   }
 
   // Sort forfaits by hours
