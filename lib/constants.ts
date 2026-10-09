@@ -212,6 +212,22 @@ export const POPULAR_LOCATIONS = [
     icon: '🚂',
   },
   {
+    name: 'Gare de Genève-Cornavin',
+    address: 'Place de Cornavin, 1201 Genève, Suisse',
+    lat: 46.2104,
+    lng: 6.1424,
+    category: 'train',
+    icon: '🚂',
+  },
+  {
+    name: 'Gare de Cluses',
+    address: 'Place de la Gare, 74300 Cluses, France',
+    lat: 46.0601,
+    lng: 6.5772,
+    category: 'train',
+    icon: '🚂',
+  },
+  {
     name: 'Chamonix-Mont-Blanc',
     address: 'Chamonix-Mont-Blanc, 74400, France',
     lat: 45.9237,

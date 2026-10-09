@@ -26,8 +26,9 @@ import {
   IconCalculator,
   IconCode,
   IconReceipt,
+  IconStar,
 } from '@tabler/icons-react';
-import { CONTACT } from '@/lib/constants';
+import { CONTACT, POPULAR_LOCATIONS } from '@/lib/constants';
 import { getImmobilisationMAD, isAR13DaysAllowed, type ReturnDaysAfter } from '@/lib/booking/immobilisation-mad';
 
 type Step = 1 | 2 | 3 | 4;
@@ -191,7 +192,7 @@ function AddressField({
 
     if (query.trim().length < 3) {
       setSuggestions([]);
-      setOpen(false);
+      setOpen(true);
       setLoading(false);
       return;
     }
@@ -213,17 +214,16 @@ function AddressField({
             }))
           : [];
         setSuggestions(results);
-        setOpen(results.length > 0);
+        setOpen(true);
         setHighlight(-1);
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
           setSuggestions([]);
-          setOpen(false);
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 300);
+    }, 280);
   };
 
   const choose = (place: Place) => {
@@ -235,6 +235,30 @@ function AddressField({
     setHighlight(-1);
     setLoading(false);
   };
+
+  const isShortcuts = value.trim().length < 3;
+  const itemsToRender = isShortcuts
+    ? POPULAR_LOCATIONS.map((p) => ({
+        label: p.address,
+        lat: p.lat,
+        lng: p.lng,
+        title: p.name,
+        subtitle: p.address,
+        category: p.category,
+      }))
+    : suggestions.map((s) => {
+        const commaIdx = s.label.indexOf(',');
+        const title = commaIdx === -1 ? s.label : s.label.slice(0, commaIdx).trim();
+        const subtitle = commaIdx === -1 ? '' : s.label.slice(commaIdx + 1).trim();
+        const isAir = /a[ée]roport|airport|terminal/i.test(s.label);
+        const isTrain = /gare/i.test(s.label);
+        return {
+          ...s,
+          title,
+          subtitle,
+          category: isAir ? 'airport' : isTrain ? 'train' : 'address',
+        };
+      });
 
   return (
     <div ref={wrapRef} className="relative">
@@ -252,18 +276,19 @@ function AddressField({
             onTextChange(e.target.value);
             search(e.target.value);
           }}
-          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
           onKeyDown={(e) => {
-            if (!open) return;
+            if (!open || itemsToRender.length === 0) return;
             if (e.key === 'ArrowDown') {
               e.preventDefault();
-              setHighlight((i) => Math.min(i + 1, suggestions.length - 1));
+              setHighlight((i) => Math.min(i + 1, itemsToRender.length - 1));
             } else if (e.key === 'ArrowUp') {
               e.preventDefault();
               setHighlight((i) => Math.max(i - 1, 0));
-            } else if (e.key === 'Enter' && highlight >= 0) {
+            } else if (e.key === 'Enter' && highlight >= 0 && itemsToRender[highlight]) {
               e.preventDefault();
-              choose(suggestions[highlight]);
+              choose(itemsToRender[highlight]);
             } else if (e.key === 'Escape') {
               setOpen(false);
             }
@@ -276,20 +301,37 @@ function AddressField({
         )}
       </div>
 
-      {open && suggestions.length > 0 && (
-        <div className="absolute z-30 mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
-          {suggestions.map((s, i) => (
+      {open && itemsToRender.length > 0 && (
+        <div className="absolute z-30 mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
+          {isShortcuts && (
+            <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100 flex items-center gap-1.5">
+              <IconStar size={13} className="text-amber-500 fill-amber-500" />
+              Lieux populaires & Aéroports
+            </div>
+          )}
+          {itemsToRender.map((s, i) => (
             <button
               key={`${s.label}-${i}`}
               type="button"
               onMouseEnter={() => setHighlight(i)}
               onClick={() => choose(s)}
-              className={`w-full flex items-start gap-2.5 px-4 py-3 text-left transition-colors ${
-                highlight === i ? 'bg-[#4BC449]/8' : 'hover:bg-gray-50'
+              className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-colors border-b border-gray-50 last:border-b-0 ${
+                highlight === i ? 'bg-[#4BC449]/10' : 'hover:bg-gray-50'
               }`}
             >
-              <IconMapPin size={15} className="text-gray-400 mt-0.5 shrink-0" />
-              <span className="text-sm text-gray-800 leading-snug">{s.label}</span>
+              {s.category === 'airport' ? (
+                <span className="text-base leading-5 mt-0.5 shrink-0">✈️</span>
+              ) : s.category === 'train' ? (
+                <span className="text-base leading-5 mt-0.5 shrink-0">🚂</span>
+              ) : (
+                <IconMapPin size={16} className="text-gray-400 mt-0.5 shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-900 leading-snug truncate">{s.title}</div>
+                {s.subtitle && s.subtitle !== s.title && (
+                  <div className="text-xs text-gray-500 leading-snug truncate mt-0.5">{s.subtitle}</div>
+                )}
+              </div>
             </button>
           ))}
         </div>

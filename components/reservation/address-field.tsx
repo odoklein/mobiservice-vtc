@@ -302,6 +302,14 @@ export function AddressField({
                     </span>
                   ) : item.kind === 'recent' ? (
                     <IconClock size={16} aria-hidden className="text-gray-500 mt-0.5 shrink-0" />
+                  ) : /a[ée]roport|airport|terminal/i.test(item.place.label) ? (
+                    <span aria-hidden className="text-base leading-5 mt-0.5 shrink-0">
+                      ✈️
+                    </span>
+                  ) : /gare/i.test(item.place.label) ? (
+                    <span aria-hidden className="text-base leading-5 mt-0.5 shrink-0">
+                      🚂
+                    </span>
                   ) : (
                     <IconMapPin size={16} aria-hidden className="text-gray-500 mt-0.5 shrink-0" />
                   )}

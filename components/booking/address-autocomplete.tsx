@@ -42,13 +42,39 @@ interface MapboxFeature {
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
 async function fetchMapboxSuggestions(query: string, signal: AbortSignal): Promise<MapboxSuggestion[]> {
-  const url = new URL('https://api.mapbox.com/search/geocode/v6/forward');
+  try {
+    const res = await fetch(`/api/geocoding/search?q=${encodeURIComponent(query)}`, { signal });
+    if (res.ok) {
+      const data = await res.json();
+      const results = Array.isArray(data.results) ? data.results : [];
+      return results.map((r: { label: string; latitude: number; longitude: number }, idx: number) => {
+        const commaIdx = r.label.indexOf(',');
+        const mainText = commaIdx === -1 ? r.label : r.label.slice(0, commaIdx).trim();
+        const secondaryText = commaIdx === -1 ? '' : r.label.slice(commaIdx + 1).trim();
+        return {
+          id: `${r.label}-${idx}`,
+          mainText,
+          secondaryText,
+          fullAddress: r.label,
+          lat: r.latitude,
+          lng: r.longitude,
+        };
+      });
+    }
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') throw err;
+  }
+
+  // Fallback to client-side Search Box
+  const token = MAPBOX_TOKEN || '';
+  if (!token) return [];
+
+  const url = new URL('https://api.mapbox.com/search/searchbox/v1/forward');
   url.searchParams.set('q', query);
-  url.searchParams.set('access_token', MAPBOX_TOKEN);
+  url.searchParams.set('access_token', token);
   url.searchParams.set('language', 'fr');
   url.searchParams.set('country', 'fr,ch');
   url.searchParams.set('limit', '6');
-  url.searchParams.set('autocomplete', 'true');
   url.searchParams.set(
     'proximity',
     `${HAUTE_SAVOIE_AUTOCOMPLETE_BIAS.center.lng},${HAUTE_SAVOIE_AUTOCOMPLETE_BIAS.center.lat}`
@@ -57,30 +83,25 @@ async function fetchMapboxSuggestions(query: string, signal: AbortSignal): Promi
   const response = await fetch(url.toString(), { signal });
 
   if (!response.ok) {
-    throw new Error(`Mapbox geocoding error: ${response.status}`);
+    throw new Error(`Mapbox search error: ${response.status}`);
   }
 
   const data = await response.json();
-  const features: MapboxFeature[] = Array.isArray(data.features) ? data.features : [];
+  const features: any[] = Array.isArray(data.features) ? data.features : [];
 
-  return features.map((feature) => {
-    const coords = feature.properties.coordinates ?? {
-      longitude: feature.geometry.coordinates[0],
-      latitude: feature.geometry.coordinates[1],
-    };
-    const fullAddress = feature.properties.full_address || feature.properties.place_formatted || feature.properties.name || '';
-    const mainText = feature.properties.name_preferred || feature.properties.name || fullAddress;
-    const secondaryText = feature.properties.place_formatted && feature.properties.place_formatted !== mainText
-      ? feature.properties.place_formatted
-      : fullAddress;
-
+  return features.map((feature, idx) => {
+    const p = feature.properties || {};
+    const name = p.name || '';
+    const full = p.full_address || '';
+    const place = p.place_formatted || '';
+    const fullAddress = full || (name && place ? `${name}, ${place}` : name || place || '');
     return {
-      id: feature.properties.mapbox_id || feature.id || fullAddress,
-      mainText,
-      secondaryText,
+      id: p.mapbox_id || feature.id || `${fullAddress}-${idx}`,
+      mainText: name || fullAddress,
+      secondaryText: place || fullAddress,
       fullAddress,
-      lat: coords.latitude,
-      lng: coords.longitude,
+      lat: feature.geometry?.coordinates[1] ?? 0,
+      lng: feature.geometry?.coordinates[0] ?? 0,
     };
   });
 }
