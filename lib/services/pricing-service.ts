@@ -36,6 +36,7 @@ async function getDb() {
 }
 
 const TVA_RATE = 0.10;
+const TVA_RATE_MDA = 0.20; // mise à disposition (temps d'attente) : 20 %, comme tariffs-2026.ts
 
 // Cache configuration
 let pricingCache: PricingConfig | null = null;
@@ -114,7 +115,12 @@ export function buildConfigFromRules(rules: any[]): PricingConfig {
 
   // Process rules
   for (const rule of rules) {
-    const priceTTC = parseFloat(rule.priceTTC || '0');
+    // Les tarifs saisis en administration sont HORS TAXE (la colonne price_ttc garde son ancien nom
+    // mais contient le montant HT). Le moteur calcule ensuite en TTC et en déduit HT / TVA :
+    // on ajoute donc la TVA ici, une seule fois, à la lecture.
+    // Exception : le forfait agglomération reste saisi en TTC.
+    const isTTCRule = rule.ruleType === 'forfait' && rule.serviceType === 'agglomeration';
+    const priceTTC = parseFloat(rule.priceTTC || '0') * (isTTCRule ? 1 : 1 + TVA_RATE);
 
     // Forfaits
     if (rule.ruleType === 'forfait' && rule.serviceType === 'hourly' && rule.forfaitHours) {
@@ -179,7 +185,8 @@ export function buildConfigFromRules(rules: any[]): PricingConfig {
 
     // MDA rates
     if (rule.ruleType === 'mda' && rule.perMinute) {
-      const perMin = parseFloat(rule.perMinute);
+      // Tarif HT par minute ; la mise à disposition est soumise à 20 % de TVA
+      const perMin = parseFloat(rule.perMinute) * (1 + TVA_RATE_MDA);
       if (rule.timeSlot === 'day') {
         config.mdaRates.day = perMin;
       } else {
@@ -216,7 +223,7 @@ export function buildConfigFromRules(rules: any[]): PricingConfig {
     // Min price
     // (l'admin modifie le prix TTC : il prime sur l'ancienne colonne min_price)
     if (rule.ruleType === 'min_price') {
-      const min = priceTTC > 0 ? priceTTC : parseFloat(rule.minPrice || '0');
+      const min = priceTTC > 0 ? priceTTC : parseFloat(rule.minPrice || '0') * (1 + TVA_RATE);
       if (min > 0) config.minPrice = min;
     }
   }

@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save, X, AlertCircle, CheckCircle } from 'lucide-react';
 
-const TVA_RATE = 0.10;
-
 interface PricingRule {
   id?: number;
   ruleType: string;
@@ -63,15 +61,16 @@ export function PricingTable({ rules, columns, onSave, title }: PricingTableProp
 
     const updated = { ...editedRule, [field]: value };
 
-    // Auto-calculate HT/TTC when one changes
+    // Les prix sont saisis HORS TAXE. La colonne `priceTTC` (nom historique) porte le montant HT
+    // lu par le moteur de prix, qui ajoute la TVA : on garde `priceHT` identique.
+    // Exception : le forfait agglomération reste saisi TTC (HT déduit).
     if (field === 'priceTTC') {
-      const ttc = parseFloat(value) || 0;
-      const ht = Math.round((ttc / (1 + TVA_RATE)) * 100) / 100;
-      updated.priceHT = ht.toString();
-    } else if (field === 'priceHT') {
-      const ht = parseFloat(value) || 0;
-      const ttc = Math.round(ht * (1 + TVA_RATE) * 100) / 100;
-      updated.priceTTC = ttc.toString();
+      if (updated.serviceType === 'agglomeration') {
+        const ttc = parseFloat(value) || 0;
+        updated.priceHT = (Math.round((ttc / 1.1) * 100) / 100).toString();
+      } else {
+        updated.priceHT = value;
+      }
     }
 
     setEditedRule(updated);

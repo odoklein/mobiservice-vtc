@@ -284,7 +284,25 @@ export function buildDefaultPricingRules(): (typeof pricingRules.$inferInsert)[]
     isActive: true,
   });
 
-  return rulesToInsert;
+  // Les tarifs ci-dessus sont les anciens montants TTC ; l'administration travaille en HT.
+  // Les colonnes de montant stockent donc le HT (le moteur ajoute la TVA, voir pricing-service.ts).
+  const toHT = (value: string | null | undefined, rate = TVA_RATE) =>
+    value == null ? value : (Math.round((parseFloat(value) / (1 + rate)) * 100) / 100).toString();
+
+  return rulesToInsert.map((rule) => {
+    if (rule.ruleType === 'forfait' && rule.serviceType === 'agglomeration') return rule; // reste en TTC
+    const vatRate = rule.ruleType === 'mda' ? 0.20 : TVA_RATE;
+    return {
+      ...rule,
+      priceHT: toHT(rule.priceTTC, vatRate) as string,
+      priceTTC: toHT(rule.priceTTC, vatRate) as string,
+      hourlyRateTTC: toHT(rule.hourlyRateTTC, vatRate),
+      perKm: toHT(rule.perKm, vatRate),
+      perMinute: toHT(rule.perMinute, vatRate),
+      perHour: toHT(rule.perHour, vatRate),
+      minPrice: toHT(rule.minPrice, vatRate),
+    };
+  });
 }
 
 /**

@@ -157,10 +157,10 @@ export default function PricingSettingsPage() {
               columns={[
                 {
                   key: 'priceTTC',
-                  label: 'Prix TTC/km (€)',
+                  label: 'Prix HT/km (€)',
                   editable: true,
                   type: 'number',
-                  format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
+                  format: (v) => (v ? parseFloat(v).toFixed(3) : '0.000'),
                 },
                 { key: 'description', label: 'Description', editable: true },
               ]}
@@ -179,10 +179,10 @@ export default function PricingSettingsPage() {
                 },
                 {
                   key: 'priceTTC',
-                  label: 'Prix TTC/km (€)',
+                  label: 'Prix HT/km (€)',
                   editable: true,
                   type: 'number',
-                  format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
+                  format: (v) => (v ? parseFloat(v).toFixed(3) : '0.000'),
                 },
                 { key: 'description', label: 'Description', editable: true },
               ]}
@@ -200,10 +200,10 @@ export default function PricingSettingsPage() {
               columns={[
                 {
                   key: 'priceTTC',
-                  label: 'Prix TTC/km (€)',
+                  label: 'Prix HT/km (€)',
                   editable: true,
                   type: 'number',
-                  format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
+                  format: (v) => (v ? parseFloat(v).toFixed(3) : '0.000'),
                 },
                 { key: 'description', label: 'Description', editable: true },
               ]}
@@ -222,10 +222,10 @@ export default function PricingSettingsPage() {
                 },
                 {
                   key: 'priceTTC',
-                  label: 'Prix TTC/km (€)',
+                  label: 'Prix HT/km (€)',
                   editable: true,
                   type: 'number',
-                  format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
+                  format: (v) => (v ? parseFloat(v).toFixed(3) : '0.000'),
                 },
                 { key: 'description', label: 'Description', editable: true },
               ]}
@@ -255,7 +255,7 @@ export default function PricingSettingsPage() {
                 label: 'Prix TTC (€)',
                 editable: true,
                 type: 'number',
-                format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
+                format: (v) => (v ? parseFloat(v).toFixed(3) : '0.000'),
               },
               {
                 key: 'maxKm',
@@ -287,10 +287,10 @@ export default function PricingSettingsPage() {
               },
               {
                 key: 'priceTTC',
-                label: 'Prix TTC (€)',
+                label: 'Prix HT (€)',
                 editable: true,
                 type: 'number',
-                format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
+                format: (v) => (v ? parseFloat(v).toFixed(3) : '0.000'),
               },
               { key: 'description', label: 'Aéroport', editable: true },
             ]}
@@ -316,10 +316,10 @@ export default function PricingSettingsPage() {
               },
               {
                 key: 'perMinute',
-                label: 'Prix/minute TTC (€)',
+                label: 'Prix/minute HT (€)',
                 editable: true,
                 type: 'number',
-                format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
+                format: (v) => (v ? parseFloat(v).toFixed(3) : '0.000'),
               },
               { key: 'description', label: 'Description', editable: true },
             ]}
@@ -346,10 +346,10 @@ export default function PricingSettingsPage() {
                 },
                 {
                   key: 'priceTTC',
-                  label: 'Prix TTC (€)',
+                  label: 'Prix HT (€)',
                   editable: true,
                   type: 'number',
-                  format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
+                  format: (v) => (v ? parseFloat(v).toFixed(3) : '0.000'),
                 },
                 { key: 'description', label: 'Description', editable: true },
               ]}
@@ -362,10 +362,10 @@ export default function PricingSettingsPage() {
               columns={[
                 {
                   key: 'priceTTC',
-                  label: 'Prix minimum TTC (€)',
+                  label: 'Prix minimum HT (€)',
                   editable: true,
                   type: 'number',
-                  format: (v) => (v ? parseFloat(v).toFixed(2) : '0.00'),
+                  format: (v) => (v ? parseFloat(v).toFixed(3) : '0.000'),
                 },
                 { key: 'description', label: 'Description', editable: true },
               ]}

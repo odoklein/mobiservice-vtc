@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save, X, Plus, Trash2, Pencil, AlertCircle, CheckCircle } from 'lucide-react';
 
-const TVA_RATE = 0.10;
 
 interface PricingRule {
   id?: number;
@@ -45,7 +44,7 @@ const formatHours = (h: number) => {
 
 const toNumber = (v: string) => Number(v.trim().replace(',', '.'));
 const round2 = (n: number) => Math.round(n * 100) / 100;
-const formatPrice = (v?: string) => (v ? `${parseFloat(v).toFixed(2)} €` : '-');
+const formatPrice = (v?: string) => (v ? `${parseFloat(v).toFixed(3)} €` : '-');
 
 const NEW_KEY = 'new';
 
@@ -124,7 +123,7 @@ export function HourlyForfaitsEditor({ rules, onChange }: HourlyForfaitsEditorPr
       serviceType: 'hourly',
       timeSlot,
       priceTTC: round2(priceTTC),
-      priceHT: round2(priceTTC / (1 + TVA_RATE)),
+      priceHT: round2(priceTTC), // saisi HT : priceTTC (nom historique) porte le montant HT
       forfaitHours: hours,
       forfaitMaxKm: maxKm,
       hourlyRateTTC: round2(priceTTC / hours),
@@ -191,8 +190,8 @@ export function HourlyForfaitsEditor({ rules, onChange }: HourlyForfaitsEditorPr
     <tr key={key} className="border-b border-gray-100 bg-gray-50">
       <td className="px-4 py-3 text-sm">{input('hours', { step: '0.5', placeholder: 'ex. 2.5' })}</td>
       <td className="px-4 py-3 text-sm">{input('maxKm', { step: '1', placeholder: 'ex. 225' })}</td>
-      <td className="px-4 py-3 text-sm">{input('day', { step: '0.01', placeholder: 'Prix TTC' })}</td>
-      <td className="px-4 py-3 text-sm">{input('night', { step: '0.01', placeholder: 'Prix TTC' })}</td>
+      <td className="px-4 py-3 text-sm">{input('day', { step: '0.01', placeholder: 'Prix HT' })}</td>
+      <td className="px-4 py-3 text-sm">{input('night', { step: '0.01', placeholder: 'Prix HT' })}</td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <Button onClick={save} disabled={saving} size="sm" className="bg-[#5CD85A] hover:bg-[#4BC449] text-[#0A0A0A] h-8">
@@ -214,7 +213,7 @@ export function HourlyForfaitsEditor({ rules, onChange }: HourlyForfaitsEditorPr
         <div>
           <h3 className="text-xl font-semibold text-[#0A0A0A]">Forfaits horaires (mise à disposition)</h3>
           <p className="text-sm text-gray-500 mt-1">
-            Ces forfaits sont proposés tels quels sur la page de réservation. Prix TTC, HT calculé automatiquement.
+            Ces forfaits sont proposés tels quels sur la page de réservation. Prix saisis hors taxe ; la TVA est ajoutée au calcul du total.
           </p>
         </div>
         <Button onClick={startAdd} disabled={saving || editing !== null} size="sm" className="bg-[#5CD85A] hover:bg-[#4BC449] text-[#0A0A0A] h-9">
@@ -244,7 +243,7 @@ export function HourlyForfaitsEditor({ rules, onChange }: HourlyForfaitsEditorPr
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-gray-200">
-              {['Durée (h)', 'Km inclus', 'Prix jour TTC (€)', 'Prix nuit TTC (€)', 'Actions'].map((label) => (
+              {['Durée (h)', 'Km inclus', 'Prix jour HT (€)', 'Prix nuit HT (€)', 'Actions'].map((label) => (
                 <th key={label} className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A] bg-gray-50">
                   {label}
                 </th>
