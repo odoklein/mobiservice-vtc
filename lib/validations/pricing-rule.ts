@@ -88,8 +88,9 @@ const DECIMAL_COLUMNS = ['priceHT', 'priceTTC', 'hourlyRateTTC', 'perKm', 'perMi
 const NOT_NULL_COLUMNS = ['ruleType', 'timeSlot', 'isActive'];
 
 /**
- * Convertit une saisie validée en colonnes Drizzle : décimales en string,
- * champs absents ignorés, null ignoré pour les colonnes NOT NULL.
+ * Convertit une saisie validée en colonnes Drizzle : décimales en string (3 décimales,
+ * les tarifs au km se saisissent au millième), champs absents ignorés,
+ * null ignoré pour les colonnes NOT NULL.
  */
 export function toPricingRuleColumns(input: PricingRuleInput): Record<string, unknown> {
   const columns: Record<string, unknown> = {};
@@ -99,7 +100,7 @@ export function toPricingRuleColumns(input: PricingRuleInput): Record<string, un
       if (!NOT_NULL_COLUMNS.includes(key)) columns[key] = null;
       continue;
     }
-    columns[key] = DECIMAL_COLUMNS.includes(key) ? (value as number).toFixed(2) : value;
+    columns[key] = DECIMAL_COLUMNS.includes(key) ? (value as number).toFixed(3) : value;
   }
   return columns;
 }

@@ -197,7 +197,7 @@ export function PricingTable({ rules, columns, onSave, title }: PricingTableProp
                                 // Keep the raw text while typing ("1.", ""): the API converts and validates it
                                 onChange={(e) => handleFieldChange(col.key as keyof PricingRule, e.target.value)}
                                 className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5CD85A] focus:border-transparent"
-                                step={col.type === 'number' ? '0.01' : undefined}
+                                step={col.type === 'number' ? '0.001' : undefined}
                               />
                             )
                           ) : (

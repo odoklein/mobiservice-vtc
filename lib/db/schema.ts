@@ -213,25 +213,25 @@ export const pricingRules = pgTable('pricing_rules', {
   // Rate type
   timeSlot: text('time_slot').notNull().default('day'), // 'day' or 'night'
 
-  // Prices HT and TTC
-  priceHT: decimal('price_ht', { precision: 10, scale: 2 }).notNull(),
-  priceTTC: decimal('price_ttc', { precision: 10, scale: 2 }).notNull(),
+  // Prices HT and TTC — 3 décimales : les tarifs au km sont saisis au millième (ex. 1,454 €)
+  priceHT: decimal('price_ht', { precision: 10, scale: 3 }).notNull(),
+  priceTTC: decimal('price_ttc', { precision: 10, scale: 3 }).notNull(),
 
   // For forfaits
   forfaitHours: doublePrecision('forfait_hours'), // 2, 2.5, 3 … 8 (demi-heures)
   forfaitMaxKm: integer('forfait_max_km'), // 270, 360, 450, 540, 630, 720
-  hourlyRateTTC: decimal('hourly_rate_ttc', { precision: 10, scale: 2 }), // effective hourly rate
+  hourlyRateTTC: decimal('hourly_rate_ttc', { precision: 10, scale: 3 }), // effective hourly rate
 
   // For per-km rates
   zoneType: text('zone_type'), // 'agglomeration', 'hors_agglo', 'hors_agglo_one_way', 'deplacement'
   maxKm: integer('max_km'), // e.g., 24 for agglomeration
 
   // Legacy fields (for compatibility)
-  baseFare: decimal('base_fare', { precision: 10, scale: 2 }),
-  perKm: decimal('per_km', { precision: 10, scale: 2 }),
-  perMinute: decimal('per_minute', { precision: 10, scale: 2 }),
-  perHour: decimal('per_hour', { precision: 10, scale: 2 }),
-  minPrice: decimal('min_price', { precision: 10, scale: 2 }),
+  baseFare: decimal('base_fare', { precision: 10, scale: 3 }),
+  perKm: decimal('per_km', { precision: 10, scale: 3 }),
+  perMinute: decimal('per_minute', { precision: 10, scale: 3 }),
+  perHour: decimal('per_hour', { precision: 10, scale: 3 }),
+  minPrice: decimal('min_price', { precision: 10, scale: 3 }),
 
   description: text('description'),
   isActive: boolean('is_active').notNull().default(true),
