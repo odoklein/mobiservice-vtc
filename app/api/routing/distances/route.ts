@@ -1,29 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRouteMatrix } from '@/lib/routing/mapbox';
+import { getDepot } from '@/lib/settings/depot-settings';
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
-        const { depot, pickup, dropoff } = body;
+        // body.depot is accepted for compatibility but ignored: the depot is always the one saved in the admin
+        const { pickup, dropoff } = body;
 
         // Validate input
-        if (!depot || !pickup || !dropoff) {
+        if (!pickup || !dropoff) {
             return NextResponse.json(
-                { error: 'Missing required coordinates: depot, pickup, dropoff' },
+                { error: 'Missing required coordinates: pickup, dropoff' },
                 { status: 400 }
             );
         }
 
-        if (!depot.lat || !depot.lng || !pickup.lat || !pickup.lng || !dropoff.lat || !dropoff.lng) {
+        if (!pickup.lat || !pickup.lng || !dropoff.lat || !dropoff.lng) {
             return NextResponse.json(
                 { error: 'Invalid coordinates format' },
                 { status: 400 }
             );
         }
 
-        // Call OpenRouteService to get distances
-        const distances = await getRouteMatrix(depot, pickup, dropoff);
+        const { lat, lng } = await getDepot();
+        const distances = await getRouteMatrix({ lat, lng }, pickup, dropoff);
 
         return NextResponse.json(distances);
     } catch (error) {

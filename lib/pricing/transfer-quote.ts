@@ -11,11 +11,11 @@ import { getRouteMatrix } from '@/lib/routing/mapbox';
 import { calculateTollForTrip } from '@/lib/services/toll-calculator';
 import { calculatePrice } from '@/lib/pricing';
 import {
-  VTC_DEPOT_COORDS,
   calculateTransferPrice,
   type TransferTariffConfig,
 } from '@/lib/pricing/tariffs-2026';
 import { getTransferConfig } from '@/lib/pricing/transfer-config';
+import { getDepot, type DepotLocation } from '@/lib/settings/depot-settings';
 
 export type TripType = 'one-way' | 'round-trip';
 export interface LatLng {
@@ -55,7 +55,8 @@ export async function computeTransferQuote(input: TransferQuoteInput) {
   const { pickup, dropoff, pickupDateTime, tripType } = input;
   const waitingMinutes = Math.min(480, Math.max(0, Math.round(input.waitingMinutes || 0)));
   const returnDateTime = tripType === 'round-trip' ? input.returnDateTime ?? null : null;
-  const depot = { lat: VTC_DEPOT_COORDS.lat, lng: VTC_DEPOT_COORDS.lng };
+  const depotLocation = await getDepot();
+  const depot = { lat: depotLocation.lat, lng: depotLocation.lng };
 
   const segments = await getRouteMatrix(depot, pickup, dropoff);
   const distanceCA_out = segments.distanceCA;
@@ -113,6 +114,7 @@ export async function computeTransferQuote(input: TransferQuoteInput) {
       tollDetails,
       freeMinutes: config.mda.freeMinutes,
       pricing,
+      depot: depotLocation,
     }),
     measures: {
       distanceCA_out,
@@ -168,6 +170,7 @@ function buildTransferEstimation(p: {
   tollDetails: string;
   freeMinutes: number;
   pricing: ReturnType<typeof calculateTransferPrice>;
+  depot: DepotLocation;
 }) {
   const { pricing, tripType } = p;
   const isRT = tripType === 'round-trip';
@@ -234,8 +237,8 @@ function buildTransferEstimation(p: {
     pickupDateTime: p.pickupDateTime.toISOString(),
     returnDateTime: p.returnDateTime ? p.returnDateTime.toISOString() : null,
     depot: {
-      address: '4 rue des artisans, 74300 Cluses',
-      coordinates: { lat: VTC_DEPOT_COORDS.lat, lng: VTC_DEPOT_COORDS.lng },
+      address: p.depot.address,
+      coordinates: { lat: p.depot.lat, lng: p.depot.lng },
     },
     // Debug info - détails complets du calcul
     debugInfo: pricing.debugInfo,
@@ -253,7 +256,8 @@ export interface HourlyQuoteInput {
 
 /** Duration (minutes) used to size the forfait: measured by Mapbox, never trusted from the browser. */
 export async function computeHourlyQuote(input: HourlyQuoteInput) {
-  const depot = { lat: VTC_DEPOT_COORDS.lat, lng: VTC_DEPOT_COORDS.lng };
+  const depotLocation = await getDepot();
+  const depot = { lat: depotLocation.lat, lng: depotLocation.lng };
   const segments = await getRouteMatrix(depot, input.pickup, input.dropoff);
   return {
     result: await priceHourly({
@@ -263,6 +267,7 @@ export async function computeHourlyQuote(input: HourlyQuoteInput) {
       distanceTP: segments.distanceTP,
       distanceReturn: segments.distanceReturn,
       duration: segments.totalDuration,
+      depot: depotLocation,
     }),
     measures: { duration: segments.totalDuration },
   };
@@ -276,7 +281,7 @@ export async function priceHourlyFromMeasures(params: {
   distanceReturn: number;
   duration: number;
 }) {
-  return priceHourly(params);
+  return priceHourly({ ...params, depot: await getDepot() });
 }
 
 async function priceHourly(p: {
@@ -286,6 +291,7 @@ async function priceHourly(p: {
   distanceTP: number;
   distanceReturn: number;
   duration: number;
+  depot: DepotLocation;
 }) {
   const pricing = await calculatePrice({
     serviceType: 'hourly',
@@ -329,8 +335,8 @@ async function priceHourly(p: {
     pickupDateTime: p.pickupDateTime.toISOString(),
     returnDateTime: null,
     depot: {
-      address: '4 rue des artisans, 74300 Cluses',
-      coordinates: { lat: VTC_DEPOT_COORDS.lat, lng: VTC_DEPOT_COORDS.lng },
+      address: p.depot.address,
+      coordinates: { lat: p.depot.lat, lng: p.depot.lng },
     },
     debugInfo: undefined,
   };

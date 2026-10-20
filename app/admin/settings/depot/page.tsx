@@ -5,18 +5,50 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Save, MapPin, CheckCircle, AlertCircle, Info, Loader2 } from 'lucide-react';
 import { AddressAutocomplete } from '@/components/booking/address-autocomplete';
+interface DepotLocation {
+    address: string;
+    lat: number;
+    lng: number;
+}
+
+const errorText = (error: unknown) => (error instanceof Error ? error.message : 'erreur inconnue');
 
 export default function DepotSettingsPage() {
-    const [address, setAddress] = useState('4 rue des artisans, 74300 Cluses');
-    const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>({
-        lat: 46.0624,
-        lng: 6.5813,
-    });
+    const [address, setAddress] = useState('');
+    const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+    const [isDefault, setIsDefault] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+    const applyDepot = (depot: DepotLocation) => {
+        setAddress(depot.address);
+        setCoordinates({ lat: depot.lat, lng: depot.lng });
+    };
+
     useEffect(() => {
-        // Load current depot settings
+        const loadDepot = async () => {
+            try {
+                const response = await fetch('/api/admin/settings/depot');
+                const data = await response.json().catch(() => null);
+
+                if (!response.ok || !data?.depot) {
+                    throw new Error(data?.message || `Erreur ${response.status}`);
+                }
+
+                applyDepot(data.depot);
+                setIsDefault(!!data.isDefault);
+            } catch (error) {
+                setMessage({
+                    type: 'error',
+                    text: `Impossible de charger le dépôt enregistré : ${errorText(error)}`,
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadDepot();
     }, []);
 
     const handleAddressChange = (newAddress: string, lat?: number, lng?: number) => {
@@ -41,20 +73,31 @@ export default function DepotSettingsPage() {
         setMessage(null);
 
         try {
-            console.log('Saving depot:', {
-                address,
-                lat: coordinates.lat,
-                lng: coordinates.lng,
+            const response = await fetch('/api/admin/settings/depot', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    address,
+                    lat: coordinates.lat,
+                    lng: coordinates.lng,
+                }),
             });
+            const data = await response.json().catch(() => null);
 
+            if (!response.ok || !data?.depot) {
+                throw new Error(data?.message || `Erreur ${response.status}`);
+            }
+
+            applyDepot(data.depot);
+            setIsDefault(false);
             setMessage({
                 type: 'success',
-                text: `Configuration du dépôt enregistrée : ${address}`
+                text: `Dépôt enregistré : ${data.depot.address}. Il sera utilisé pour tous les nouveaux devis.`
             });
 
             setTimeout(() => setMessage(null), 5000);
-        } catch {
-            setMessage({ type: 'error', text: 'Erreur lors de l\'enregistrement' });
+        } catch (error) {
+            setMessage({ type: 'error', text: `Erreur lors de l'enregistrement : ${errorText(error)}` });
         } finally {
             setSaving(false);
         }
@@ -81,12 +124,26 @@ export default function DepotSettingsPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6 space-y-6">
-                        <AddressAutocomplete
-                            label="Adresse complète"
-                            placeholder="Recherchez l'adresse du dépôt..."
-                            value={address}
-                            onChange={handleAddressChange}
-                        />
+                        {loading ? (
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Chargement du dépôt enregistré...
+                            </div>
+                        ) : (
+                            <>
+                                {isDefault && (
+                                    <p className="text-sm text-slate-600">
+                                        Dépôt par défaut : aucun dépôt n&apos;a encore été enregistré.
+                                    </p>
+                                )}
+                                <AddressAutocomplete
+                                    label="Adresse complète"
+                                    placeholder="Recherchez l'adresse du dépôt..."
+                                    value={address}
+                                    onChange={handleAddressChange}
+                                />
+                            </>
+                        )}
 
                         {/* Show coordinates when available */}
                         {coordinates && (
@@ -132,7 +189,7 @@ export default function DepotSettingsPage() {
 
                         <Button
                             onClick={handleSave}
-                            disabled={saving || !coordinates}
+                            disabled={loading || saving || !coordinates}
                             className="w-full h-11 bg-slate-800 hover:bg-slate-900 text-white font-medium"
                         >
                             {saving ? (
@@ -149,9 +206,10 @@ export default function DepotSettingsPage() {
                     <CardContent className="p-4 flex items-start gap-3">
                         <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-blue-800">
-                            <strong>Information :</strong> Le dépôt est actuellement fixe dans le code.
-                            Pour modifier ces valeurs de manière permanente, mettez à jour le fichier{' '}
-                            <code className="bg-white px-1.5 py-0.5 rounded text-xs">lib/constants.ts</code>.
+                            <strong>Information :</strong> Le dépôt enregistré ici est le point de départ et de retour
+                            utilisé pour calculer tous les nouveaux devis (trajet dépôt → client et retour au dépôt).
+                            Tant qu&apos;aucun dépôt n&apos;est enregistré, la valeur par défaut du fichier{' '}
+                            <code className="bg-white px-1.5 py-0.5 rounded text-xs">lib/constants.ts</code> est utilisée.
                         </p>
                     </CardContent>
                 </Card>

@@ -14,8 +14,9 @@ export const HAUTE_SAVOIE_AUTOCOMPLETE_BIAS = {
 // VTC Depot Location - Point de départ pour tous les calculs de tarification
 export const VTC_DEPOT = {
   address: '4 rue des artisans, 74300 Cluses',
-  lat: 46.0624, // Coordonnées approximatives
-  lng: 6.5813,  // Coordonnées approximatives
+  // Position exacte du n° 4 (Base Adresse Nationale / IGN, identique chez Mapbox)
+  lat: 46.064363,
+  lng: 6.563207,
   city: 'Cluses',
   postalCode: '74300',
   country: 'France',

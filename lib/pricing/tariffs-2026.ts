@@ -5,6 +5,7 @@
 // A/R = Aller Retour
 
 import { isFrenchHoliday } from '../holidays';
+import { VTC_DEPOT } from '../constants';
 
 // Taux de TVA différenciés selon le type de prestation
 export const TVA_RATE_TRANSPORT = 0.10; // 10% - TVA sur le trajet (courses)
@@ -16,9 +17,10 @@ export const TVA_RATE = TVA_RATE_TRANSPORT;
 
 // Dépôt VTC (fixe)
 export const VTC_DEPOT_ADDRESS = '4 rue des artisans, 74300 Cluses';
+// Une seule source : lib/constants.ts
 export const VTC_DEPOT_COORDS = {
-  lat: 46.0624,
-  lng: 6.5813,
+  lat: VTC_DEPOT.lat,
+  lng: VTC_DEPOT.lng,
 };
 
 // Forfait agglomération (≤ 25 km A/R total)

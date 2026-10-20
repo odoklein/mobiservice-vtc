@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRouteMatrix } from '@/lib/routing/mapbox';
 import { getMinimumLeadTimeForCA } from '@/lib/booking/ca-lead-time';
-import { VTC_DEPOT } from '@/lib/constants';
+import { getDepot } from '@/lib/settings/depot-settings';
 
 /**
  * POST /api/booking/lead-time
@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const depot = { lat: VTC_DEPOT.lat, lng: VTC_DEPOT.lng };
+    const { lat, lng } = await getDepot();
+    const depot = { lat, lng };
     const pickup = { lat: pickupLat, lng: pickupLng };
     // Use pickup as dropoff to get only depot → pickup (CA Aller)
     const distances = await getRouteMatrix(depot, pickup, pickup);
