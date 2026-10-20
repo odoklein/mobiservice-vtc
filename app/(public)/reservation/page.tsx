@@ -30,6 +30,7 @@ import {
 } from '@tabler/icons-react';
 import { CONTACT, POPULAR_LOCATIONS } from '@/lib/constants';
 import { getImmobilisationMAD, isAR13DaysAllowed, type ReturnDaysAfter } from '@/lib/booking/immobilisation-mad';
+import { TVA_RATE_MDA, TVA_RATE_TOLL, TVA_RATE_TRANSPORT } from '@/lib/pricing/tariffs-2026';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -98,7 +99,9 @@ interface Estimation {
       appliedHours?: number;
       message?: string;
     };
+    mad?: { minutes: number; freeMinutes: number; chargeableMinutes: number; cost: number };
   };
+  depot?: { address: string; coordinates: { lat: number; lng: number } };
 }
 
 /* ---------------------------------- utils --------------------------------- */
@@ -173,6 +176,86 @@ const combineDateTime = (date: Date, time: string) => {
 
 /** Tarif unitaire au millième (les barèmes de l'admin se saisissent au millième, en HT). */
 const formatRate = (n: number) => String(Math.round(n * 1000) / 1000);
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const formatEuro2 = (n: number) => `${n.toFixed(2).replace('.', ',')} €`;
+const formatPercent = (rate: number) => `${Math.round(rate * 100)} %`;
+
+/** Une ligne du devis, découpée en HT + TVA = TTC (debug). */
+interface TvaLine {
+  label: string;
+  detail?: string;
+  ht: number;
+  rate: number;
+  tva: number;
+  ttc: number;
+}
+
+function tvaLine(label: string, ttc: number, rate: number, detail?: string): TvaLine {
+  const ht = round2(ttc / (1 + rate));
+  return { label, detail, ht, rate, tva: round2(ttc - ht), ttc: round2(ttc) };
+}
+
+/**
+ * Reconstitue chaque coût du devis en HT / TVA / TTC.
+ * Le moteur (lib/pricing/tariffs-2026.ts) calcule en TTC : transport à 10 %, péages et attente à 20 %.
+ */
+function buildTvaLines(
+  quote: Estimation,
+  serviceType: 'transfer' | 'hourly',
+  direction: 'one-way' | 'round-trip',
+  immobilisation: { label: string; priceTTC: number } | null
+): TvaLine[] {
+  const lines: TvaLine[] = [];
+  const { pricing, distances } = quote;
+  const b = pricing.breakdown ?? {};
+
+  if (serviceType === 'hourly' || quote.kind === 'hourly') {
+    // Forfait mise à disposition : le moteur donne directement HT et TTC
+    const rate = pricing.totalHT > 0 ? Math.round((pricing.totalTTC / pricing.totalHT - 1) * 100) / 100 : 0;
+    lines.push({
+      label: pricing.forfait?.name || b.forfaitName || 'Forfait mise à disposition',
+      ht: pricing.totalHT,
+      rate,
+      tva: pricing.tva,
+      ttc: pricing.totalTTC,
+    });
+  } else {
+    const toll = pricing.tollInfo?.totalIncluded ?? b.tollCost ?? 0;
+    const mad = b.madCost ?? 0;
+    const transportTTC = round2(pricing.totalTTC - toll - mad);
+    const perKm = (ttc: number, km: number) =>
+      km > 0 ? `${km.toFixed(1)} km · ${formatRate(ttc / (1 + TVA_RATE_TRANSPORT) / km)} € HT/km` : undefined;
+
+    if (b.isForfaitAgglomeration) {
+      lines.push(tvaLine('Forfait agglomération', transportTTC, TVA_RATE_TRANSPORT, `${distances.total.toFixed(1)} km au total`));
+    } else {
+      const caOut = b.costCA_out ?? 0;
+      const tp = b.costTP ?? 0;
+      const caReturn = b.costCA_return ?? 0;
+      const tpKm = direction === 'round-trip' ? distances.tp * 2 : distances.tp;
+      lines.push(tvaLine('CA Aller (Dépôt ➔ Départ)', caOut, TVA_RATE_TRANSPORT, perKm(caOut, distances.ca_out)));
+      lines.push(tvaLine(direction === 'round-trip' ? 'TP Passager (aller + retour)' : 'TP Passager (Départ ➔ Fin)', tp, TVA_RATE_TRANSPORT, perKm(tp, tpKm)));
+      lines.push(tvaLine('CA Retour (Fin ➔ Dépôt)', caReturn, TVA_RATE_TRANSPORT, perKm(caReturn, distances.ca_return)));
+      // Transport remonté au prix minimum de course (écart de quelques centimes = simple arrondi)
+      const minimumAdjustment = round2(transportTTC - (caOut + tp + caReturn));
+      if (minimumAdjustment > 0.02) {
+        lines.push(tvaLine('Ajustement prix minimum', minimumAdjustment, TVA_RATE_TRANSPORT));
+      }
+    }
+    if (toll > 0) {
+      lines.push(tvaLine('Péages autoroute', toll, TVA_RATE_TOLL, direction === 'round-trip' ? '×2 (A/R)' : undefined));
+    }
+    if (mad > 0) {
+      const minutes = pricing.mad?.chargeableMinutes;
+      lines.push(tvaLine('Attente (mise à disposition)', mad, TVA_RATE_MDA, minutes ? `${minutes} min payantes` : undefined));
+    }
+  }
+
+  if (immobilisation && immobilisation.priceTTC > 0) {
+    lines.push(tvaLine('Immobilisation retour', immobilisation.priceTTC, TVA_RATE_MDA, immobilisation.label));
+  }
+  return lines;
+}
 
 /* ----------------------------- address field ------------------------------ */
 
@@ -556,6 +639,20 @@ function PricingDebugSidebar({
   const [expanded, setExpanded] = useState(true);
   const [showJson, setShowJson] = useState(false);
 
+  const tvaLines = quote ? buildTvaLines(quote, serviceType, direction, immobilisation) : null;
+  const totals = tvaLines
+    ? {
+        ht: round2(tvaLines.reduce((sum, l) => sum + l.ht, 0)),
+        tva: round2(tvaLines.reduce((sum, l) => sum + l.tva, 0)),
+        ttc: round2(tvaLines.reduce((sum, l) => sum + l.ttc, 0)),
+      }
+    : null;
+  // HT calculé par le moteur (+ immobilisation, ajoutée côté page)
+  const engineHT = round2(
+    (quote?.pricing.totalHT ?? 0) +
+      (immobilisation && immobilisation.priceTTC > 0 ? immobilisation.priceTTC / (1 + TVA_RATE_MDA) : 0)
+  );
+
   return (
     <div className="bg-[#0b1320] border border-emerald-500/20 rounded-2xl overflow-hidden shadow-xl text-white">
       {/* Header */}
@@ -596,8 +693,13 @@ function PricingDebugSidebar({
             <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
               <IconMapPin size={12} className="text-[#4BC449]" /> Règle N°1 : Dépôt VTC
             </div>
-            <div className="text-gray-300">Cluses : 4 rue des artisans</div>
-            <div className="text-[10px] text-gray-500">[46.0624, 6.5813] • CA obligatoire</div>
+            <div className="text-gray-300">{quote?.depot?.address ?? 'Cluses : 4 rue des artisans'}</div>
+            <div className="text-[10px] text-gray-500">
+              {quote?.depot
+                ? `[${quote.depot.coordinates.lat.toFixed(6)}, ${quote.depot.coordinates.lng.toFixed(6)}]`
+                : '[—]'}{' '}
+              • CA obligatoire
+            </div>
           </div>
 
           {/* Segments kilométriques */}
@@ -687,61 +789,90 @@ function PricingDebugSidebar({
             )}
           </div>
 
-          {/* Détail du calcul financier */}
-          {quote && (
-            <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1.5">
-              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <IconReceipt size={12} className="text-purple-400" /> Détail du Total
-              </div>
-              {serviceType === 'transfer' && quote.pricing.breakdown && (
-                <>
-                  {quote.pricing.breakdown.costCA_out !== undefined && (
-                    <div className="flex justify-between text-gray-400 text-[10px]">
-                      <span>Coût CA Aller :</span>
-                      <span className="text-gray-200">{quote.pricing.breakdown.costCA_out.toFixed(2)} €</span>
-                    </div>
-                  )}
-                  {quote.pricing.breakdown.costTP !== undefined && (
-                    <div className="flex justify-between text-gray-400 text-[10px]">
-                      <span>Coût TP :</span>
-                      <span className="text-gray-200">{quote.pricing.breakdown.costTP.toFixed(2)} €</span>
-                    </div>
-                  )}
-                  {quote.pricing.breakdown.costCA_return !== undefined && (
-                    <div className="flex justify-between text-gray-400 text-[10px]">
-                      <span>Coût CA Retour :</span>
-                      <span className="text-gray-200">{quote.pricing.breakdown.costCA_return.toFixed(2)} €</span>
-                    </div>
-                  )}
-                </>
-              )}
-              {quote.pricing.tollInfo?.detected && (
-                <div className="flex justify-between text-amber-300 text-[10px]">
-                  <span>Péages autoroute :</span>
-                  <span>+{quote.pricing.tollInfo.totalIncluded.toFixed(2)} €</span>
+          {/* Détail du calcul financier : ① HT, ② TVA, ③ TTC */}
+          {quote && tvaLines && totals && (
+            <>
+              {/* ① Coûts hors taxe */}
+              <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1.5">
+                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <IconReceipt size={12} className="text-purple-400" /> ① Coûts hors taxe
                 </div>
-              )}
-              {immobilisation && immobilisation.priceTTC > 0 && (
-                <div className="flex justify-between text-amber-300 text-[10px]">
-                  <span>Immobilisation retour :</span>
-                  <span>+{immobilisation.priceTTC.toFixed(2)} €</span>
+                {tvaLines.map((line) => (
+                  <div key={line.label} className="flex justify-between gap-2 text-[10px]">
+                    <span className="text-gray-400">
+                      {line.label}
+                      {line.detail && <span className="block text-gray-500">{line.detail}</span>}
+                    </span>
+                    <span className="text-gray-200 whitespace-nowrap">{formatEuro2(line.ht)} HT</span>
+                  </div>
+                ))}
+                <div className="border-t border-white/10 pt-1 flex justify-between font-bold text-gray-200">
+                  <span>Total HT :</span>
+                  <span>{formatEuro2(totals.ht)}</span>
                 </div>
-              )}
-              <div className="border-t border-white/10 pt-1 flex justify-between text-gray-300">
-                <span>Total HT :</span>
-                <span className="font-semibold">{quote.pricing.totalHT.toFixed(2)} €</span>
               </div>
-              {tvaSettings.tvaApplicable && (
-                <div className="flex justify-between text-gray-400 text-[10px]">
-                  <span>TVA ({tvaSettings.tvaRate}%) :</span>
-                  <span>{quote.pricing.tva.toFixed(2)} €</span>
+
+              {/* ② TVA de chaque coût */}
+              <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1.5">
+                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <IconReceipt size={12} className="text-amber-400" /> ② TVA de chaque coût
                 </div>
-              )}
-              <div className="border-t border-white/10 pt-1 flex justify-between font-bold text-sm text-emerald-400">
-                <span>Total TTC :</span>
-                <span>{priceLabel}</span>
+                {!tvaSettings.tvaApplicable && (
+                  <div className="text-[10px] text-amber-300 bg-amber-500/10 p-1.5 rounded">
+                    Réglage admin : TVA non applicable (franchise). Détail donné à titre de contrôle.
+                  </div>
+                )}
+                {tvaLines.map((line) => (
+                  <div key={line.label} className="flex justify-between gap-2 text-[10px]">
+                    <span className="text-gray-400">
+                      {line.label}{' '}
+                      <span className="text-gray-500">
+                        ({formatPercent(line.rate)} de {formatEuro2(line.ht)})
+                      </span>
+                    </span>
+                    <span className="text-amber-200 whitespace-nowrap">+ {formatEuro2(line.tva)}</span>
+                  </div>
+                ))}
+                <div className="border-t border-white/10 pt-1 flex justify-between font-bold text-amber-300">
+                  <span>TVA totale :</span>
+                  <span>{formatEuro2(totals.tva)}</span>
+                </div>
               </div>
-            </div>
+
+              {/* ③ Total TTC = HT + TVA */}
+              <div className="bg-emerald-500/5 rounded-xl p-2.5 border border-emerald-500/20 space-y-1.5">
+                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <IconReceipt size={12} className="text-emerald-400" /> ③ Total TTC (HT + TVA)
+                </div>
+                {tvaLines.map((line) => (
+                  <div key={line.label} className="flex justify-between gap-2 text-[10px]">
+                    <span className="text-gray-400">{line.label}</span>
+                    <span className="text-gray-200 whitespace-nowrap">
+                      {formatEuro2(line.ht)} + {formatEuro2(line.tva)} = <span className="text-white">{formatEuro2(line.ttc)}</span>
+                    </span>
+                  </div>
+                ))}
+                <div className="border-t border-white/10 pt-1 flex justify-between gap-2 font-bold text-sm text-emerald-400">
+                  <span className="text-[10px] text-gray-300 self-center">
+                    {formatEuro2(totals.ht)} HT + {formatEuro2(totals.tva)} TVA
+                  </span>
+                  <span>= {formatEuro2(totals.ttc)} TTC</span>
+                </div>
+                {totalPrice !== null && Math.abs(round2(totals.ttc - totalPrice)) < 0.01 ? (
+                  <div className="text-[10px] text-emerald-300">✓ Identique au prix affiché au client ({priceLabel})</div>
+                ) : (
+                  <div className="text-[10px] text-orange-300 bg-orange-500/10 p-1.5 rounded">
+                    ⚠️ Écart avec le prix affiché au client ({priceLabel}) :{' '}
+                    {totalPrice !== null ? formatEuro2(round2(totals.ttc - totalPrice)) : '—'}
+                  </div>
+                )}
+                {Math.abs(round2(totals.ht - engineHT)) >= 0.01 && (
+                  <div className="text-[10px] text-orange-300">
+                    Arrondi : le moteur arrondit la TVA sur le sous-total, soit {formatEuro2(engineHT)} HT au total
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {/* Raw JSON toggle */}
