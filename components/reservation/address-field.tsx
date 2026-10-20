@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { IconCheck, IconClock, IconLoader2, IconMapPin, IconStar, IconX } from '@tabler/icons-react';
 import { POPULAR_LOCATIONS } from '@/lib/constants';
+import { resolvePlace, searchAddresses, type AddressSuggestion } from '@/lib/geocoding/client';
 import type { Place } from './use-quote';
 
 const RECENT_KEY = 'mobiservice_recent_places';
@@ -31,7 +32,8 @@ function rememberPlace(place: Place) {
 
 type Item =
   | { kind: 'popular'; icon: string; place: Place; title: string; subtitle: string }
-  | { kind: 'recent' | 'result'; place: Place; title: string; subtitle: string };
+  | { kind: 'recent'; place: Place; title: string; subtitle: string }
+  | { kind: 'result'; place: AddressSuggestion; title: string; subtitle: string };
 
 const splitLabel = (label: string): { title: string; subtitle: string } => {
   const idx = label.indexOf(',');
@@ -67,7 +69,7 @@ export function AddressField({
   const listId = `${uid}-list`;
   const hintId = `${uid}-hint`;
 
-  const [results, setResults] = useState<Place[]>([]);
+  const [results, setResults] = useState<AddressSuggestion[]>([]);
   const [recent, setRecent] = useState<Place[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -127,17 +129,7 @@ export function AddressField({
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        const res = await fetch(`/api/geocoding/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
-        const data = await res.json();
-        if (!res.ok) throw new Error('search failed');
-        const mapped: Place[] = Array.isArray(data.results)
-          ? data.results.map((r: { label: string; latitude: number; longitude: number }) => ({
-              label: r.label,
-              lat: r.latitude,
-              lng: r.longitude,
-            }))
-          : [];
-        setResults(mapped);
+        setResults(await searchAddresses(query, controller.signal));
         setHighlight(-1);
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
@@ -150,15 +142,23 @@ export function AddressField({
     }, 300);
   }, []);
 
-  const choose = (item: Item) => {
+  const choose = async (item: Item) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     abortRef.current?.abort();
-    rememberPlace(item.place);
-    onSelect(item.place);
     setOpen(false);
-    setResults([]);
     setHighlight(-1);
+    // Suggestion Google : coordonnées récupérées au moment du choix
+    setLoading(true);
+    const place = await resolvePlace(item.place);
     setLoading(false);
+    if (!place) {
+      setSearchFailed(true);
+      setOpen(true);
+      return;
+    }
+    rememberPlace(place);
+    onSelect(place);
+    setResults([]);
   };
 
   const openList = () => {

@@ -167,13 +167,15 @@ export function buildConfigFromRules(rules: any[]): PricingConfig {
 
     // CA rates (per-km, zoneType='ca')
     if (rule.ruleType === 'per_km' && rule.zoneType === 'ca') {
-      // « plus de 100 km » est enregistré sans limite haute (maxKm vide)
+      // « plus de 100 km » est enregistré sans limite haute (maxKm vide). Les autres lignes vont
+      // au palier dont la borne (25/50/75/100) est la plus proche : une tranche saisie « 26 »
+      // reste le premier palier au lieu d'écraser celui de 25-50 km.
       let bracket: keyof typeof config.dayRates.caRates;
       if (rule.maxKm === null || rule.maxKm === undefined) bracket = '100+';
-      else if (rule.maxKm <= 25) bracket = '0-25';
-      else if (rule.maxKm <= 50) bracket = '25-50';
-      else if (rule.maxKm <= 75) bracket = '50-75';
-      else if (rule.maxKm <= 100) bracket = '75-100';
+      else if (rule.maxKm < 37.5) bracket = '0-25';
+      else if (rule.maxKm < 62.5) bracket = '25-50';
+      else if (rule.maxKm < 87.5) bracket = '50-75';
+      else if (rule.maxKm < 112.5) bracket = '75-100';
       else bracket = '100+';
 
       if (rule.timeSlot === 'day') {

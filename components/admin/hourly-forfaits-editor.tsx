@@ -43,7 +43,8 @@ const formatHours = (h: number) => {
 };
 
 const toNumber = (v: string) => Number(v.trim().replace(',', '.'));
-const round2 = (n: number) => Math.round(n * 100) / 100;
+// Prices are entered to the thousandth (same precision as the database columns)
+const round3 = (n: number) => Math.round(n * 1000) / 1000;
 const formatPrice = (v?: string) => (v ? `${parseFloat(v).toFixed(3)} €` : '-');
 
 const NEW_KEY = 'new';
@@ -122,11 +123,11 @@ export function HourlyForfaitsEditor({ rules, onChange }: HourlyForfaitsEditorPr
       ruleType: 'forfait',
       serviceType: 'hourly',
       timeSlot,
-      priceTTC: round2(priceTTC),
-      priceHT: round2(priceTTC), // saisi HT : priceTTC (nom historique) porte le montant HT
+      priceTTC: round3(priceTTC),
+      priceHT: round3(priceTTC), // saisi HT : priceTTC (nom historique) porte le montant HT
       forfaitHours: hours,
       forfaitMaxKm: maxKm,
-      hourlyRateTTC: round2(priceTTC / hours),
+      hourlyRateTTC: round3(priceTTC / hours),
       description: `Forfait ${formatHours(hours)} / ${maxKm}km (${timeSlot === 'day' ? 'Jour' : 'Nuit'})`,
       isActive: true,
     });

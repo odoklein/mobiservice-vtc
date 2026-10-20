@@ -8,6 +8,7 @@
  */
 
 import { HAUTE_SAVOIE_AUTOCOMPLETE_BIAS } from '@/lib/constants';
+import { getGoogleApiKey, googleAutocomplete } from '@/lib/geocoding/google';
 
 // Simple in-memory cache for geocoding results
 interface CacheEntry {
@@ -20,8 +21,11 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 export interface GeocodingResult {
     label: string; // Formatted address / POI
-    latitude: number;
-    longitude: number;
+    /** null for a Google suggestion: resolved via /api/geocoding/place when picked */
+    latitude: number | null;
+    longitude: number | null;
+    /** Google Places id (only when the result has no coordinates yet) */
+    placeId?: string;
 }
 
 interface SearchBoxFeature {
@@ -316,7 +320,7 @@ async function callGeocodingV6Api(searchText: string, accessToken: string): Prom
  * @param searchText - Address or POI search query
  * @returns Array of geocoding results (max 6)
  */
-export async function searchAddress(searchText: string): Promise<GeocodingResult[]> {
+export async function searchAddress(searchText: string, sessionToken?: string): Promise<GeocodingResult[]> {
     const trimmed = searchText.trim();
     if (trimmed.length < 3) {
         return [];
@@ -327,22 +331,32 @@ export async function searchAddress(searchText: string): Promise<GeocodingResult
         return cached;
     }
 
-    const accessToken = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-    if (!accessToken) {
-        throw new Error('MAPBOX_ACCESS_TOKEN is not configured');
-    }
-
     try {
         // 1. Get priority hub matches
         const priorityMatches = matchPriorityHubs(trimmed);
 
-        // 2. Query Mapbox Search Box API (or fallback to Geocoding v6)
-        let apiResults: GeocodingResult[] = [];
-        try {
-            apiResults = await callSearchBoxApi(trimmed, accessToken);
-        } catch (searchBoxErr) {
-            console.warn('Mapbox Search Box API failed, falling back to Geocoding v6:', searchBoxErr);
-            apiResults = await callGeocodingV6Api(trimmed, accessToken);
+        // 2. Google Places when configured (best POI coverage: hospitals, clinics, shops…),
+        //    otherwise Mapbox Search Box API (or Geocoding v6)
+        let apiResults: GeocodingResult[] | null = null;
+        if (getGoogleApiKey()) {
+            try {
+                const predictions = await googleAutocomplete(trimmed, sessionToken);
+                apiResults = predictions.map((p) => ({ label: p.label, latitude: null, longitude: null, placeId: p.placeId }));
+            } catch (googleErr) {
+                console.warn('Google Places autocomplete failed, falling back to Mapbox:', googleErr);
+            }
+        }
+        if (!apiResults) {
+            const accessToken = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+            if (!accessToken) {
+                throw new Error('MAPBOX_ACCESS_TOKEN is not configured');
+            }
+            try {
+                apiResults = await callSearchBoxApi(trimmed, accessToken);
+            } catch (searchBoxErr) {
+                console.warn('Mapbox Search Box API failed, falling back to Geocoding v6:', searchBoxErr);
+                apiResults = await callGeocodingV6Api(trimmed, accessToken);
+            }
         }
 
         // 3. Deduplicate and merge results (priority hubs first)

@@ -29,6 +29,7 @@ import {
   IconStar,
 } from '@tabler/icons-react';
 import { CONTACT, POPULAR_LOCATIONS } from '@/lib/constants';
+import { resolvePlace, searchAddresses, type AddressSuggestion } from '@/lib/geocoding/client';
 import { getImmobilisationMAD, isAR13DaysAllowed, type ReturnDaysAfter } from '@/lib/booking/immobilisation-mad';
 
 type Step = 1 | 2 | 3 | 4;
@@ -171,6 +172,9 @@ const combineDateTime = (date: Date, time: string) => {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h || 0, m || 0, 0);
 };
 
+/** Tarif unitaire au millième (les barèmes de l'admin se saisissent au millième, en HT). */
+const formatRate = (n: number) => String(Math.round(n * 1000) / 1000);
+
 /* ----------------------------- address field ------------------------------ */
 
 function AddressField({
@@ -190,7 +194,7 @@ function AddressField({
   onTextChange: (text: string) => void;
   onSelect: (place: Place) => void;
 }) {
-  const [suggestions, setSuggestions] = useState<Place[]>([]);
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(-1);
@@ -229,17 +233,7 @@ function AddressField({
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        const res = await fetch(`/api/geocoding/search?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        });
-        const data = await res.json();
-        const results: Place[] = Array.isArray(data.results)
-          ? data.results.map((r: { label: string; latitude: number; longitude: number }) => ({
-              label: r.label,
-              lat: r.latitude,
-              lng: r.longitude,
-            }))
-          : [];
+        const results = await searchAddresses(query, controller.signal);
         setSuggestions(results);
         setOpen(true);
         setHighlight(-1);
@@ -253,14 +247,21 @@ function AddressField({
     }, 280);
   };
 
-  const choose = (place: Place) => {
+  const choose = async (suggestion: AddressSuggestion) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     abortRef.current?.abort();
-    onSelect(place);
     setOpen(false);
-    setSuggestions([]);
     setHighlight(-1);
+    // Suggestion Google : coordonnées récupérées au moment du choix
+    setLoading(true);
+    const place = await resolvePlace(suggestion);
     setLoading(false);
+    if (place) {
+      onSelect(place);
+      setSuggestions([]);
+    } else {
+      setOpen(true);
+    }
   };
 
   const isShortcuts = value.trim().length < 3;
@@ -671,13 +672,13 @@ function PricingDebugSidebar({
                 {quote?.pricing.breakdown?.pricePerKmCA && (
                   <div className="flex justify-between text-gray-300 text-[10px]">
                     <span className="text-gray-400">Barème CA :</span>
-                    <span className="text-white">{quote.pricing.breakdown.pricePerKmCA} €/km</span>
+                    <span className="text-white">{formatRate(quote.pricing.breakdown.pricePerKmCA / 1.1)} € HT/km ({formatRate(quote.pricing.breakdown.pricePerKmCA)} € TTC)</span>
                   </div>
                 )}
                 {quote?.pricing.breakdown?.pricePerKmTP && (
                   <div className="flex justify-between text-gray-300 text-[10px]">
                     <span className="text-gray-400">Barème TP :</span>
-                    <span className="text-white">{quote.pricing.breakdown.pricePerKmTP} €/km</span>
+                    <span className="text-white">{formatRate(quote.pricing.breakdown.pricePerKmTP / 1.1)} € HT/km ({formatRate(quote.pricing.breakdown.pricePerKmTP)} € TTC)</span>
                   </div>
                 )}
               </>

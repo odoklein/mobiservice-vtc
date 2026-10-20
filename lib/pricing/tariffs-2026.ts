@@ -355,6 +355,7 @@ export function calculateTransferPrice(
   let etapeNum = 1;
   const km = (n: number) => n.toFixed(1);
   const eur = (n: number) => n.toFixed(2);
+  const rate = (n: number) => String(Math.round(n * 1000) / 1000); // tarif unitaire, au millième
 
   // Coûts (utilisés aussi pour l'affichage admin quand le forfait agglomération s'applique)
   const costCA_out = distanceCA_out * pricePerKmCA;
@@ -375,7 +376,7 @@ export function calculateTransferPrice(
     etapesCalcul.push({
       numero: etapeNum++,
       description: 'Déplacement: Dépôt → Lieu de prise en charge',
-      calcul: `${km(distanceCA_out)} km × ${eur(pricePerKmCA)} €/km`,
+      calcul: `${km(distanceCA_out)} km × ${rate(pricePerKmCA)} €/km`,
       montant: round2(costCA_out),
     });
 
@@ -383,20 +384,20 @@ export function calculateTransferPrice(
       etapesCalcul.push({
         numero: etapeNum++,
         description: `Trajet client aller (tarif ${night ? 'NUIT' : 'JOUR'})`,
-        calcul: `${km(distanceTP)} km × ${eur(pricePerKmTP)} €/km`,
+        calcul: `${km(distanceTP)} km × ${rate(pricePerKmTP)} €/km`,
         montant: round2(distanceTP * pricePerKmTP),
       });
       etapesCalcul.push({
         numero: etapeNum++,
         description: `Trajet client retour (tarif ${nightReturn ? 'NUIT' : 'JOUR'})`,
-        calcul: `${km(distanceTP)} km × ${eur(pricePerKmTPReturn)} €/km`,
+        calcul: `${km(distanceTP)} km × ${rate(pricePerKmTPReturn)} €/km`,
         montant: round2(distanceTP * pricePerKmTPReturn),
       });
     } else {
       etapesCalcul.push({
         numero: etapeNum++,
         description: 'Trajet client: Prise en charge → Destination',
-        calcul: `${km(distanceTP)} km × ${eur(pricePerKmTP)} €/km`,
+        calcul: `${km(distanceTP)} km × ${rate(pricePerKmTP)} €/km`,
         montant: round2(costTP),
       });
     }
@@ -404,7 +405,7 @@ export function calculateTransferPrice(
     etapesCalcul.push({
       numero: etapeNum++,
       description: 'Retour: Destination → Dépôt (toujours inclus)',
-      calcul: `${km(distanceCA_return)} km × ${eur(pricePerKmCAReturn)} €/km`,
+      calcul: `${km(distanceCA_return)} km × ${rate(pricePerKmCAReturn)} €/km`,
       montant: round2(costCA_return),
     });
 
@@ -461,7 +462,7 @@ export function calculateTransferPrice(
       etapesCalcul.push({
         numero: etapeNum++,
         description: `Mise à disposition (temps d'attente)`,
-        calcul: `Temps d'attente: ${waitingMinutes} min (${free} min gratuites) = ${chargeableMinutes} min × ${ratePerMinute.toFixed(2)}€/min = ${eur(madTTC)}€`,
+        calcul: `Temps d'attente: ${waitingMinutes} min (${free} min gratuites) = ${chargeableMinutes} min × ${rate(ratePerMinute)}€/min = ${eur(madTTC)}€`,
         montant: madTTC,
       });
     }
@@ -534,8 +535,8 @@ export function calculateTransferPrice(
   if (isForfaitAgglomeration) {
     lignesResume.push(`  Forfait agglomération: ${eur(transportTTC)}€ TTC`);
   } else {
-    lignesResume.push(`  Déplacement: ${eur(pricePerKmCA)}€/km`);
-    lignesResume.push(`  Trajet client: ${eur(pricePerKmTP)}€/km`);
+    lignesResume.push(`  Déplacement: ${rate(pricePerKmCA)}€/km`);
+    lignesResume.push(`  Trajet client: ${rate(pricePerKmTP)}€/km`);
   }
 
   lignesResume.push(``);
