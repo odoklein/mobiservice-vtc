@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { bookings, otpVerifications } from '@/lib/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import { Resend } from 'resend';
+import { FROM_EMAIL } from '@/lib/email/resend';
 
 // Verify OTP and confirm booking for cash payment
 export async function POST(request: NextRequest) {
@@ -77,10 +78,9 @@ export async function POST(request: NextRequest) {
     if (process.env.RESEND_API_KEY) {
       try {
         const resend = new Resend(process.env.RESEND_API_KEY);
-        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
         await resend.emails.send({
-          from: `MobiService VTC <${fromEmail}>`,
+          from: FROM_EMAIL,
           to: [booking.guestEmail!],
           subject: '📩 Demande reçue - MobiService VTC',
           html: `

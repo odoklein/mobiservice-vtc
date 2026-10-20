@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
 import { adminBookingRejectSchema } from '@/lib/validations/admin-booking';
 import { Resend } from 'resend';
+import { FROM_ADDRESS, FROM_EMAIL } from '@/lib/email/resend';
 
 function parseBookingId(id: string): number | null {
     const bookingId = Number.parseInt(id, 10);
@@ -74,10 +75,10 @@ export async function POST(
         if (process.env.RESEND_API_KEY && booking.guestEmail) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
-                const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+                const fromEmail = FROM_ADDRESS;
 
                 await resend.emails.send({
-                    from: `MobiService VTC <${fromEmail}>`,
+                    from: FROM_EMAIL,
                     to: [booking.guestEmail],
                     subject: 'Réservation non disponible - MobiService VTC',
                     html: `

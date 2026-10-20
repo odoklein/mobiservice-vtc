@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { bookings, otpVerifications } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
+import { FROM_EMAIL } from '@/lib/email/resend';
 
 // Generate a 6-digit OTP code
 function generateOTP(): string {
@@ -161,11 +162,10 @@ export async function POST(request: NextRequest) {
 
       try {
         const resend = new Resend(process.env.RESEND_API_KEY);
-        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-        console.log(`[OTP-DEBUG] [SEND] Using from address: ${fromEmail}`);
+        console.log(`[OTP-DEBUG] [SEND] Using from address: ${FROM_EMAIL}`);
 
         const { error, data } = await resend.emails.send({
-          from: `MobiService VTC <${fromEmail}>`,
+          from: FROM_EMAIL,
           to: [booking.guestEmail!],
           subject: 'Votre code de verification - MobiService VTC',
           html: `<!DOCTYPE html>
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
           console.error('[OTP-DEBUG] [ERROR] Resend API returned error:', {
             error,
             recipient: booking.guestEmail,
-            from: fromEmail,
+            from: FROM_EMAIL,
           });
           return NextResponse.json(
             {

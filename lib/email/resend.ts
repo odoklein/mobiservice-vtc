@@ -6,4 +6,11 @@ if (!process.env.RESEND_API_KEY) {
 
 export const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+// RESEND_FROM_EMAIL peut valoir "contact@domaine.fr" ou "MobiService VTC <contact@domaine.fr>"
+const RAW_FROM = (process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev').trim().replace(/^["']|["']$/g, '');
+
+/** Adresse seule, pour l'afficher dans un email ("contactez-nous à ..."). */
+export const FROM_ADDRESS = (RAW_FROM.match(/<([^>]+)>/)?.[1] ?? RAW_FROM).trim();
+
+/** Expéditeur Resend complet : "MobiService VTC <adresse>" (jamais imbriqué deux fois). */
+export const FROM_EMAIL = RAW_FROM.includes('<') ? RAW_FROM : `MobiService VTC <${FROM_ADDRESS}>`;

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
 import { Resend } from 'resend';
 import { DRIVER, CONTACT } from '@/lib/constants';
+import { FROM_EMAIL } from '@/lib/email/resend';
 
 /**
  * POST /api/admin/bookings/[id]/accept-quote
@@ -117,7 +118,6 @@ export async function POST(
         if (process.env.RESEND_API_KEY && booking.guestEmail) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
-                const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
                 const discountHtml = appliedDiscount ? `
@@ -129,7 +129,7 @@ export async function POST(
                 ` : '';
 
                 await resend.emails.send({
-                    from: `MobiService VTC <${fromEmail}>`,
+                    from: FROM_EMAIL,
                     to: [booking.guestEmail],
                     subject: '✅ Réservation Confirmée - MobiService VTC',
                     html: `

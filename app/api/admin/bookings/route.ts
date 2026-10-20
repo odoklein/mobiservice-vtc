@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm';
 import { adminBookingCreateSchema } from '@/lib/validations/admin-booking';
 import { Resend } from 'resend';
 import { DRIVER } from '@/lib/constants';
+import { FROM_EMAIL } from '@/lib/email/resend';
 
 export async function GET(request: NextRequest) {
     const admin = await getAdminFromRequest();
@@ -124,10 +125,9 @@ export async function POST(request: NextRequest) {
         if (process.env.RESEND_API_KEY && DRIVER.email && booking.guestEmail) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
-                const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
                 await resend.emails.send({
-                    from: `MobiService VTC <${fromEmail}>`,
+                    from: FROM_EMAIL,
                     to: [DRIVER.email],
                     subject: `🚗 Nouvelle réservation #${booking.id} - ${booking.guestName || 'Client'}`,
                     html: `<!DOCTYPE html>

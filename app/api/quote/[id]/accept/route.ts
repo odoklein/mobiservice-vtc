@@ -4,6 +4,7 @@ import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
 import { DRIVER } from '@/lib/constants';
+import { FROM_EMAIL } from '@/lib/email/resend';
 
 // POST /api/quote/[id]/accept - Customer accepts the quote
 export async function POST(
@@ -54,10 +55,9 @@ export async function POST(
         if (process.env.RESEND_API_KEY && booking.guestEmail) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
-                const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
                 await resend.emails.send({
-                    from: `MobiService VTC <${fromEmail}>`,
+                    from: FROM_EMAIL,
                     to: [booking.guestEmail],
                     subject: '✅ Devis Accepté - MobiService VTC',
                     html: `
@@ -108,11 +108,10 @@ export async function POST(
         if (process.env.RESEND_API_KEY && DRIVER.email) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
-                const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
                 await resend.emails.send({
-                    from: `MobiService VTC <${fromEmail}>`,
+                    from: FROM_EMAIL,
                     to: [DRIVER.email],
                     subject: `✅ Devis #${bookingId} Accepté par ${booking.guestName}`,
                     html: `
