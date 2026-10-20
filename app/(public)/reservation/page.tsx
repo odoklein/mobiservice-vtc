@@ -29,7 +29,6 @@ import {
   IconStar,
 } from '@tabler/icons-react';
 import { CONTACT, POPULAR_LOCATIONS } from '@/lib/constants';
-import { resolvePlace, searchAddresses, type AddressSuggestion } from '@/lib/geocoding/client';
 import { getImmobilisationMAD, isAR13DaysAllowed, type ReturnDaysAfter } from '@/lib/booking/immobilisation-mad';
 
 type Step = 1 | 2 | 3 | 4;
@@ -194,7 +193,7 @@ function AddressField({
   onTextChange: (text: string) => void;
   onSelect: (place: Place) => void;
 }) {
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<Place[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(-1);
@@ -233,7 +232,17 @@ function AddressField({
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        const results = await searchAddresses(query, controller.signal);
+        const res = await fetch(`/api/geocoding/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        const results: Place[] = Array.isArray(data.results)
+          ? data.results.map((r: { label: string; latitude: number; longitude: number }) => ({
+              label: r.label,
+              lat: r.latitude,
+              lng: r.longitude,
+            }))
+          : [];
         setSuggestions(results);
         setOpen(true);
         setHighlight(-1);
@@ -247,21 +256,14 @@ function AddressField({
     }, 280);
   };
 
-  const choose = async (suggestion: AddressSuggestion) => {
+  const choose = (place: Place) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     abortRef.current?.abort();
+    onSelect(place);
     setOpen(false);
+    setSuggestions([]);
     setHighlight(-1);
-    // Suggestion Google : coordonnées récupérées au moment du choix
-    setLoading(true);
-    const place = await resolvePlace(suggestion);
     setLoading(false);
-    if (place) {
-      onSelect(place);
-      setSuggestions([]);
-    } else {
-      setOpen(true);
-    }
   };
 
   const isShortcuts = value.trim().length < 3;

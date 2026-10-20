@@ -8,7 +8,6 @@
  */
 
 import { HAUTE_SAVOIE_AUTOCOMPLETE_BIAS } from '@/lib/constants';
-import { getGoogleApiKey, googleAutocomplete } from '@/lib/geocoding/google';
 
 // Simple in-memory cache for geocoding results
 interface CacheEntry {
@@ -21,11 +20,8 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 export interface GeocodingResult {
     label: string; // Formatted address / POI
-    /** null for a Google suggestion: resolved via /api/geocoding/place when picked */
-    latitude: number | null;
-    longitude: number | null;
-    /** Google Places id (only when the result has no coordinates yet) */
-    placeId?: string;
+    latitude: number;
+    longitude: number;
 }
 
 interface SearchBoxFeature {
@@ -268,6 +264,77 @@ async function callSearchBoxApi(searchText: string, accessToken: string): Promis
 }
 
 /**
+ * Establishments from the French national Géoplateforme (IGN, free, no key):
+ * hospitals, clinics, town halls, schools… which Mapbox often misses or mislabels.
+ * Only results in the service area (or very close matches elsewhere) are kept.
+ */
+const IGN_REGION_POSTCODES = ['74', '73', '01', '38', '39'];
+const IGN_EXCLUDED_CATEGORIES = /lieu-dit|commune|zone d'habitation|quartier|hameau/i;
+// Airports are handled by PRIORITY_HUBS and Mapbox (IGN places Geneva airport on the French side)
+const IGN_EXCLUDED_NAMES = /a[ée]roport|a[ée]rodrome/i;
+const IGN_MAX_RESULTS = 3;
+
+interface IgnPoiFeature {
+    geometry: { coordinates: [number, number] };
+    properties: {
+        toponym?: string;
+        category?: string[];
+        city?: string[];
+        postcode?: string[];
+        score?: number;
+    };
+}
+
+async function callIgnPoiApi(searchText: string): Promise<GeocodingResult[]> {
+    const url = new URL('https://data.geopf.fr/geocodage/search');
+    url.searchParams.set('q', searchText);
+    url.searchParams.set('index', 'poi');
+    url.searchParams.set('limit', '10');
+    url.searchParams.set('lat', String(HAUTE_SAVOIE_AUTOCOMPLETE_BIAS.center.lat));
+    url.searchParams.set('lon', String(HAUTE_SAVOIE_AUTOCOMPLETE_BIAS.center.lng));
+
+    const response = await fetch(url.toString(), { signal: AbortSignal.timeout(1500) });
+    if (!response.ok) {
+        throw new Error(`IGN Géoplateforme error (${response.status})`);
+    }
+
+    const data = await response.json();
+    const features: IgnPoiFeature[] = Array.isArray(data.features) ? data.features : [];
+
+    // Best match first; a place whose town is typed in the query wins
+    // ("mairie cluses" → Mairie de Cluses before Mairie de La Clusaz)
+    const queryWords = new Set(normalizeText(searchText).split(/[\s,'-]+/).filter((w) => w.length >= 3));
+    const rank = (f: IgnPoiFeature) => {
+        const cityWords = (f.properties.city ?? []).flatMap((c) => normalizeText(c).split(/[\s,'-]+/));
+        const cityTyped = cityWords.length > 0 && cityWords.filter((w) => w.length >= 3).every((w) => queryWords.has(w));
+        return (f.properties.score ?? 0) + (cityTyped ? 0.3 : 0);
+    };
+    features.sort((x, y) => rank(y) - rank(x));
+
+    const results: GeocodingResult[] = [];
+    for (const f of features) {
+        const p = f.properties;
+        const name = p.toponym;
+        if (!name || IGN_EXCLUDED_NAMES.test(name)) continue;
+        if ((p.category ?? []).some((c) => IGN_EXCLUDED_CATEGORIES.test(c))) continue;
+
+        const postcode = p.postcode?.[0] ?? '';
+        const inRegion = IGN_REGION_POSTCODES.some((dep) => postcode.startsWith(dep));
+        const score = p.score ?? 0;
+        if (!(inRegion ? score >= 0.3 : score >= 0.75)) continue;
+
+        const city = p.city?.[0] ?? '';
+        results.push({
+            label: [name, `${postcode} ${city}`.trim()].filter(Boolean).join(', '),
+            latitude: f.geometry.coordinates[1],
+            longitude: f.geometry.coordinates[0],
+        });
+        if (results.length >= IGN_MAX_RESULTS) break;
+    }
+    return results;
+}
+
+/**
  * Fallback to Mapbox Geocoding v6 (forward) if Search Box API fails
  */
 async function callGeocodingV6Api(searchText: string, accessToken: string): Promise<GeocodingResult[]> {
@@ -313,14 +380,14 @@ async function callGeocodingV6Api(searchText: string, accessToken: string): Prom
  * Search for addresses & POIs using Mapbox
  * Features:
  * 1. Curated hub prioritization (Geneva Airport, Lyon Airport, Gares, etc.)
- * 2. Search Box API v1 for POI (Airports, Terminals, Hotels) & address resolution
+ * 2. IGN Géoplateforme establishments (hospitals, town halls…) + Search Box API v1 for POI & addresses
  * 3. Fallback to Geocoding v6
  * 4. Spam filtering and 1-hour caching
  *
  * @param searchText - Address or POI search query
  * @returns Array of geocoding results (max 6)
  */
-export async function searchAddress(searchText: string, sessionToken?: string): Promise<GeocodingResult[]> {
+export async function searchAddress(searchText: string): Promise<GeocodingResult[]> {
     const trimmed = searchText.trim();
     if (trimmed.length < 3) {
         return [];
@@ -331,33 +398,29 @@ export async function searchAddress(searchText: string, sessionToken?: string): 
         return cached;
     }
 
+    const accessToken = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+    if (!accessToken) {
+        throw new Error('MAPBOX_ACCESS_TOKEN is not configured');
+    }
+
     try {
         // 1. Get priority hub matches
         const priorityMatches = matchPriorityHubs(trimmed);
 
-        // 2. Google Places when configured (best POI coverage: hospitals, clinics, shops…),
-        //    otherwise Mapbox Search Box API (or Geocoding v6)
-        let apiResults: GeocodingResult[] | null = null;
-        if (getGoogleApiKey()) {
-            try {
-                const predictions = await googleAutocomplete(trimmed, sessionToken);
-                apiResults = predictions.map((p) => ({ label: p.label, latitude: null, longitude: null, placeId: p.placeId }));
-            } catch (googleErr) {
-                console.warn('Google Places autocomplete failed, falling back to Mapbox:', googleErr);
-            }
+        // 2. In parallel: establishments from IGN (never blocking) and Mapbox Search Box API
+        //    (or fallback to Geocoding v6) for addresses and other places
+        const ignPromise = callIgnPoiApi(trimmed).catch((ignErr) => {
+            console.warn('IGN establishment search failed, using Mapbox only:', ignErr);
+            return [] as GeocodingResult[];
+        });
+        let mapboxResults: GeocodingResult[] = [];
+        try {
+            mapboxResults = await callSearchBoxApi(trimmed, accessToken);
+        } catch (searchBoxErr) {
+            console.warn('Mapbox Search Box API failed, falling back to Geocoding v6:', searchBoxErr);
+            mapboxResults = await callGeocodingV6Api(trimmed, accessToken);
         }
-        if (!apiResults) {
-            const accessToken = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-            if (!accessToken) {
-                throw new Error('MAPBOX_ACCESS_TOKEN is not configured');
-            }
-            try {
-                apiResults = await callSearchBoxApi(trimmed, accessToken);
-            } catch (searchBoxErr) {
-                console.warn('Mapbox Search Box API failed, falling back to Geocoding v6:', searchBoxErr);
-                apiResults = await callGeocodingV6Api(trimmed, accessToken);
-            }
-        }
+        const apiResults = [...(await ignPromise), ...mapboxResults];
 
         // 3. Deduplicate and merge results (priority hubs first)
         const merged: GeocodingResult[] = [];

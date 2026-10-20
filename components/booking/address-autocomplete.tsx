@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { IconMapPin, IconLoader2, IconClock, IconStar, IconMap2 } from '@tabler/icons-react';
 import { useRecentAddresses } from '@/hooks/use-local-storage';
 import { POPULAR_LOCATIONS, HAUTE_SAVOIE_AUTOCOMPLETE_BIAS } from '@/lib/constants';
-import { resolvePlace, searchAddresses } from '@/lib/geocoding/client';
 
 interface AddressAutocompleteProps {
   label: string;
@@ -23,10 +22,8 @@ interface MapboxSuggestion {
   mainText: string;
   secondaryText: string;
   fullAddress: string;
-  /** null for a Google suggestion, resolved when picked */
-  lat: number | null;
-  lng: number | null;
-  placeId?: string;
+  lat: number;
+  lng: number;
 }
 
 interface MapboxFeature {
@@ -46,21 +43,24 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
 async function fetchMapboxSuggestions(query: string, signal: AbortSignal): Promise<MapboxSuggestion[]> {
   try {
-    const results = await searchAddresses(query, signal);
-    return results.map((r, idx) => {
-      const commaIdx = r.label.indexOf(',');
-      const mainText = commaIdx === -1 ? r.label : r.label.slice(0, commaIdx).trim();
-      const secondaryText = commaIdx === -1 ? '' : r.label.slice(commaIdx + 1).trim();
-      return {
-        id: r.placeId || `${r.label}-${idx}`,
-        mainText,
-        secondaryText,
-        fullAddress: r.label,
-        lat: r.lat,
-        lng: r.lng,
-        placeId: r.placeId,
-      };
-    });
+    const res = await fetch(`/api/geocoding/search?q=${encodeURIComponent(query)}`, { signal });
+    if (res.ok) {
+      const data = await res.json();
+      const results = Array.isArray(data.results) ? data.results : [];
+      return results.map((r: { label: string; latitude: number; longitude: number }, idx: number) => {
+        const commaIdx = r.label.indexOf(',');
+        const mainText = commaIdx === -1 ? r.label : r.label.slice(0, commaIdx).trim();
+        const secondaryText = commaIdx === -1 ? '' : r.label.slice(commaIdx + 1).trim();
+        return {
+          id: `${r.label}-${idx}`,
+          mainText,
+          secondaryText,
+          fullAddress: r.label,
+          lat: r.latitude,
+          lng: r.longitude,
+        };
+      });
+    }
   } catch (err) {
     if ((err as Error).name === 'AbortError') throw err;
   }
@@ -166,13 +166,12 @@ export function AddressAutocomplete({
     }, 300);
   };
 
-  const handleSelect = async (suggestion: MapboxSuggestion) => {
+  const handleSelect = (suggestion: MapboxSuggestion) => {
     setInputValue(suggestion.fullAddress);
     setSuggestions([]);
     setShowSuggestions(false);
     addAddress(suggestion.fullAddress);
-    const place = await resolvePlace({ label: suggestion.fullAddress, lat: suggestion.lat, lng: suggestion.lng, placeId: suggestion.placeId });
-    onChange(suggestion.fullAddress, place?.lat, place?.lng);
+    onChange(suggestion.fullAddress, suggestion.lat, suggestion.lng);
   };
 
   const handleSelectRecent = async (address: string) => {
@@ -184,11 +183,8 @@ export function AddressAutocomplete({
       const controller = new AbortController();
       const results = await fetchMapboxSuggestions(address, controller.signal);
       const match = results[0];
-      const place = match
-        ? await resolvePlace({ label: match.fullAddress, lat: match.lat, lng: match.lng, placeId: match.placeId })
-        : null;
       addAddress(address);
-      onChange(address, place?.lat, place?.lng);
+      onChange(address, match?.lat, match?.lng);
     } catch (err) {
       console.error('Error geocoding recent address:', err);
       onChange(address);

@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ results: [] });
         }
 
-        // Google Places (session token groups the keystrokes) or Mapbox fallback
-        const results = await searchAddress(query, searchParams.get('session') || undefined);
+        // Call OpenRouteService geocoding
+        const results = await searchAddress(query);
 
         return NextResponse.json({ results });
     } catch (error) {
