@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -24,8 +24,6 @@ import {
   IconAlertTriangle,
   IconRoute,
   IconCalculator,
-  IconCode,
-  IconReceipt,
   IconStar,
 } from '@tabler/icons-react';
 import { CONTACT, POPULAR_LOCATIONS } from '@/lib/constants';
@@ -175,10 +173,10 @@ const combineDateTime = (date: Date, time: string) => {
 };
 
 /** Tarif unitaire au millième (les barèmes de l'admin se saisissent au millième, en HT). */
-const formatRate = (n: number) => String(Math.round(n * 1000) / 1000);
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const formatEuro2 = (n: number) => `${n.toFixed(2).replace('.', ',')} €`;
 const formatPercent = (rate: number) => `${Math.round(rate * 100)} %`;
+const formatKm = (n: number) => `${n.toFixed(1).replace('.', ',')} km`;
 
 /** Une ligne du devis, découpée en HT + TVA = TTC (debug). */
 interface TvaLine {
@@ -224,35 +222,35 @@ function buildTvaLines(
     const mad = b.madCost ?? 0;
     const transportTTC = round2(pricing.totalTTC - toll - mad);
     const perKm = (ttc: number, km: number) =>
-      km > 0 ? `${km.toFixed(1)} km · ${formatRate(ttc / (1 + TVA_RATE_TRANSPORT) / km)} € HT/km` : undefined;
+      km > 0 ? `${formatKm(km)} à ${formatEuro2(ttc / (1 + TVA_RATE_TRANSPORT) / km)} HT le km` : undefined;
 
     if (b.isForfaitAgglomeration) {
-      lines.push(tvaLine('Forfait agglomération', transportTTC, TVA_RATE_TRANSPORT, `${distances.total.toFixed(1)} km au total`));
+      lines.push(tvaLine('Forfait courte distance', transportTTC, TVA_RATE_TRANSPORT, `${formatKm(distances.total)} au total`));
     } else {
       const caOut = b.costCA_out ?? 0;
       const tp = b.costTP ?? 0;
       const caReturn = b.costCA_return ?? 0;
       const tpKm = direction === 'round-trip' ? distances.tp * 2 : distances.tp;
-      lines.push(tvaLine('CA Aller (Dépôt ➔ Départ)', caOut, TVA_RATE_TRANSPORT, perKm(caOut, distances.ca_out)));
-      lines.push(tvaLine(direction === 'round-trip' ? 'TP Passager (aller + retour)' : 'TP Passager (Départ ➔ Fin)', tp, TVA_RATE_TRANSPORT, perKm(tp, tpKm)));
-      lines.push(tvaLine('CA Retour (Fin ➔ Dépôt)', caReturn, TVA_RATE_TRANSPORT, perKm(caReturn, distances.ca_return)));
+      lines.push(tvaLine('Le chauffeur vient vous chercher', caOut, TVA_RATE_TRANSPORT, perKm(caOut, distances.ca_out)));
+      lines.push(tvaLine(direction === 'round-trip' ? 'Votre trajet aller et retour' : 'Votre trajet', tp, TVA_RATE_TRANSPORT, perKm(tp, tpKm)));
+      lines.push(tvaLine('Le chauffeur rentre au dépôt', caReturn, TVA_RATE_TRANSPORT, perKm(caReturn, distances.ca_return)));
       // Transport remonté au prix minimum de course (écart de quelques centimes = simple arrondi)
       const minimumAdjustment = round2(transportTTC - (caOut + tp + caReturn));
       if (minimumAdjustment > 0.02) {
-        lines.push(tvaLine('Ajustement prix minimum', minimumAdjustment, TVA_RATE_TRANSPORT));
+        lines.push(tvaLine('Complément prix minimum de course', minimumAdjustment, TVA_RATE_TRANSPORT));
       }
     }
     if (toll > 0) {
-      lines.push(tvaLine('Péages autoroute', toll, TVA_RATE_TOLL, direction === 'round-trip' ? '×2 (A/R)' : undefined));
+      lines.push(tvaLine("Péages d'autoroute", toll, TVA_RATE_TOLL, direction === 'round-trip' ? 'aller et retour' : undefined));
     }
     if (mad > 0) {
       const minutes = pricing.mad?.chargeableMinutes;
-      lines.push(tvaLine('Attente (mise à disposition)', mad, TVA_RATE_MDA, minutes ? `${minutes} min payantes` : undefined));
+      lines.push(tvaLine("Temps d'attente", mad, TVA_RATE_MDA, minutes ? `${minutes} min facturées` : undefined));
     }
   }
 
   if (immobilisation && immobilisation.priceTTC > 0) {
-    lines.push(tvaLine('Immobilisation retour', immobilisation.priceTTC, TVA_RATE_MDA, immobilisation.label));
+    lines.push(tvaLine('Attente avant le retour', immobilisation.priceTTC, TVA_RATE_MDA, immobilisation.label));
   }
   return lines;
 }
@@ -601,15 +599,9 @@ function TimeGrid({
 /* -------------------------- debug calculations sidebar -------------------- */
 
 function PricingDebugSidebar({
-  pickupPlace,
-  dropoffPlace,
   serviceType,
   direction,
   hours,
-  selectedDate,
-  selectedTime,
-  returnDate,
-  returnTime,
   quote,
   quoteLoading,
   quoteError,
@@ -635,9 +627,7 @@ function PricingDebugSidebar({
   priceLabel: string;
   includedKm: number;
 }) {
-  const tvaSettings = useTvaSettings();
   const [expanded, setExpanded] = useState(true);
-  const [showJson, setShowJson] = useState(false);
 
   const tvaLines = quote ? buildTvaLines(quote, serviceType, direction, immobilisation) : null;
   const totals = tvaLines
@@ -647,265 +637,158 @@ function PricingDebugSidebar({
         ttc: round2(tvaLines.reduce((sum, l) => sum + l.ttc, 0)),
       }
     : null;
-  // HT calculé par le moteur (+ immobilisation, ajoutée côté page)
-  const engineHT = round2(
-    (quote?.pricing.totalHT ?? 0) +
-      (immobilisation && immobilisation.priceTTC > 0 ? immobilisation.priceTTC / (1 + TVA_RATE_MDA) : 0)
+  const matchesPrice = totals !== null && totalPrice !== null && Math.abs(round2(totals.ttc - totalPrice)) < 0.01;
+  const isRoundTrip = direction === 'round-trip';
+
+  const row = (label: ReactNode, value: ReactNode, strong = false) => (
+    <div className={`flex justify-between gap-3 ${strong ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
+      <span>{label}</span>
+      <span className="text-right whitespace-nowrap text-gray-900">{value}</span>
+    </div>
   );
 
   return (
-    <div className="bg-[#0b1320] border border-emerald-500/20 rounded-2xl overflow-hidden shadow-xl text-white">
-      {/* Header */}
+    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm text-gray-900">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-3.5 bg-emerald-500/10 hover:bg-emerald-500/15 border-b border-emerald-500/20 text-left transition-colors cursor-pointer"
+        aria-expanded={expanded}
+        className="w-full flex items-center justify-between gap-3 p-4 hover:bg-gray-50 border-b border-gray-100 text-left transition-colors cursor-pointer"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-[#4BC449] animate-pulse shrink-0" />
-          <span className="font-mono text-xs font-bold text-white tracking-wider flex items-center gap-1.5">
-            <IconCalculator size={14} className="text-[#4BC449]" />
-            DEBUG CALCULS
+        <span className="flex items-center gap-2.5 font-semibold text-sm">
+          <span className="w-8 h-8 rounded-lg bg-[#4BC449]/10 flex items-center justify-center shrink-0">
+            <IconCalculator size={16} className="text-[#4BC449]" />
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-            {quoteLoading ? 'CALCUL…' : quote ? 'ACTIF' : 'ATTENTE'}
-          </span>
-        </div>
+          Comment est calculé votre prix
+        </span>
         {expanded ? <IconChevronUp size={16} className="text-gray-400" /> : <IconChevronDown size={16} className="text-gray-400" />}
       </button>
 
       {expanded && (
-        <div className="p-3.5 space-y-3 font-mono text-[11px] leading-relaxed">
-          {/* Statut */}
+        <div className="p-4 space-y-4 text-sm leading-relaxed">
           {quoteLoading ? (
-            <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 p-2 rounded-lg">
-              <IconLoader2 size={13} className="animate-spin shrink-0" />
-              <span>Calcul en cours via Mapbox & API...</span>
+            <div className="flex items-center gap-2 text-gray-600">
+              <IconLoader2 size={15} className="animate-spin shrink-0 text-[#4BC449]" />
+              <span>Calcul du prix en cours…</span>
             </div>
           ) : quoteError ? (
-            <div className="text-red-400 bg-red-500/10 p-2 rounded-lg text-[10px]">
-              ⚠️ {quoteError}
-            </div>
+            <div className="text-red-700 bg-red-50 border border-red-100 p-3 rounded-xl">{quoteError}</div>
+          ) : !quote ? (
+            <p className="text-gray-500">
+              Indiquez le départ, l&apos;arrivée, la date et l&apos;heure : le détail du prix s&apos;affichera ici.
+            </p>
           ) : null}
 
-          {/* Règle 1: Dépôt */}
-          <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1">
-            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <IconMapPin size={12} className="text-[#4BC449]" /> Règle N°1 : Dépôt VTC
-            </div>
-            <div className="text-gray-300">{quote?.depot?.address ?? 'Cluses : 4 rue des artisans'}</div>
-            <div className="text-[10px] text-gray-500">
-              {quote?.depot
-                ? `[${quote.depot.coordinates.lat.toFixed(6)}, ${quote.depot.coordinates.lng.toFixed(6)}]`
-                : '[—]'}{' '}
-              • CA obligatoire
-            </div>
-          </div>
-
-          {/* Segments kilométriques */}
-          <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1.5">
-            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <IconRoute size={12} className="text-blue-400" /> Segments Distance (CA/TP)
-            </div>
-            <div className="flex justify-between text-gray-300">
-              <span className="text-gray-400">1. CA Aller (Dépôt ➔ Départ) :</span>
-              <span className="font-semibold text-white">{quote?.distances.ca_out ? `${quote.distances.ca_out.toFixed(1)} km` : '—'}</span>
-            </div>
-            <div className="flex justify-between text-gray-300">
-              <span className="text-gray-400">2. TP Passager (Départ ➔ Fin) :</span>
-              <span className="font-semibold text-emerald-400">{quote?.distances.tp ? `${quote.distances.tp.toFixed(1)} km` : '—'}</span>
-            </div>
-            <div className="flex justify-between text-gray-300">
-              <span className="text-gray-400">3. CA Retour (Fin ➔ Dépôt) :</span>
-              <span className="font-semibold text-white">{quote?.distances.ca_return ? `${quote.distances.ca_return.toFixed(1)} km` : '—'}</span>
-            </div>
-            <div className="border-t border-white/10 pt-1 flex justify-between font-bold">
-              <span className="text-gray-300">Total trajet :</span>
-              <span className="text-white">{quote?.distances.total ? `${quote.distances.total.toFixed(1)} km` : '—'}</span>
-            </div>
-            {quote?.distances.totalAR && (
-              <div className="flex justify-between text-emerald-300 text-[10px]">
-                <span>Total A/R (1-3 jours) :</span>
-                <span>{quote.distances.totalAR.toFixed(1)} km</span>
-              </div>
-            )}
-            <div className="flex justify-between text-gray-300 text-[10px]">
-              <span className="text-gray-400">Durée passager (TP seul) :</span>
-              <span className="text-emerald-400 font-semibold">{quote?.duration ? `${Math.round(quote.duration)} min` : '—'}</span>
-            </div>
-            <div className="flex justify-between text-gray-400 text-[10px]">
-              <span>Durée totale chauffeur (A/R dépôt) :</span>
-              <span className="text-white">{quote?.totalDuration ? `${Math.round(quote.totalDuration)} min` : quote?.duration ? `${Math.round(quote.duration)} min` : '—'}</span>
-            </div>
-          </div>
-
-          {/* Tarification & Régime */}
-          <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1.5">
-            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <IconClock size={12} className="text-amber-400" /> Régime & Heures
-            </div>
-            <div className="flex justify-between text-gray-300">
-              <span className="text-gray-400">Régime horaire :</span>
-              <span className={quote?.pricing.isNightRate ? 'text-amber-300 font-bold' : 'text-blue-300 font-bold'}>
-                {quote?.pricing.isNightRate ? '🌙 Tarif Nuit / Dim' : '☀️ Tarif Jour'}
-              </span>
-            </div>
-            <div className="flex justify-between text-gray-300">
-              <span className="text-gray-400">Type de tarif :</span>
-              <span className="text-white text-right break-words">{quote?.pricing.rateType || '—'}</span>
-            </div>
-            {serviceType === 'hourly' ? (
-              <>
-                <div className="flex justify-between text-gray-300">
-                  <span className="text-gray-400">Forfait choisi :</span>
-                  <span className="text-emerald-400 font-bold">{formatHours(hours)}</span>
-                </div>
-                <div className="flex justify-between text-gray-300">
-                  <span className="text-gray-400">Distance incluse :</span>
-                  <span className="text-white">{includedKm} km max</span>
-                </div>
-              </>
-            ) : (
-              <>
-                {quote?.pricing.breakdown?.bracket && (
-                  <div className="flex justify-between text-gray-300">
-                    <span className="text-gray-400">Palier distance :</span>
-                    <span className="text-white">{quote.pricing.breakdown.bracket}</span>
-                  </div>
-                )}
-                {quote?.pricing.breakdown?.pricePerKmCA && (
-                  <div className="flex justify-between text-gray-300 text-[10px]">
-                    <span className="text-gray-400">Barème CA :</span>
-                    <span className="text-white">{formatRate(quote.pricing.breakdown.pricePerKmCA / 1.1)} € HT/km ({formatRate(quote.pricing.breakdown.pricePerKmCA)} € TTC)</span>
-                  </div>
-                )}
-                {quote?.pricing.breakdown?.pricePerKmTP && (
-                  <div className="flex justify-between text-gray-300 text-[10px]">
-                    <span className="text-gray-400">Barème TP :</span>
-                    <span className="text-white">{formatRate(quote.pricing.breakdown.pricePerKmTP / 1.1)} € HT/km ({formatRate(quote.pricing.breakdown.pricePerKmTP)} € TTC)</span>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Détail du calcul financier : ① HT, ② TVA, ③ TTC */}
-          {quote && tvaLines && totals && (
+          {quote && (
             <>
-              {/* ① Coûts hors taxe */}
-              <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1.5">
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <IconReceipt size={12} className="text-purple-400" /> ① Coûts hors taxe
-                </div>
-                {tvaLines.map((line) => (
-                  <div key={line.label} className="flex justify-between gap-2 text-[10px]">
-                    <span className="text-gray-400">
-                      {line.label}
-                      {line.detail && <span className="block text-gray-500">{line.detail}</span>}
-                    </span>
-                    <span className="text-gray-200 whitespace-nowrap">{formatEuro2(line.ht)} HT</span>
-                  </div>
-                ))}
-                <div className="border-t border-white/10 pt-1 flex justify-between font-bold text-gray-200">
-                  <span>Total HT :</span>
-                  <span>{formatEuro2(totals.ht)}</span>
-                </div>
-              </div>
-
-              {/* ② TVA de chaque coût */}
-              <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 space-y-1.5">
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <IconReceipt size={12} className="text-amber-400" /> ② TVA de chaque coût
-                </div>
-                {!tvaSettings.tvaApplicable && (
-                  <div className="text-[10px] text-amber-300 bg-amber-500/10 p-1.5 rounded">
-                    Réglage admin : TVA non applicable (franchise). Détail donné à titre de contrôle.
-                  </div>
-                )}
-                {tvaLines.map((line) => (
-                  <div key={line.label} className="flex justify-between gap-2 text-[10px]">
-                    <span className="text-gray-400">
-                      {line.label}{' '}
-                      <span className="text-gray-500">
-                        ({formatPercent(line.rate)} de {formatEuro2(line.ht)})
-                      </span>
-                    </span>
-                    <span className="text-amber-200 whitespace-nowrap">+ {formatEuro2(line.tva)}</span>
-                  </div>
-                ))}
-                <div className="border-t border-white/10 pt-1 flex justify-between font-bold text-amber-300">
-                  <span>TVA totale :</span>
-                  <span>{formatEuro2(totals.tva)}</span>
-                </div>
-              </div>
-
-              {/* ③ Total TTC = HT + TVA */}
-              <div className="bg-emerald-500/5 rounded-xl p-2.5 border border-emerald-500/20 space-y-1.5">
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <IconReceipt size={12} className="text-emerald-400" /> ③ Total TTC (HT + TVA)
-                </div>
-                {tvaLines.map((line) => (
-                  <div key={line.label} className="flex justify-between gap-2 text-[10px]">
-                    <span className="text-gray-400">{line.label}</span>
-                    <span className="text-gray-200 whitespace-nowrap">
-                      {formatEuro2(line.ht)} + {formatEuro2(line.tva)} = <span className="text-white">{formatEuro2(line.ttc)}</span>
-                    </span>
-                  </div>
-                ))}
-                <div className="border-t border-white/10 pt-1 flex justify-between gap-2 font-bold text-sm text-emerald-400">
-                  <span className="text-[10px] text-gray-300 self-center">
-                    {formatEuro2(totals.ht)} HT + {formatEuro2(totals.tva)} TVA
-                  </span>
-                  <span>= {formatEuro2(totals.ttc)} TTC</span>
-                </div>
-                {totalPrice !== null && Math.abs(round2(totals.ttc - totalPrice)) < 0.01 ? (
-                  <div className="text-[10px] text-emerald-300">✓ Identique au prix affiché au client ({priceLabel})</div>
+              {/* Le trajet */}
+              <section className="space-y-1.5">
+                <h3 className="flex items-center gap-1.5 font-semibold text-gray-900">
+                  <IconRoute size={15} className="text-[#4BC449]" /> Le trajet
+                </h3>
+                {serviceType === 'hourly' ? (
+                  <>
+                    {row('Forfait choisi', formatHours(hours))}
+                    {row('Kilomètres inclus', `${includedKm} km maximum`)}
+                  </>
                 ) : (
-                  <div className="text-[10px] text-orange-300 bg-orange-500/10 p-1.5 rounded">
-                    ⚠️ Écart avec le prix affiché au client ({priceLabel}) :{' '}
-                    {totalPrice !== null ? formatEuro2(round2(totals.ttc - totalPrice)) : '—'}
-                  </div>
+                  <>
+                    <p className="text-xs text-gray-500">
+                      Le chauffeur part de son dépôt à Cluses, vient vous chercher, vous conduit, puis rentre au dépôt.
+                    </p>
+                    {row('Le chauffeur vient vous chercher', formatKm(quote.distances.ca_out))}
+                    {row(isRoundTrip ? 'Votre trajet (un sens)' : 'Votre trajet', formatKm(quote.distances.tp))}
+                    {row('Le chauffeur rentre au dépôt', formatKm(quote.distances.ca_return))}
+                    <div className="border-t border-gray-100 pt-1.5">{row('Distance totale', formatKm(quote.distances.total), true)}</div>
+                    {quote.duration > 0 && row('Durée de votre trajet', `environ ${Math.round(quote.duration)} min`)}
+                  </>
                 )}
-                {Math.abs(round2(totals.ht - engineHT)) >= 0.01 && (
-                  <div className="text-[10px] text-orange-300">
-                    Arrondi : le moteur arrondit la TVA sur le sous-total, soit {formatEuro2(engineHT)} HT au total
-                  </div>
-                )}
-              </div>
+              </section>
+
+              {/* Tarif */}
+              <section className="space-y-1.5">
+                <h3 className="flex items-center gap-1.5 font-semibold text-gray-900">
+                  <IconClock size={15} className="text-[#4BC449]" /> Tarif appliqué
+                </h3>
+                <p className="text-gray-600">
+                  {quote.pricing.breakdown?.isMixedRate
+                    ? quote.pricing.rateType
+                    : quote.pricing.isNightRate
+                      ? '🌙 Tarif de nuit (20h–7h), dimanche ou jour férié'
+                      : '☀️ Tarif de jour (7h–20h, hors dimanche et jours fériés)'}
+                </p>
+              </section>
+
+              {tvaLines && totals && (
+                <>
+                  {/* 1. Prix hors taxes */}
+                  <section className="bg-gray-50 rounded-xl p-3.5 space-y-2">
+                    <h3 className="font-semibold text-gray-900">1. Prix hors taxes (HT)</h3>
+                    {tvaLines.map((line) => (
+                      <div key={line.label} className="flex justify-between gap-3">
+                        <span className="text-gray-600">
+                          {line.label}
+                          {line.detail && <span className="block text-xs text-gray-400">{line.detail}</span>}
+                        </span>
+                        <span className="whitespace-nowrap">{formatEuro2(line.ht)}</span>
+                      </div>
+                    ))}
+                    <div className="border-t border-gray-200 pt-2">{row('Total hors taxes', formatEuro2(totals.ht), true)}</div>
+                  </section>
+
+                  {/* 2. TVA */}
+                  <section className="bg-gray-50 rounded-xl p-3.5 space-y-2">
+                    <h3 className="font-semibold text-gray-900">2. TVA ajoutée</h3>
+                    <p className="text-xs text-gray-500">
+                      TVA de 10 % sur le transport, 20 % sur les péages et le temps d&apos;attente.
+                    </p>
+                    {tvaLines.map((line) => (
+                      <div key={line.label} className="flex justify-between gap-3">
+                        <span className="text-gray-600">
+                          {line.label}
+                          <span className="block text-xs text-gray-400">
+                            {formatPercent(line.rate)} de {formatEuro2(line.ht)}
+                          </span>
+                        </span>
+                        <span className="whitespace-nowrap">+ {formatEuro2(line.tva)}</span>
+                      </div>
+                    ))}
+                    <div className="border-t border-gray-200 pt-2">{row('Total TVA', formatEuro2(totals.tva), true)}</div>
+                  </section>
+
+                  {/* 3. Prix TTC */}
+                  <section className="bg-[#4BC449]/10 border border-[#4BC449]/30 rounded-xl p-3.5 space-y-2">
+                    <h3 className="font-semibold text-gray-900">3. Prix toutes taxes comprises (TTC)</h3>
+                    {tvaLines.map((line) => (
+                      <div key={line.label} className="flex justify-between gap-3">
+                        <span className="text-gray-600">
+                          {line.label}
+                          <span className="block text-xs text-gray-400">
+                            {formatEuro2(line.ht)} + {formatEuro2(line.tva)} de TVA
+                          </span>
+                        </span>
+                        <span className="whitespace-nowrap">{formatEuro2(line.ttc)}</span>
+                      </div>
+                    ))}
+                    <div className="border-t border-[#4BC449]/30 pt-2 flex justify-between items-end gap-3">
+                      <span>
+                        <span className="block font-semibold text-gray-900">Prix total</span>
+                        <span className="block text-xs text-gray-500">
+                          {formatEuro2(totals.ht)} HT + {formatEuro2(totals.tva)} de TVA
+                        </span>
+                      </span>
+                      <span className="text-lg font-bold text-gray-900 whitespace-nowrap">{formatEuro2(totals.ttc)}</span>
+                    </div>
+                    {!matchesPrice && (
+                      <p className="text-xs text-orange-700 bg-orange-50 border border-orange-100 p-2 rounded-lg">
+                        Ce détail diffère du prix affiché ({priceLabel}). Merci de nous contacter pour vérification.
+                      </p>
+                    )}
+                  </section>
+                </>
+              )}
             </>
           )}
-
-          {/* Raw JSON toggle */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setShowJson(!showJson)}
-              className="w-full text-center text-[10px] text-gray-400 hover:text-white py-1.5 px-2 rounded bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <IconCode size={12} />
-              {showJson ? 'Masquer JSON brut' : 'Voir JSON brut'}
-            </button>
-            {showJson && (
-              <pre className="mt-2 p-2 bg-black/60 rounded-lg text-[9px] text-emerald-300 overflow-x-auto max-h-48 overflow-y-auto font-mono">
-                {JSON.stringify({
-                  input: {
-                    serviceType,
-                    direction,
-                    hours: serviceType === 'hourly' ? hours : undefined,
-                    pickupPlace,
-                    dropoffPlace,
-                    selectedDate: selectedDate ? toISODate(selectedDate) : null,
-                    selectedTime,
-                    returnDate: returnDate ? toISODate(returnDate) : null,
-                    returnTime,
-                  },
-                  quote,
-                  immobilisation,
-                  totalPrice,
-                }, null, 2)}
-              </pre>
-            )}
-          </div>
         </div>
       )}
     </div>
