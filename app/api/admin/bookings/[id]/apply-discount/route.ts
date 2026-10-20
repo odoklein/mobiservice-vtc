@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
+import { FROM_EMAIL } from '@/lib/email/resend';
 
 // POST /api/admin/bookings/[id]/apply-discount - Driver applies a discount
 export async function POST(
@@ -77,12 +78,11 @@ export async function POST(
         if (process.env.RESEND_API_KEY && booking.guestEmail) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
-                const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
                 const quoteUrl = `${appUrl}/quote/${bookingId}`;
 
                 await resend.emails.send({
-                    from: `MobiService VTC <${fromEmail}>`,
+                    from: FROM_EMAIL,
                     to: [booking.guestEmail],
                     subject: `🎉 Remise de ${discountPercentage}% sur votre Devis - MobiService VTC`,
                     html: `

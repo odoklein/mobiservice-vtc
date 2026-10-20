@@ -6,6 +6,7 @@ import { getAdminFromRequest } from '@/lib/auth/admin';
 import { adminBookingApproveSchema } from '@/lib/validations/admin-booking';
 import { Resend } from 'resend';
 import { DRIVER } from '@/lib/constants';
+import { FROM_EMAIL } from '@/lib/email/resend';
 
 function parseBookingId(id: string): number | null {
     const bookingId = Number.parseInt(id, 10);
@@ -76,10 +77,9 @@ export async function POST(
         if (process.env.RESEND_API_KEY && booking.guestEmail) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
-                const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
                 await resend.emails.send({
-                    from: `MobiService VTC <${fromEmail}>`,
+                    from: FROM_EMAIL,
                     to: [booking.guestEmail],
                     subject: '🎉 Réservation confirmée - MobiService VTC',
                     html: `
@@ -142,10 +142,9 @@ export async function POST(
         if (process.env.RESEND_API_KEY && DRIVER.email) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
-                const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
                 await resend.emails.send({
-                    from: `MobiService VTC <${fromEmail}>`,
+                    from: FROM_EMAIL,
                     to: [DRIVER.email],
                     subject: `✅ Réservation #${booking.id} confirmée - ${booking.guestName}`,
                     html: `
