@@ -1,6 +1,7 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Instrument_Serif } from 'next/font/google';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -17,6 +18,7 @@ import {
   IconMapPin,
   IconCalendar,
   IconUsers,
+  IconUser,
   IconLuggage,
   IconPhone,
   IconShieldCheck,
@@ -25,14 +27,34 @@ import {
   IconRoute,
   IconCalculator,
   IconStar,
+  IconArrowsUpDown,
+  IconArrowsExchange,
+  IconClockHour4,
+  IconMoon,
+  IconMoonStars,
+  IconSun,
+  IconSunrise,
+  IconSunset2,
+  IconBabyCarriage,
+  IconWheelchair,
+  IconBriefcase,
+  IconX,
 } from '@tabler/icons-react';
 import { CONTACT, POPULAR_LOCATIONS } from '@/lib/constants';
+import { isFrenchHoliday } from '@/lib/holidays';
 import { getImmobilisationMAD, isAR13DaysAllowed, type ReturnDaysAfter } from '@/lib/booking/immobilisation-mad';
 import { TVA_RATE_MDA, TVA_RATE_TOLL, TVA_RATE_TRANSPORT } from '@/lib/pricing/tariffs-2026';
 
 type Step = 1 | 2 | 3 | 4;
 
 const STEP_LABELS = ['Trajet', 'Quand', 'Voyageurs', 'Confirmation'];
+// Sur mobile, l'étape en cours prend plus de place pour afficher son nom en entier
+const MOBILE_STEP_COLS = [
+  'grid-cols-[3fr_1fr_1fr_1fr]',
+  'grid-cols-[1fr_3fr_1fr_1fr]',
+  'grid-cols-[1fr_1fr_3fr_1fr]',
+  'grid-cols-[1fr_1fr_1fr_3fr]',
+];
 
 const MONTH_NAMES = [
   'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
@@ -54,6 +76,118 @@ const DEFAULT_HOURLY_FORFAITS = [
   { hours: 7, maxKm: 630 },
   { hours: 8, maxKm: 720 },
 ];
+
+/* --------------------------------- design --------------------------------- */
+
+// Titres en serif éditorial (chargée pour cette page seulement)
+const display = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-display',
+  display: 'swap',
+});
+
+const DISPLAY = 'font-[family-name:var(--font-display)] font-normal';
+const GOLD = '#d9b36a';
+
+/** Carte « papier » posée sur le fond nuit. */
+const PANEL =
+  'rounded-[28px] bg-[#fbf9f4] text-stone-900 ring-1 ring-black/5 shadow-[0_40px_80px_-40px_rgba(0,0,0,0.8)] p-5 sm:p-8';
+const OVERLINE = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500';
+const FIELD_LABEL = 'mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500';
+const INPUT =
+  'h-14 w-full rounded-2xl border border-stone-200 bg-white px-4 text-base text-stone-900 placeholder:text-stone-400 transition focus:border-[#4BC449] focus:outline-none focus:ring-4 focus:ring-[#4BC449]/15';
+const RISE = 'motion-safe:animate-[rise_0.6s_cubic-bezier(0.2,0.8,0.2,1)_both]';
+
+/** Courbes de niveau (relief alpin) : calculées une fois, arrondies pour un rendu identique serveur/client. */
+const CONTOUR_PATHS: string[] = (() => {
+  const paths: string[] = [];
+  const cx = 640;
+  const cy = 360;
+  const n = 56;
+  const f = (v: number) => v.toFixed(1);
+  for (let k = 1; k <= 16; k++) {
+    const pts: Array<[number, number]> = [];
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const wob =
+        1 + 0.17 * Math.sin(3 * a + k * 0.31) + 0.09 * Math.sin(5 * a - k * 0.23 + 1) + 0.05 * Math.sin(2 * a + k * 0.1);
+      const r = 30 * k * wob;
+      pts.push([cx + Math.cos(a) * r * 1.5, cy + Math.sin(a) * r * 0.95]);
+    }
+    let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+    for (let i = 0; i < n; i++) {
+      const p0 = pts[(i - 1 + n) % n];
+      const p1 = pts[i];
+      const p2 = pts[(i + 1) % n];
+      const p3 = pts[(i + 2) % n];
+      d += `C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`;
+    }
+    paths.push(`${d}Z`);
+  }
+  return paths;
+})();
+
+const GRAIN =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
+function Backdrop() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(1100px 620px at 6% -8%, rgba(75,196,73,0.20), transparent 62%), radial-gradient(900px 560px at 100% 6%, rgba(217,179,106,0.14), transparent 58%), linear-gradient(180deg, #06101d 0%, #0a1b31 52%, #06101d 100%)',
+        }}
+      />
+      <svg
+        className="absolute -right-48 -top-10 h-[900px] w-[1500px] opacity-[0.17]"
+        viewBox="0 0 1280 720"
+        fill="none"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        {CONTOUR_PATHS.map((d, i) => (
+          <path key={i} d={d} stroke={i % 4 === 0 ? GOLD : '#9fb8d4'} strokeWidth={i % 4 === 0 ? 1.4 : 0.8} />
+        ))}
+      </svg>
+      <div className="absolute inset-0 opacity-[0.07] mix-blend-overlay" style={{ backgroundImage: GRAIN }} />
+    </div>
+  );
+}
+
+function StepHeader({ step, title, subtitle }: { step: Step; title: ReactNode; subtitle: ReactNode }) {
+  return (
+    <header className="space-y-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.26em]" style={{ color: GOLD }}>
+        Étape {pad(step)} <span className="text-white/30">/ 04</span>
+      </p>
+      <h1
+        className={`${DISPLAY} text-[42px] leading-[1.02] tracking-[-0.02em] text-white sm:text-[58px] [&_em]:italic [&_em]:text-[#d9b36a]`}
+      >
+        {title}
+      </h1>
+      <p className="max-w-xl text-[15px] leading-relaxed text-white/65 sm:text-base">{subtitle}</p>
+    </header>
+  );
+}
+
+/** Intertitre d'une carte : petit libellé en capitales. */
+function PanelTitle({ children, hint }: { children: ReactNode; hint?: ReactNode }) {
+  return (
+    <div className="mb-5">
+      <h2 className={OVERLINE}>{children}</h2>
+      {hint && <p className="mt-1.5 text-sm text-stone-500">{hint}</p>}
+    </div>
+  );
+}
+
+/** Heure de nuit : avant 7h, à partir de 20h, ou toute la journée le dimanche et les jours fériés. */
+const isNightSlot = (day: Date | null, time: string) => {
+  const h = Number(time.slice(0, 2));
+  return h < 7 || h >= 20 || (!!day && (day.getDay() === 0 || isFrenchHoliday(day)));
+};
 
 interface Place {
   label: string;
@@ -113,7 +247,8 @@ const sameDay = (a: Date | null, b: Date | null) =>
 
 const formatLongDate = (d: Date) =>
   `${DAY_NAMES[d.getDay()].charAt(0).toUpperCase()}${DAY_NAMES[d.getDay()].slice(1)} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-const formatShortDate = (d: Date) => `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0, 4)}.`;
+const MONTH_SHORT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const formatShortDate = (d: Date) => `${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`;
 
 const formatHours = (h: number) => {
   const whole = Math.floor(h);
@@ -257,28 +392,41 @@ function buildTvaLines(
 
 /* ----------------------------- address field ------------------------------ */
 
+const DOT: Record<'origin' | 'destination' | 'stop', string> = {
+  origin: 'h-3 w-3 rounded-full bg-[#4BC449] ring-4 ring-[#4BC449]/20',
+  destination: 'h-3 w-3 rounded-[3px] bg-stone-900 ring-4 ring-stone-900/10',
+  stop: 'h-3 w-3 rotate-45 rounded-[2px] bg-[#d9b36a] ring-4 ring-[#d9b36a]/25',
+};
+
+/** Une ligne de l'itinéraire : le repère (rond, carré…) est relié à la ligne suivante par le rail du parent. */
 function AddressField({
   label,
   placeholder,
-  pinClass,
+  dot,
   value,
+  confirmed,
   optional = false,
   onTextChange,
   onSelect,
 }: {
   label: string;
   placeholder: string;
-  pinClass: string;
+  dot: 'origin' | 'destination' | 'stop';
   value: string;
+  confirmed: boolean;
   optional?: boolean;
   onTextChange: (text: string) => void;
   onSelect: (place: Place) => void;
 }) {
+  const uid = useId();
+  const inputId = `${uid}-input`;
+  const listId = `${uid}-list`;
   const [suggestions, setSuggestions] = useState<Place[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(-1);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -347,6 +495,16 @@ function AddressField({
     setLoading(false);
   };
 
+  const clear = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+    onTextChange('');
+    setSuggestions([]);
+    setLoading(false);
+    setOpen(true);
+    inputRef.current?.focus();
+  };
+
   const isShortcuts = value.trim().length < 3;
   const itemsToRender = isShortcuts
     ? POPULAR_LOCATIONS.map((p) => ({
@@ -370,17 +528,28 @@ function AddressField({
           category: isAir ? 'airport' : isTrain ? 'train' : 'address',
         };
       });
+  const listVisible = open && itemsToRender.length > 0;
+  const noResult = open && !isShortcuts && !loading && suggestions.length === 0;
 
   return (
     <div ref={wrapRef} className="relative">
-      <div className="flex items-center justify-between mb-1.5">
-        <label className="text-sm font-medium text-gray-700 block">{label}</label>
-        {optional && <span className="text-xs text-gray-400 font-normal">Optionnel</span>}
-      </div>
-      <div className="relative">
-        <IconMapPin size={18} className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${pinClass}`} />
+      <div className="relative rounded-2xl transition-colors focus-within:bg-white focus-within:shadow-[inset_0_0_0_2px_rgba(75,196,73,0.9)]">
+        <span aria-hidden className={`absolute left-[22px] top-1/2 z-10 -translate-y-1/2 ${DOT[dot]}`} />
+        <label
+          htmlFor={inputId}
+          className="pointer-events-none absolute left-[56px] top-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500"
+        >
+          {label}
+          {optional && <span className="ml-2 font-normal normal-case tracking-normal text-stone-400">optionnel</span>}
+        </label>
         <input
+          ref={inputRef}
+          id={inputId}
           type="text"
+          role="combobox"
+          aria-expanded={listVisible}
+          aria-controls={listId}
+          aria-autocomplete="list"
           value={value}
           autoComplete="off"
           onChange={(e) => {
@@ -405,45 +574,74 @@ function AddressField({
             }
           }}
           placeholder={placeholder}
-          className="w-full pl-10 pr-10 py-3.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449] text-sm"
+          className="h-[68px] w-full bg-transparent pb-0 pl-[56px] pr-24 pt-5 text-[17px] font-medium text-stone-900 placeholder:font-normal placeholder:text-stone-400 focus:outline-none"
         />
-        {loading && (
-          <IconLoader2 size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />
-        )}
+        <div className="absolute right-14 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
+          {loading ? (
+            <IconLoader2 size={18} aria-label="Recherche en cours" className="animate-spin text-stone-400" />
+          ) : (
+            value && (
+              <>
+                {confirmed && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#4BC449]" title="Adresse confirmée">
+                    <IconCheck size={13} strokeWidth={3} className="text-[#06210a]" aria-label="Adresse confirmée" />
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={clear}
+                  aria-label={`Effacer — ${label}`}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-200/70 hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-[#4BC449]"
+                >
+                  <IconX size={15} />
+                </button>
+              </>
+            )
+          )}
+        </div>
       </div>
 
-      {open && itemsToRender.length > 0 && (
-        <div className="absolute z-30 mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
+      {(listVisible || noResult) && (
+        <div
+          id={listId}
+          role="listbox"
+          aria-label={`Suggestions — ${label}`}
+          className="absolute inset-x-0 top-full z-30 mt-2 max-h-80 overflow-y-auto rounded-2xl bg-white p-1.5 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.5)] ring-1 ring-black/10"
+        >
           {isShortcuts && (
-            <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100 flex items-center gap-1.5">
-              <IconStar size={13} className="text-amber-500 fill-amber-500" />
-              Lieux populaires & Aéroports
+            <div className="flex items-center gap-1.5 px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+              <IconStar size={12} className="fill-amber-400 text-amber-500" />
+              Lieux populaires
             </div>
           )}
+          {noResult && (
+            <p className="px-3 py-3 text-sm text-stone-500">
+              Aucune adresse trouvée. Ajoutez la ville ou le code postal (ex. « 74 »).
+            </p>
+          )}
           {itemsToRender.map((s, i) => (
-            <button
+            <div
               key={`${s.label}-${i}`}
-              type="button"
+              id={`${uid}-opt-${i}`}
+              role="option"
+              aria-selected={highlight === i}
               onMouseEnter={() => setHighlight(i)}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => choose(s)}
-              className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-colors border-b border-gray-50 last:border-b-0 ${
-                highlight === i ? 'bg-[#4BC449]/10' : 'hover:bg-gray-50'
+              className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
+                highlight === i ? 'bg-stone-100' : 'hover:bg-stone-50'
               }`}
             >
-              {s.category === 'airport' ? (
-                <span className="text-base leading-5 mt-0.5 shrink-0">✈️</span>
-              ) : s.category === 'train' ? (
-                <span className="text-base leading-5 mt-0.5 shrink-0">🚂</span>
-              ) : (
-                <IconMapPin size={16} className="text-gray-400 mt-0.5 shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900 leading-snug truncate">{s.title}</div>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-base">
+                {s.category === 'airport' ? '✈️' : s.category === 'train' ? '🚂' : <IconMapPin size={16} className="text-stone-500" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold leading-snug text-stone-900">{s.title}</span>
                 {s.subtitle && s.subtitle !== s.title && (
-                  <div className="text-xs text-gray-500 leading-snug truncate mt-0.5">{s.subtitle}</div>
+                  <span className="block truncate text-xs leading-snug text-stone-500">{s.subtitle}</span>
                 )}
-              </div>
-            </button>
+              </span>
+            </div>
           ))}
         </div>
       )}
@@ -473,73 +671,106 @@ function Calendar({
     [viewMonth]
   );
   const min = startOfDay(minDate);
+  const today = startOfDay(new Date());
   const canGoPrev =
     new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1) >
     new Date(min.getFullYear(), min.getMonth(), 1);
+  const navBtn =
+    'flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600 transition hover:border-stone-400 hover:text-stone-900 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-stone-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449]';
 
   return (
     <div>
-      <div className={`flex items-center justify-between ${compact ? 'mb-3' : 'mb-4'}`}>
+      <div className={`flex items-center justify-between ${compact ? 'mb-3' : 'mb-5'}`}>
         <button
           type="button"
+          aria-label="Mois précédent"
           disabled={!canGoPrev}
           onClick={() => onMonthChange(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
-          className="text-gray-400 hover:text-gray-600 disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
+          className={navBtn}
         >
-          <IconChevronLeft size={compact ? 18 : 20} />
+          <IconChevronLeft size={18} />
         </button>
-        <span className={`font-semibold text-gray-900 ${compact ? 'text-xs' : 'text-sm'}`}>
-          {MONTH_NAMES[viewMonth.getMonth()].charAt(0).toUpperCase() + MONTH_NAMES[viewMonth.getMonth()].slice(1)}{' '}
-          {viewMonth.getFullYear()}
+        <span className={`${DISPLAY} capitalize text-stone-900 ${compact ? 'text-xl' : 'text-[26px]'}`}>
+          {MONTH_NAMES[viewMonth.getMonth()]} <span className="text-stone-400">{viewMonth.getFullYear()}</span>
         </span>
         <button
           type="button"
+          aria-label="Mois suivant"
           onClick={() => onMonthChange(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}
-          className="text-gray-400 hover:text-gray-600 cursor-pointer"
+          className={navBtn}
         >
-          <IconChevronRight size={compact ? 18 : 20} />
+          <IconChevronRight size={18} />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-0 mb-1">
+      <div className="mb-1 grid grid-cols-7 gap-1">
         {['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'].map((d) => (
-          <div key={d} className={`text-center font-medium text-gray-400 ${compact ? 'text-[10px] py-1' : 'text-xs py-2'}`}>
+          <div key={d} className="py-1.5 text-center text-[11px] font-semibold uppercase tracking-wider text-stone-400">
             {d}
           </div>
         ))}
       </div>
 
-      {weeks.map((week, wi) => (
-        <div key={wi} className="grid grid-cols-7 gap-0">
-          {week.map((day) => {
-            const inMonth = day.getMonth() === viewMonth.getMonth();
-            const disabled = !inMonth || day < min;
-            const isSel = sameDay(day, selected);
-            return (
-              <button
-                key={day.toISOString()}
-                type="button"
-                onClick={() => !disabled && onSelect(day)}
-                disabled={disabled}
-                className={`${compact ? 'h-8 text-xs' : 'h-10 text-sm'} rounded-lg transition-all ${
-                  isSel
-                    ? 'bg-[#4BC449] text-white font-bold'
-                    : disabled
-                      ? 'text-gray-300 cursor-not-allowed'
-                      : 'text-gray-700 hover:bg-gray-50 cursor-pointer'
-                }`}
-              >
-                {day.getDate()}
-              </button>
-            );
-          })}
-        </div>
-      ))}
+      <div className="space-y-1">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="grid grid-cols-7 gap-1">
+            {week.map((day) => {
+              const inMonth = day.getMonth() === viewMonth.getMonth();
+              const disabled = !inMonth || day < min;
+              const isSel = sameDay(day, selected);
+              const isToday = sameDay(day, today);
+              const nightDay = day.getDay() === 0 || isFrenchHoliday(day);
+              return (
+                <button
+                  key={day.toISOString()}
+                  type="button"
+                  onClick={() => !disabled && onSelect(day)}
+                  disabled={disabled}
+                  aria-pressed={isSel}
+                  aria-label={formatLongDate(day)}
+                  className={`relative ${compact ? 'h-9 text-xs' : 'h-11 text-[15px]'} rounded-xl font-medium tabular-nums transition ${
+                    !inMonth
+                      ? 'invisible'
+                      : isSel
+                        ? 'bg-[#07111f] text-white shadow-[0_8px_20px_-6px_rgba(7,17,31,0.6)]'
+                        : disabled
+                          ? 'cursor-not-allowed text-stone-300'
+                          : 'cursor-pointer text-stone-800 hover:bg-stone-200/70'
+                  }`}
+                >
+                  {day.getDate()}
+                  {inMonth && isToday && !isSel && (
+                    <span aria-hidden className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#4BC449]" />
+                  )}
+                  {inMonth && nightDay && !disabled && (
+                    <span
+                      aria-hidden
+                      className={`absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${isSel ? 'bg-[#d9b36a]' : 'bg-indigo-400'}`}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-4 flex items-center gap-2 text-xs text-stone-500">
+        <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
+        Dimanche et jours fériés : tarif de nuit toute la journée
+      </p>
     </div>
   );
 }
 
 /* --------------------------------- time grid ------------------------------ */
+
+const TIME_GROUPS: Array<{ label: string; icon: typeof IconSun; from: number; to: number }> = [
+  { label: 'Matin', icon: IconSunrise, from: 6, to: 12 },
+  { label: 'Après-midi', icon: IconSun, from: 12, to: 18 },
+  { label: 'Soirée', icon: IconSunset2, from: 18, to: 24 },
+  { label: 'Nuit', icon: IconMoonStars, from: 0, to: 6 },
+];
 
 function TimeGrid({
   value,
@@ -561,37 +792,261 @@ function TimeGrid({
 
   return (
     <div>
-      <div className="grid grid-cols-4 gap-2 max-h-52 overflow-y-auto pr-1">
-        {TIME_SLOTS.map((t) => {
-          const disabled = isDisabled(t);
+      <div className="relative">
+      <div className={`${compact ? 'max-h-60' : 'max-h-[26rem]'} space-y-5 overflow-y-auto pb-6 pr-1 [scrollbar-width:thin]`}>
+        {TIME_GROUPS.map((group) => {
+          const slots = TIME_SLOTS.filter((t) => {
+            const h = Number(t.slice(0, 2));
+            return h >= group.from && h < group.to;
+          });
           return (
-            <button
-              key={t}
-              type="button"
-              disabled={disabled}
-              onClick={() => onChange(t)}
-              className={`${compact ? 'py-2.5 text-xs' : 'py-3 text-sm'} rounded-xl font-medium transition-all border ${
-                value === t
-                  ? 'bg-[#4BC449] text-white border-[#4BC449]'
-                  : disabled
-                    ? 'border-gray-100 text-gray-300 cursor-not-allowed'
-                    : 'border-gray-200 text-gray-700 hover:border-gray-300 cursor-pointer'
-              }`}
-            >
-              {t}
-            </button>
+            <div key={group.label}>
+              <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                <group.icon size={14} aria-hidden />
+                {group.label}
+              </p>
+              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                {slots.map((t) => {
+                  const disabled = isDisabled(t);
+                  const night = isNightSlot(day, t);
+                  const selected = value === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => onChange(t)}
+                      aria-pressed={selected}
+                      className={`relative ${compact ? 'h-9 text-xs' : 'h-11 text-sm'} rounded-xl border font-medium tabular-nums transition ${
+                        selected
+                          ? 'border-[#07111f] bg-[#07111f] text-white shadow-[0_8px_20px_-6px_rgba(7,17,31,0.6)]'
+                          : disabled
+                            ? 'cursor-not-allowed border-stone-100 text-stone-300'
+                            : 'cursor-pointer border-stone-200 bg-white text-stone-800 hover:border-stone-400'
+                      }`}
+                    >
+                      {t}
+                      {night && !disabled && (
+                        <IconMoon
+                          size={10}
+                          aria-hidden
+                          className={`absolute right-1 top-1 ${selected ? 'text-[#d9b36a]' : 'text-indigo-400'}`}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        <span className="text-xs text-gray-500">Heure précise</span>
-        <input
-          type="time"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]"
-        />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#fbf9f4] to-transparent" />
       </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-4">
+        <span className="flex items-center gap-1.5 text-xs text-stone-500">
+          <IconMoon size={12} className="text-indigo-400" aria-hidden />
+          Tarif de nuit : 20h – 7h
+        </span>
+        <label className="flex items-center gap-2 text-xs text-stone-500">
+          Heure précise
+          <input
+            type="time"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-10 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-900 focus:border-[#4BC449] focus:outline-none focus:ring-4 focus:ring-[#4BC449]/15"
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ trip ticket ------------------------------- */
+
+/** Encoches de perforation à la hauteur `y` (un seul masque : pas de joint entre le haut et le bas du billet). */
+const notchStyle = (y: number | null): CSSProperties => {
+  if (y === null) return {};
+  const mask = `radial-gradient(circle 12px at 0 ${y}px, #0000 11px, #000 12px), radial-gradient(circle 12px at 100% ${y}px, #0000 11px, #000 12px)`;
+  return { WebkitMaskImage: mask, maskImage: mask, WebkitMaskComposite: 'source-in', maskComposite: 'intersect' };
+};
+
+/** Récapitulatif façon billet : trajet en haut, prix sous la perforation. */
+function TripTicket({
+  pickupText,
+  dropoffText,
+  serviceType,
+  direction,
+  hours,
+  selectedDate,
+  selectedTime,
+  returnDate,
+  returnTime,
+  quote,
+  quoteLoading,
+  totalPrice,
+  step,
+  totalPassengers,
+  suitcases,
+  tvaSettings,
+}: {
+  pickupText: string;
+  dropoffText: string;
+  serviceType: 'transfer' | 'hourly';
+  direction: 'one-way' | 'round-trip';
+  hours: number;
+  selectedDate: Date | null;
+  selectedTime: string;
+  returnDate: Date | null;
+  returnTime: string;
+  quote: Estimation | null;
+  quoteLoading: boolean;
+  totalPrice: number | null;
+  step: Step;
+  totalPassengers: number;
+  suitcases: number;
+  tvaSettings: TvaSettings;
+}) {
+  const split = (text: string) => {
+    const idx = text.indexOf(',');
+    return idx === -1 ? { name: text.trim(), sub: '' } : { name: text.slice(0, idx).trim(), sub: text.slice(idx + 1).trim() };
+  };
+  const from = split(pickupText);
+  const to = split(dropoffText);
+  const isRound = serviceType === 'transfer' && direction === 'round-trip';
+  const topRef = useRef<HTMLDivElement>(null);
+  const [notchY, setNotchY] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const el = topRef.current;
+    if (!el) return;
+    const measure = () => setNotchY(el.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const [whole, cents] = totalPrice !== null ? totalPrice.toFixed(2).split('.') : ['', ''];
+
+  const stats: Array<{ label: string; value: string }> = [];
+  if (selectedDate) stats.push({ label: 'Départ', value: `${formatShortDate(selectedDate)}${selectedTime ? ` · ${selectedTime}` : ''}` });
+  if (isRound && returnDate) stats.push({ label: 'Retour', value: `${formatShortDate(returnDate)}${returnTime ? ` · ${returnTime}` : ''}` });
+  if (serviceType === 'transfer' && quote) {
+    stats.push({ label: 'Distance', value: `${quote.distances.tp.toFixed(1).replace('.', ',')} km` });
+    stats.push({ label: 'Durée', value: `${Math.round(quote.duration)} min` });
+  }
+  if (step >= 3) {
+    stats.push({ label: 'Passagers', value: String(totalPassengers) });
+    stats.push({ label: 'Valises', value: String(suitcases) });
+  }
+
+  return (
+    <div className="drop-shadow-[0_30px_40px_rgba(0,0,0,0.45)]">
+     <div className="rounded-[28px] bg-[#fbf9f4] text-stone-900" style={notchStyle(notchY)}>
+      <div ref={topRef} className="px-6 pb-7 pt-6">
+        <div className="flex items-center justify-between gap-3">
+          <p className={OVERLINE}>Votre trajet</p>
+          <span className="rounded-full bg-[#07111f] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+            {serviceType === 'hourly' ? `À disposition · ${formatHours(hours)}` : isRound ? 'Aller-retour' : 'Aller simple'}
+          </span>
+        </div>
+
+        <div className="relative mt-6 flex flex-col gap-6 pl-8">
+          <span aria-hidden className="absolute bottom-3 left-[5px] top-3 border-l-2 border-dashed border-stone-300" />
+          <div className="relative">
+            <span aria-hidden className={`absolute -left-8 top-[7px] ${DOT.origin}`} />
+            <p className="text-[17px] font-semibold leading-tight">
+              {from.name || <span className="font-normal text-stone-300">Départ</span>}
+            </p>
+            {from.sub && <p className="mt-0.5 truncate text-xs text-stone-500">{from.sub}</p>}
+          </div>
+          {(serviceType === 'transfer' || to.name) && (
+            <div className="relative">
+              <span aria-hidden className={`absolute -left-8 top-[7px] ${serviceType === 'transfer' ? DOT.destination : DOT.stop}`} />
+              <p className="text-[17px] font-semibold leading-tight">
+                {to.name || <span className="font-normal text-stone-300">Destination</span>}
+              </p>
+              {to.sub && <p className="mt-0.5 truncate text-xs text-stone-500">{to.sub}</p>}
+            </div>
+          )}
+        </div>
+
+        {stats.length > 0 && (
+          <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4 border-t border-stone-200 pt-5">
+            {stats.map((s) => (
+              <div key={s.label}>
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-400">{s.label}</dt>
+                <dd className="mt-0.5 text-sm font-semibold tabular-nums text-stone-900">{s.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </div>
+
+      <div className="relative px-6 pb-6 pt-7">
+        <div aria-hidden className="absolute inset-x-6 top-0 border-t-2 border-dashed border-stone-300" />
+
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className={OVERLINE}>Prix estimé</p>
+            {quoteLoading ? (
+              <div
+                aria-label="Calcul du prix en cours"
+                className="mt-3 h-14 w-44 rounded-xl bg-[linear-gradient(90deg,#e7e5e4_25%,#f5f5f4_50%,#e7e5e4_75%)] bg-[length:200%_100%] motion-safe:animate-[shimmer_1.4s_linear_infinite]"
+              />
+            ) : totalPrice !== null ? (
+              <p className="mt-1 flex items-baseline" aria-label={`${totalPrice.toFixed(2)} euros`}>
+                <span className={`${DISPLAY} text-[68px] leading-none tracking-tight tabular-nums`}>{whole}</span>
+                <span className="ml-1 text-2xl font-medium text-stone-500">
+                  {cents !== '00' ? `,${cents}` : ''} €
+                </span>
+              </p>
+            ) : (
+              <p className={`${DISPLAY} mt-1 text-[68px] leading-none text-stone-300`}>—</p>
+            )}
+            <p className="mt-2 text-xs text-stone-500">
+              {tvaSettings.tvaApplicable ? 'Prix forfaitaire TTC' : 'Prix forfaitaire'}
+              {!tvaSettings.tvaApplicable && tvaSettings.tvaLegalMention ? ` — ${tvaSettings.tvaLegalMention}` : ''}
+            </p>
+          </div>
+          {quote && !quoteLoading && (
+            <span
+              className={`mb-1 flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                quote.pricing.isNightRate ? 'bg-indigo-100 text-indigo-800' : 'bg-amber-100 text-amber-800'
+              }`}
+            >
+              {quote.pricing.isNightRate ? <IconMoon size={13} /> : <IconSun size={13} />}
+              {quote.pricing.breakdown?.isMixedRate ? 'Jour & nuit' : quote.pricing.isNightRate ? 'Tarif nuit' : 'Tarif jour'}
+            </span>
+          )}
+        </div>
+
+        {!quote && !quoteLoading && (
+          <p className="mt-4 text-sm leading-relaxed text-stone-500">
+            Renseignez le trajet, la date et l&apos;heure : le prix s&apos;affiche ici.
+          </p>
+        )}
+
+        <ul className="mt-5 space-y-2 text-sm text-stone-700">
+          <li className="flex items-center gap-2.5">
+            <IconShieldCheck size={16} className="shrink-0 text-[#1f7a24]" /> Prix fixe garanti
+          </li>
+          <li className="flex items-center gap-2.5">
+            <IconCalendar size={16} className="shrink-0 text-[#1f7a24]" /> Aucun paiement immédiat
+          </li>
+        </ul>
+
+        <a
+          href={`tel:${CONTACT.whatsapp}`}
+          className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-stone-100 px-4 py-3 transition-colors hover:bg-stone-200/80 focus-visible:outline-2 focus-visible:outline-[#4BC449]"
+        >
+          <span className="flex items-center gap-2.5 text-xs font-medium text-stone-600">
+            <IconPhone size={16} className="text-[#1f7a24]" />
+            Besoin d&apos;aide ?
+          </span>
+          <span className="text-sm font-bold tabular-nums text-stone-900">{CONTACT.phone}</span>
+        </a>
+      </div>
+     </div>
     </div>
   );
 }
@@ -641,40 +1096,40 @@ function PricingDebugSidebar({
   const isRoundTrip = direction === 'round-trip';
 
   const row = (label: ReactNode, value: ReactNode, strong = false) => (
-    <div className={`flex justify-between gap-3 ${strong ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
+    <div className={`flex justify-between gap-3 ${strong ? 'font-semibold text-white' : 'text-white/70'}`}>
       <span>{label}</span>
-      <span className="text-right whitespace-nowrap text-gray-900">{value}</span>
+      <span className="text-right whitespace-nowrap tabular-nums text-white">{value}</span>
     </div>
   );
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm text-gray-900">
+    <div className="rounded-[28px] bg-white/[0.06] ring-1 ring-white/12 backdrop-blur-md text-white overflow-hidden">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        className="w-full flex items-center justify-between gap-3 p-4 hover:bg-gray-50 border-b border-gray-100 text-left transition-colors cursor-pointer"
+        className="w-full flex items-center justify-between gap-3 px-5 py-4 hover:bg-white/5 border-b border-white/10 text-left transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[#4BC449]"
       >
         <span className="flex items-center gap-2.5 font-semibold text-sm">
-          <span className="w-8 h-8 rounded-lg bg-[#4BC449]/10 flex items-center justify-center shrink-0">
+          <span className="w-9 h-9 rounded-xl bg-[#4BC449]/15 flex items-center justify-center shrink-0">
             <IconCalculator size={16} className="text-[#4BC449]" />
           </span>
           Comment est calculé votre prix
         </span>
-        {expanded ? <IconChevronUp size={16} className="text-gray-400" /> : <IconChevronDown size={16} className="text-gray-400" />}
+        {expanded ? <IconChevronUp size={16} className="text-white/45" /> : <IconChevronDown size={16} className="text-white/45" />}
       </button>
 
       {expanded && (
-        <div className="p-4 space-y-4 text-sm leading-relaxed">
+        <div className="p-5 space-y-5 text-[15px] leading-relaxed">
           {quoteLoading ? (
-            <div className="flex items-center gap-2 text-gray-600">
+            <div className="flex items-center gap-2 text-white/70">
               <IconLoader2 size={15} className="animate-spin shrink-0 text-[#4BC449]" />
               <span>Calcul du prix en cours…</span>
             </div>
           ) : quoteError ? (
-            <div className="text-red-700 bg-red-50 border border-red-100 p-3 rounded-xl">{quoteError}</div>
+            <div className="text-red-200 bg-red-500/10 border border-red-400/30 p-3 rounded-xl">{quoteError}</div>
           ) : !quote ? (
-            <p className="text-gray-500">
+            <p className="text-white/55">
               Indiquez le départ, l&apos;arrivée, la date et l&apos;heure : le détail du prix s&apos;affichera ici.
             </p>
           ) : null}
@@ -683,7 +1138,7 @@ function PricingDebugSidebar({
             <>
               {/* Le trajet */}
               <section className="space-y-1.5">
-                <h3 className="flex items-center gap-1.5 font-semibold text-gray-900">
+                <h3 className="flex items-center gap-2 text-base font-semibold text-white">
                   <IconRoute size={15} className="text-[#4BC449]" /> Le trajet
                 </h3>
                 {serviceType === 'hourly' ? (
@@ -693,13 +1148,13 @@ function PricingDebugSidebar({
                   </>
                 ) : (
                   <>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-white/55">
                       Le chauffeur part de son dépôt à Cluses, vient vous chercher, vous conduit, puis rentre au dépôt.
                     </p>
                     {row('Le chauffeur vient vous chercher', formatKm(quote.distances.ca_out))}
                     {row(isRoundTrip ? 'Votre trajet (un sens)' : 'Votre trajet', formatKm(quote.distances.tp))}
                     {row('Le chauffeur rentre au dépôt', formatKm(quote.distances.ca_return))}
-                    <div className="border-t border-gray-100 pt-1.5">{row('Distance totale', formatKm(quote.distances.total), true)}</div>
+                    <div className="border-t border-white/10 pt-1.5">{row('Distance totale', formatKm(quote.distances.total), true)}</div>
                     {quote.duration > 0 && row('Durée de votre trajet', `environ ${Math.round(quote.duration)} min`)}
                   </>
                 )}
@@ -707,10 +1162,10 @@ function PricingDebugSidebar({
 
               {/* Tarif */}
               <section className="space-y-1.5">
-                <h3 className="flex items-center gap-1.5 font-semibold text-gray-900">
+                <h3 className="flex items-center gap-2 text-base font-semibold text-white">
                   <IconClock size={15} className="text-[#4BC449]" /> Tarif appliqué
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-white/70">
                   {quote.pricing.breakdown?.isMixedRate
                     ? quote.pricing.rateType
                     : quote.pricing.isNightRate
@@ -722,65 +1177,65 @@ function PricingDebugSidebar({
               {tvaLines && totals && (
                 <>
                   {/* 1. Prix hors taxes */}
-                  <section className="bg-gray-50 rounded-xl p-3.5 space-y-2">
-                    <h3 className="font-semibold text-gray-900">1. Prix hors taxes (HT)</h3>
+                  <section className="bg-white/[0.06] rounded-2xl p-4 space-y-2">
+                    <h3 className="text-base font-semibold text-white">1. Prix hors taxes (HT)</h3>
                     {tvaLines.map((line) => (
                       <div key={line.label} className="flex justify-between gap-3">
-                        <span className="text-gray-600">
+                        <span className="text-white/70">
                           {line.label}
-                          {line.detail && <span className="block text-xs text-gray-400">{line.detail}</span>}
+                          {line.detail && <span className="block text-xs text-white/45">{line.detail}</span>}
                         </span>
-                        <span className="whitespace-nowrap">{formatEuro2(line.ht)}</span>
+                        <span className="whitespace-nowrap tabular-nums">{formatEuro2(line.ht)}</span>
                       </div>
                     ))}
-                    <div className="border-t border-gray-200 pt-2">{row('Total hors taxes', formatEuro2(totals.ht), true)}</div>
+                    <div className="border-t border-white/15 pt-2">{row('Total hors taxes', formatEuro2(totals.ht), true)}</div>
                   </section>
 
                   {/* 2. TVA */}
-                  <section className="bg-gray-50 rounded-xl p-3.5 space-y-2">
-                    <h3 className="font-semibold text-gray-900">2. TVA ajoutée</h3>
-                    <p className="text-xs text-gray-500">
+                  <section className="bg-white/[0.06] rounded-2xl p-4 space-y-2">
+                    <h3 className="text-base font-semibold text-white">2. TVA ajoutée</h3>
+                    <p className="text-xs text-white/55">
                       TVA de 10 % sur le transport, 20 % sur les péages et le temps d&apos;attente.
                     </p>
                     {tvaLines.map((line) => (
                       <div key={line.label} className="flex justify-between gap-3">
-                        <span className="text-gray-600">
+                        <span className="text-white/70">
                           {line.label}
-                          <span className="block text-xs text-gray-400">
+                          <span className="block text-xs text-white/45">
                             {formatPercent(line.rate)} de {formatEuro2(line.ht)}
                           </span>
                         </span>
-                        <span className="whitespace-nowrap">+ {formatEuro2(line.tva)}</span>
+                        <span className="whitespace-nowrap tabular-nums">+ {formatEuro2(line.tva)}</span>
                       </div>
                     ))}
-                    <div className="border-t border-gray-200 pt-2">{row('Total TVA', formatEuro2(totals.tva), true)}</div>
+                    <div className="border-t border-white/15 pt-2">{row('Total TVA', formatEuro2(totals.tva), true)}</div>
                   </section>
 
                   {/* 3. Prix TTC */}
-                  <section className="bg-[#4BC449]/10 border border-[#4BC449]/30 rounded-xl p-3.5 space-y-2">
-                    <h3 className="font-semibold text-gray-900">3. Prix toutes taxes comprises (TTC)</h3>
+                  <section className="bg-[#4BC449]/12 border border-[#4BC449]/30 rounded-2xl p-4 space-y-2">
+                    <h3 className="text-base font-semibold text-white">3. Prix toutes taxes comprises (TTC)</h3>
                     {tvaLines.map((line) => (
                       <div key={line.label} className="flex justify-between gap-3">
-                        <span className="text-gray-600">
+                        <span className="text-white/70">
                           {line.label}
-                          <span className="block text-xs text-gray-400">
+                          <span className="block text-xs text-white/45">
                             {formatEuro2(line.ht)} + {formatEuro2(line.tva)} de TVA
                           </span>
                         </span>
-                        <span className="whitespace-nowrap">{formatEuro2(line.ttc)}</span>
+                        <span className="whitespace-nowrap tabular-nums">{formatEuro2(line.ttc)}</span>
                       </div>
                     ))}
                     <div className="border-t border-[#4BC449]/30 pt-2 flex justify-between items-end gap-3">
                       <span>
-                        <span className="block font-semibold text-gray-900">Prix total</span>
-                        <span className="block text-xs text-gray-500">
+                        <span className="block font-semibold text-white">Prix total</span>
+                        <span className="block text-xs text-white/55">
                           {formatEuro2(totals.ht)} HT + {formatEuro2(totals.tva)} de TVA
                         </span>
                       </span>
-                      <span className="text-lg font-bold text-gray-900 whitespace-nowrap">{formatEuro2(totals.ttc)}</span>
+                      <span className="text-2xl font-bold text-white whitespace-nowrap tabular-nums">{formatEuro2(totals.ttc)}</span>
                     </div>
                     {!matchesPrice && (
-                      <p className="text-xs text-orange-700 bg-orange-50 border border-orange-100 p-2 rounded-lg">
+                      <p className="text-xs text-amber-200 bg-amber-500/10 border border-amber-400/30 p-2 rounded-lg">
                         Ce détail diffère du prix affiché ({priceLabel}). Merci de nous contacter pour vérification.
                       </p>
                     )}
@@ -879,6 +1334,17 @@ function ReservationFlow() {
         // Garde la liste par défaut
       });
   }, []);
+
+  /* ----------------------- retour en haut à chaque changement d'étape --------- */
+
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }, [step, showOtp]);
 
   /* ----------------------- timer de renvoi OTP ------------------------------- */
 
@@ -1020,7 +1486,7 @@ function ReservationFlow() {
 
   const priceLabel =
     totalPrice !== null
-      ? `${totalPrice.toFixed(2).replace(/\.00$/, '')}€`
+      ? `${totalPrice.toFixed(2).replace(/\.00$/, '').replace('.', ',')} €`
       : '—';
 
   /* -------------------------------- navigation ------------------------------- */
@@ -1240,806 +1706,1028 @@ function ReservationFlow() {
 
   /* ----------------------------------- page ---------------------------------- */
 
-  return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0d2847 30%, #0f3060 50%, #0d2847 70%, #0a1628 100%)' }}>
-      <HeroBg />
+  /** Ce qui manque pour continuer (affiché sous le bouton quand il est grisé). */
+  const nextHint = (): string | null => {
+    if (step === 1) {
+      if (!pickupPlace) return pickupText.trim() ? 'Choisissez votre adresse de départ dans la liste' : 'Indiquez votre adresse de départ';
+      if (serviceType === 'transfer' && !dropoffPlace) {
+        return dropoffText.trim() ? 'Choisissez votre destination dans la liste' : 'Indiquez votre destination';
+      }
+      return null;
+    }
+    if (step === 2) {
+      if (!selectedDate) return 'Choisissez une date';
+      if (!selectedTime) return 'Choisissez une heure';
+      if (serviceType === 'transfer' && direction === 'round-trip') {
+        if (!returnDate) return 'Choisissez la date du retour';
+        if (!returnTime) return 'Choisissez l’heure du retour';
+        if (arTooShort) return 'Retour trop proche : voir l’avertissement ci-dessus';
+      }
+      if (quoteLoading) return 'Calcul du tarif en cours…';
+      if (quoteError) return 'Estimation indisponible pour le moment';
+      return null;
+    }
+    if (step === 4 && !showOtp) {
+      if (!firstName.trim() || !lastName.trim()) return 'Indiquez votre prénom et votre nom';
+      if (phone.trim().replace(/\D/g, '').length < 9) return 'Indiquez un numéro de téléphone valide';
+      if (!email.trim() || !email.includes('@')) return 'Indiquez une adresse e-mail valide';
+      if (!acceptTerms) return 'Acceptez les conditions générales pour réserver';
+    }
+    return null;
+  };
 
-      <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Step bar */}
-        <div className="max-w-3xl mx-auto w-full px-6 pt-8 pb-4">
-          <div className="flex items-center justify-between">
+  const fillFromShortcut = (p: (typeof POPULAR_LOCATIONS)[number]) => {
+    const place: Place = { label: p.address, lat: p.lat, lng: p.lng };
+    if (!pickupPlace) {
+      setPickupText(place.label);
+      setPickupPlace(place);
+    } else {
+      setDropoffText(place.label);
+      setDropoffPlace(place);
+    }
+  };
+
+  const swapAddresses = () => {
+    setPickupText(dropoffText);
+    setPickupPlace(dropoffPlace);
+    setDropoffText(pickupText);
+    setDropoffPlace(pickupPlace);
+  };
+
+  const ticket = (
+    <TripTicket
+      pickupText={pickupText}
+      dropoffText={dropoffText}
+      serviceType={serviceType}
+      direction={direction}
+      hours={hours}
+      selectedDate={selectedDate}
+      selectedTime={selectedTime}
+      returnDate={returnDate}
+      returnTime={returnTime}
+      quote={quote}
+      quoteLoading={quoteLoading}
+      totalPrice={totalPrice}
+      step={step}
+      totalPassengers={totalPassengers}
+      suitcases={suitcases}
+      tvaSettings={tvaSettings}
+    />
+  );
+
+  const breakdown = (
+    <PricingDebugSidebar
+      pickupPlace={pickupPlace}
+      dropoffPlace={dropoffPlace}
+      serviceType={serviceType}
+      direction={direction}
+      hours={hours}
+      selectedDate={selectedDate}
+      selectedTime={selectedTime}
+      returnDate={returnDate}
+      returnTime={returnTime}
+      quote={quote}
+      quoteLoading={quoteLoading}
+      quoteError={quoteError}
+      immobilisation={immobilisation}
+      totalPrice={totalPrice}
+      priceLabel={priceLabel}
+      includedKm={includedKm}
+    />
+  );
+
+  const navProps = {
+    step,
+    next: goNext,
+    back: goBack,
+    hint: nextHint(),
+    price: totalPrice !== null ? priceLabel : null,
+  };
+
+  return (
+    <div className={`${display.variable} relative min-h-screen overflow-hidden bg-[#06101d] text-white`}>
+      <Backdrop />
+
+      <div className="relative z-10 flex min-h-screen flex-col">
+        {/* Progression */}
+        <nav aria-label="Progression de la réservation" className="mx-auto w-full max-w-[1320px] px-5 pt-8 sm:px-8 sm:pt-12">
+          <ol className={`grid gap-2 transition-[grid-template-columns] duration-500 sm:grid-cols-4 sm:gap-6 ${MOBILE_STEP_COLS[step - 1]}`}>
             {STEP_LABELS.map((label, i) => {
               const num = i + 1;
               const active = step === num;
               const done = step > num;
               return (
-                <div key={label} className="flex items-center flex-1 last:flex-none">
-                  <div className="flex flex-col items-center gap-1.5">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                      done ? 'bg-[#4BC449] text-white' : active ? 'bg-white text-[#0d2847]' : 'bg-white/10 text-white/40'
-                    }`}>
-                      {done ? <IconCheck size={14} /> : num}
-                    </div>
-                    <span className={`text-[11px] font-medium transition-colors ${done ? 'text-[#4BC449]' : active ? 'text-white' : 'text-white/30'}`}>{label}</span>
-                  </div>
-                  {i < STEP_LABELS.length - 1 && (
-                    <div className={`flex-1 h-[2px] mx-3 mb-5 transition-colors duration-300 ${done ? 'bg-[#4BC449]' : 'bg-white/10'}`} />
-                  )}
-                </div>
+                <li key={label}>
+                  <button
+                    type="button"
+                    disabled={!done}
+                    aria-current={active ? 'step' : undefined}
+                    onClick={() => {
+                      setShowOtp(false);
+                      setStep(num as Step);
+                    }}
+                    className="group block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4BC449] disabled:cursor-default"
+                  >
+                    <span className="block h-[3px] overflow-hidden rounded-full bg-white/12">
+                      <span
+                        className={`block h-full rounded-full transition-all duration-700 ${
+                          active ? 'bg-[#4BC449] shadow-[0_0_14px_rgba(75,196,73,0.8)]' : done ? 'bg-[#d9b36a]' : ''
+                        }`}
+                        style={{ width: active || done ? '100%' : '0%' }}
+                      />
+                    </span>
+                    <span className="mt-3 flex items-baseline gap-2">
+                      <span
+                        className={`text-[11px] font-semibold tabular-nums tracking-[0.2em] ${
+                          active ? 'text-[#4BC449]' : done ? 'text-[#d9b36a]' : 'text-white/30'
+                        }`}
+                      >
+                        {pad(num)}
+                      </span>
+                      <span
+                        className={`truncate text-[13px] font-medium transition-colors sm:text-sm ${
+                          active ? 'text-white' : 'hidden sm:inline'
+                        } ${done ? 'text-white/80 group-hover:text-white' : !active ? 'text-white/35' : ''}`}
+                      >
+                        {label}
+                      </span>
+                      {done && <IconCheck size={13} className="hidden shrink-0 text-[#d9b36a] sm:block" aria-label="terminée" />}
+                    </span>
+                  </button>
+                </li>
               );
             })}
-          </div>
-        </div>
+          </ol>
+        </nav>
 
-        {/* Main area */}
-        <div className="flex-1 pb-8">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="flex gap-8 items-start">
-              <div className="flex-1 min-w-0">
-
-                {/* STEP 1: WHERE */}
-                {step === 1 && (
-                  <div className="space-y-5">
-                    <div className="mb-2">
-                      <h2 className="text-2xl font-bold text-white mb-1">Où allez-vous ?</h2>
-                      <p className="text-white/50 text-sm">Indiquez votre point de départ et le service souhaité.</p>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
-                      <AddressField
-                        label="Point de départ"
-                        placeholder="Adresse de départ"
-                        pinClass="text-[#4BC449]"
-                        value={pickupText}
-                        onTextChange={(t) => { setPickupText(t); setPickupPlace(null); }}
-                        onSelect={(p) => { setPickupText(p.label); setPickupPlace(p); }}
+        <main className="flex-1 pb-12 pt-10 sm:pt-14">
+          <div className="mx-auto max-w-[1320px] px-5 sm:px-8">
+            <div className="flex flex-col items-start gap-10 lg:flex-row xl:gap-14">
+              <div className="w-full min-w-0 max-w-[780px] flex-1">
+                <div key={`${step}-${showOtp ? 'otp' : 'form'}`} className={`${RISE} space-y-7`}>
+                  {/* ============================ STEP 1 : OÙ ============================ */}
+                  {step === 1 && (
+                    <>
+                      <StepHeader
+                        step={1}
+                        title={
+                          <>
+                            Où <em>allez-vous</em> ?
+                          </>
+                        }
+                        subtitle="Indiquez votre départ, votre destination et le type de service."
                       />
 
-                      {serviceType === 'transfer' ? (
-                        <AddressField
-                          label="Destination"
-                          placeholder="Adresse d'arrivée"
-                          pinClass="text-red-400"
-                          value={dropoffText}
-                          onTextChange={(t) => { setDropoffText(t); setDropoffPlace(null); }}
-                          onSelect={(p) => { setDropoffText(p.label); setDropoffPlace(p); }}
-                        />
-                      ) : (
-                        <AddressField
-                          label="Arrêt final ou destination"
-                          placeholder="Optionnel — par défaut retour au point de départ"
-                          pinClass="text-blue-500"
-                          value={dropoffText}
-                          optional
-                          onTextChange={(t) => { setDropoffText(t); setDropoffPlace(null); }}
-                          onSelect={(p) => { setDropoffText(p.label); setDropoffPlace(p); }}
-                        />
-                      )}
-
-                      <p className="text-xs text-gray-400">
-                        Sélectionnez une adresse dans la liste pour lancer le calcul du tarif.
-                      </p>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
-                      <label className="text-sm font-medium text-gray-700 block">Type de service</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {[
-                          { id: 'transfer' as const, label: 'Transfert', desc: 'Point A → Point B' },
-                          { id: 'hourly' as const, label: 'Mise à disposition', desc: 'Chauffeur à l\'heure (forfaits)' },
-                        ].map((t) => (
-                          <button key={t.id} type="button" onClick={() => setServiceType(t.id)}
-                            className={`p-4 rounded-xl border-2 text-left transition-all ${
-                              serviceType === t.id ? 'border-[#4BC449] bg-[#4BC449]/5' : 'border-gray-200 hover:border-gray-300'
-                            }`}>
-                            <span className={`text-sm font-semibold block ${serviceType === t.id ? 'text-[#4BC449]' : 'text-gray-900'}`}>{t.label}</span>
-                            <span className="text-xs text-gray-500">{t.desc}</span>
-                          </button>
-                        ))}
-                      </div>
-
-                      {serviceType === 'transfer' ? (
-                        <>
-                          <label className="text-sm font-medium text-gray-700 block pt-2">Direction</label>
-                          <div className="grid grid-cols-2 gap-3">
-                            {[
-                              { id: 'one-way' as const, label: 'Aller simple' },
-                              { id: 'round-trip' as const, label: 'Aller-retour' },
-                            ].map((d) => (
-                              <button key={d.id} type="button" onClick={() => setDirection(d.id)}
-                                className={`py-3 rounded-xl border-2 text-sm font-medium text-center transition-all ${
-                                  direction === d.id ? 'border-[#4BC449] bg-[#4BC449]/5 text-[#4BC449]' : 'border-gray-200 text-gray-700 hover:border-gray-300'
-                                }`}>
-                                {d.label}
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="pt-2">
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="text-sm font-medium text-gray-700 block">
-                              Durée de mise à disposition (temps)
-                            </label>
-                            <span className="text-xs font-semibold text-[#4BC449] bg-[#4BC449]/10 px-2.5 py-1 rounded-full">
-                              {formatHours(hours)} ({includedKm} km inclus)
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                            {hourlyForfaits.map((f) => (
-                              <button
-                                key={f.hours}
-                                type="button"
-                                onClick={() => setHours(f.hours)}
-                                className={`py-2.5 px-2 rounded-xl border-2 text-center transition-all cursor-pointer ${
-                                  hours === f.hours
-                                    ? 'border-[#4BC449] bg-[#4BC449]/10 text-[#0d2847] font-bold shadow-sm'
-                                    : 'border-gray-200 text-gray-700 hover:border-gray-300'
-                                }`}
-                              >
-                                <span className="block text-sm font-semibold">{formatHours(f.hours)}</span>
-                                <span className="block text-[10px] text-gray-500 mt-0.5">{f.maxKm} km</span>
-                              </button>
-                            ))}
-                          </div>
-                          <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl p-3 mt-3">
-                            Chauffeur privé à disposition pour une durée de {formatHours(hours)}. Inclut jusqu&apos;à {includedKm} km de trajet.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <Nav step={step} ok={canContinue(1)} next={goNext} back={goBack} />
-                  </div>
-                )}
-
-                {/* STEP 2: WHEN */}
-                {step === 2 && (
-                  <div className="space-y-5">
-                    <div className="mb-2">
-                      <h2 className="text-2xl font-bold text-white mb-1">Quand partez-vous ?</h2>
-                      <p className="text-white/50 text-sm">
-                        {serviceType === 'hourly'
-                          ? `Choisissez la date et l'heure de début de votre mise à disposition (${formatHours(hours)}).`
-                          : 'Choisissez votre date et horaire de départ.'}
-                      </p>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-xl p-6">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4">
-                        {serviceType === 'hourly' ? 'Date de mise à disposition' : 'Date de départ'}
-                      </h3>
-                      <Calendar
-                        viewMonth={viewMonth}
-                        onMonthChange={setViewMonth}
-                        selected={selectedDate}
-                        minDate={minPickupDay}
-                        onSelect={(d) => {
-                          setSelectedDate(d);
-                          setShowTimePicker(true);
-                          if (returnDate && returnDate < d) {
-                            setReturnDate(null);
-                            setReturnTime('');
-                            setReturnChoice('');
-                            setShowReturnTime(false);
-                          }
-                        }}
-                      />
-                      {earliestPickup && (
-                        <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">
-                          <IconClock size={13} />
-                          Première prise en charge possible : {formatShortDate(earliestPickup)} à {pad(earliestPickup.getHours())}:{pad(earliestPickup.getMinutes())}
-                        </p>
-                      )}
-                    </div>
-
-                    {showTimePicker && selectedDate && (
-                      <div className="bg-white rounded-2xl shadow-xl p-6">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-4">
-                          {serviceType === 'hourly' ? 'Heure de prise en charge' : 'Heure de départ'}
-                        </h3>
-                        <TimeGrid
-                          value={selectedTime}
-                          onChange={setSelectedTime}
-                          minDateTime={earliestPickup}
-                          day={selectedDate}
-                        />
-                      </div>
-                    )}
-
-                    {serviceType === 'transfer' && direction === 'round-trip' && selectedDate && selectedTime && (
-                      <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
-                        <h3 className="text-sm font-semibold text-gray-900">Retour</h3>
-                        <div className="space-y-2">
-                          {[
-                            { id: 'same' as const, label: 'Le même jour', detail: formatLongDate(selectedDate) },
-                            { id: 'next' as const, label: 'Le lendemain', detail: formatLongDate(addDays(selectedDate, 1)) },
-                            { id: 'custom' as const, label: 'Choisir une autre date', detail: '' },
-                          ].map((opt) => (
-                            <button key={opt.id} type="button"
-                              onClick={() => {
-                                setReturnChoice(opt.id);
-                                if (opt.id === 'same') { setReturnDate(selectedDate); setShowReturnTime(true); setShowReturnCalendar(false); }
-                                else if (opt.id === 'next') { setReturnDate(addDays(selectedDate, 1)); setShowReturnTime(true); setShowReturnCalendar(false); }
-                                else {
-                                  setReturnViewMonth(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
-                                  setShowReturnCalendar(true);
-                                  setShowReturnTime(false);
-                                }
+                      <div>
+                        <div className={`${PANEL} !p-2 sm:!p-2.5`}>
+                          <div className="relative">
+                            <AddressField
+                              dot="origin"
+                              label="Départ"
+                              placeholder="Adresse, gare, aéroport, hôpital…"
+                              value={pickupText}
+                              confirmed={!!pickupPlace}
+                              onTextChange={(t) => {
+                                setPickupText(t);
+                                setPickupPlace(null);
                               }}
-                              className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                                returnChoice === opt.id ? 'border-[#4BC449] bg-[#4BC449]/5' : 'border-gray-200 hover:border-gray-300'
-                              }`}>
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${returnChoice === opt.id ? 'border-[#4BC449]' : 'border-gray-300'}`}>
-                                {returnChoice === opt.id && <div className="w-2.5 h-2.5 rounded-full bg-[#4BC449]" />}
-                              </div>
-                              <div>
-                                <span className={`text-sm font-medium ${returnChoice === opt.id ? 'text-[#4BC449]' : 'text-gray-900'}`}>{opt.label}</span>
-                                {opt.detail && <span className="text-xs text-gray-400 ml-2">{opt.detail}</span>}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-
-                        {showReturnCalendar && (
-                          <div className="pt-2">
-                            <Calendar
-                              compact
-                              viewMonth={returnViewMonth}
-                              onMonthChange={setReturnViewMonth}
-                              selected={returnDate}
-                              minDate={selectedDate}
-                              onSelect={(d) => { setReturnDate(d); setShowReturnTime(true); }}
+                              onSelect={(p) => {
+                                setPickupText(p.label);
+                                setPickupPlace(p);
+                              }}
                             />
-                          </div>
-                        )}
-
-                        {showReturnTime && returnDate && (
-                          <div className="pt-2">
-                            <h4 className="text-xs font-semibold text-gray-700 mb-3">Heure de retour</h4>
-                            <TimeGrid
-                              compact
-                              value={returnTime}
-                              onChange={setReturnTime}
-                              minDateTime={sameDay(returnDate, selectedDate) ? combineDateTime(selectedDate, selectedTime) : null}
-                              day={returnDate}
+                            <div aria-hidden className="mx-5 border-t border-stone-200" />
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute left-[27px] top-[34px] z-[5] h-[69px] border-l-2 border-dashed border-stone-300"
                             />
-                          </div>
-                        )}
-
-                        {arTooShort && (
-                          <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3.5">
-                            <IconAlertTriangle size={16} className="text-amber-500 mt-0.5 shrink-0" />
-                            <p className="text-xs text-amber-800 leading-relaxed">
-                              Ce trajet fait moins de 25 km au total. Pour un aller-retour avec retour 1 à 3 jours après
-                              l&apos;aller, nous vous conseillons le forfait agglomération (aller simple).
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Estimation */}
-                    {quoteLoading ? (
-                      <div className="bg-white rounded-2xl shadow-xl p-6 flex items-center gap-3">
-                        <IconLoader2 size={18} className="text-[#4BC449] animate-spin" />
-                        <span className="text-sm text-gray-500">Calcul du tarif en cours…</span>
-                      </div>
-                    ) : quoteError ? (
-                      <div className="bg-white rounded-2xl shadow-xl p-6 flex items-start gap-3">
-                        <IconAlertTriangle size={18} className="text-red-500 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">Estimation indisponible</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{quoteError}</p>
-                        </div>
-                      </div>
-                    ) : quote ? (
-                      <div className="bg-white rounded-2xl shadow-xl p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-sm font-semibold text-gray-900">Estimation du prix</h3>
-                            <p className="text-xs text-gray-400 mt-0.5">
-                              {serviceType === 'hourly'
-                                ? `Mise à disposition ${formatHours(hours)} • ${quote.pricing.rateType}`
-                                : `${direction === 'round-trip' ? 'Aller-retour' : 'Aller simple'} • ${quote.pricing.rateType}`}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-3xl font-bold text-[#4BC449]">{priceLabel}</span>
-                            <p className="text-[10px] text-gray-400 mt-0.5">{tvaSettings.tvaApplicable ? 'Prix forfaitaire TTC' : 'Prix forfaitaire'}{!tvaSettings.tvaApplicable && tvaSettings.tvaLegalMention ? ` — ${tvaSettings.tvaLegalMention}` : ''}</p>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                          {serviceType === 'hourly' ? (
-                            <>
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-gray-500 flex items-center gap-1.5">
-                                  <IconClock size={13} className="text-gray-400" />
-                                  Durée du forfait
-                                </span>
-                                <span className="text-gray-900 font-medium">{formatHours(hours)}</span>
-                              </div>
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-gray-500 flex items-center gap-1.5">
-                                  <IconRoute size={13} className="text-gray-400" />
-                                  Distance incluse
-                                </span>
-                                <span className="text-gray-900 font-medium">Jusqu&apos;à {includedKm} km</span>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-gray-500 flex items-center gap-1.5">
-                                  <IconRoute size={13} className="text-gray-400" />
-                                  Distance passager
-                                </span>
-                                <span className="text-gray-900 font-medium">{quote.distances.tp.toFixed(1)} km • {Math.round(quote.duration)} min</span>
-                              </div>
-                              {quote.pricing.tollInfo?.detected && (
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-gray-500">Péages inclus</span>
-                                  <span className="text-gray-900 font-medium">{quote.pricing.tollInfo.totalIncluded.toFixed(2)}€</span>
-                                </div>
-                              )}
-                              {immobilisation && immobilisation.priceTTC > 0 && (
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-gray-500">Immobilisation</span>
-                                  <span className="text-gray-900 font-medium">{immobilisation.label}</span>
-                                </div>
-                              )}
-                            </>
-                          )}
-                          {tvaSettings.tvaApplicable && tvaSettings.tvaDisplayClient && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-gray-500">Dont TVA ({tvaSettings.tvaRate}%)</span>
-                              <span className="text-gray-900 font-medium">{quote.pricing.tva.toFixed(2)}€</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
-                          {[
-                            { icon: IconShieldCheck, text: 'Prix fixe garanti' },
-                            { icon: IconClock, text: '60 min d\'annulation gratuite' },
-                            ...(serviceType === 'hourly'
-                              ? [{ icon: IconRoute, text: `${includedKm} km inclus` }]
-                              : [{ icon: IconClock, text: '10 min d\'attente gratuits' }]),
-                            { icon: IconCalendar, text: 'Aucun paiement immédiat' },
-                          ].map((chip) => (
-                            <div key={chip.text} className="flex items-center gap-1.5 bg-[#4BC449]/5 border border-[#4BC449]/15 rounded-full px-3 py-1.5">
-                              <chip.icon size={13} className="text-[#4BC449] shrink-0" />
-                              <span className="text-xs font-medium text-[#4BC449]">{chip.text}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <Nav step={step} ok={canContinue(2)} next={goNext} back={goBack} />
-                  </div>
-                )}
-
-                {/* STEP 3: PASSENGERS */}
-                {step === 3 && (
-                  <div className="space-y-5">
-                    <div className="mb-2">
-                      <h2 className="text-2xl font-bold text-white mb-1">Qui voyage ?</h2>
-                      <p className="text-white/50 text-sm">Indiquez le nombre de passagers et vos bagages.</p>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-xl p-6">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4">Passagers</h3>
-                      <div className="divide-y divide-gray-100">
-                        {[
-                          { label: 'Adultes', sub: '13 ans et +', value: adults, set: setAdults, min: 1, max: 4 },
-                          { label: 'Enfants', sub: '2–12 ans', value: children, set: setChildren, min: 0, max: 3 },
-                          { label: 'Bébés', sub: 'Moins de 2 ans', value: babies, set: setBabies, min: 0, max: 2 },
-                        ].map((item) => (
-                          <div key={item.label} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
-                            <div>
-                              <span className="text-sm font-medium text-gray-900">{item.label}</span>
-                              <span className="text-xs text-gray-400 ml-2">{item.sub}</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <button type="button" onClick={() => item.set(Math.max(item.min, item.value - 1))} disabled={item.value <= item.min}
-                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
-                                <IconMinus size={14} />
+                            {serviceType === 'transfer' ? (
+                              <AddressField
+                                dot="destination"
+                                label="Destination"
+                                placeholder="Où allez-vous ?"
+                                value={dropoffText}
+                                confirmed={!!dropoffPlace}
+                                onTextChange={(t) => {
+                                  setDropoffText(t);
+                                  setDropoffPlace(null);
+                                }}
+                                onSelect={(p) => {
+                                  setDropoffText(p.label);
+                                  setDropoffPlace(p);
+                                }}
+                              />
+                            ) : (
+                              <AddressField
+                                dot="stop"
+                                label="Arrêt final"
+                                placeholder="Par défaut : retour au point de départ"
+                                value={dropoffText}
+                                confirmed={!!dropoffPlace}
+                                optional
+                                onTextChange={(t) => {
+                                  setDropoffText(t);
+                                  setDropoffPlace(null);
+                                }}
+                                onSelect={(p) => {
+                                  setDropoffText(p.label);
+                                  setDropoffPlace(p);
+                                }}
+                              />
+                            )}
+                            {serviceType === 'transfer' && (
+                              <button
+                                type="button"
+                                onClick={swapAddresses}
+                                aria-label="Inverser départ et destination"
+                                className="absolute right-4 top-[50px] z-20 flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600 shadow-sm transition hover:border-stone-400 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449]"
+                              >
+                                <IconArrowsUpDown size={16} />
                               </button>
-                              <span className="text-lg font-bold text-gray-900 w-6 text-center">{item.value}</span>
-                              <button type="button" onClick={() => item.set(Math.min(item.max, item.value + 1))} disabled={item.value >= item.max || totalPassengers >= 4}
-                                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
-                                <IconPlus size={14} />
-                              </button>
-                            </div>
+                            )}
                           </div>
-                        ))}
+                        </div>
+                        <p className="mt-3 px-2 text-sm text-white/55">
+                          Choisissez une adresse dans la liste pour lancer le calcul du tarif.
+                        </p>
                       </div>
 
-                      <div className="border-t border-gray-100 mt-4 pt-4">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-4">Bagages</h3>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-900">Valises</span>
-                          <div className="flex items-center gap-4">
-                            <button type="button" onClick={() => setSuitcases(Math.max(0, suitcases - 1))} disabled={suitcases <= 0}
-                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
-                              <IconMinus size={14} />
+                      <div>
+                        <p className="mb-3 px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">Raccourcis</p>
+                        <div className="flex flex-wrap gap-2">
+                          {POPULAR_LOCATIONS.map((p) => (
+                            <button
+                              key={p.name}
+                              type="button"
+                              onClick={() => fillFromShortcut(p)}
+                              className="inline-flex items-center gap-2 rounded-full bg-white/[0.07] px-4 py-2.5 text-sm text-white/85 ring-1 ring-white/12 transition hover:bg-white/[0.13] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449]"
+                            >
+                              <span aria-hidden>{p.icon}</span>
+                              {p.name}
                             </button>
-                            <span className="text-lg font-bold text-gray-900 w-6 text-center">{suitcases}</span>
-                            <button type="button" onClick={() => setSuitcases(Math.min(6, suitcases + 1))} disabled={suitcases >= 6}
-                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
-                              <IconPlus size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-gray-100 mt-4 pt-4">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Besoins supplémentaires</h3>
-                        <div className="space-y-2">
-                          {[
-                            { label: 'Siège bébé', active: babySeat, toggle: () => setBabySeat(!babySeat) },
-                            { label: 'Accessibilité PMR', active: wheelchair, toggle: () => setWheelchair(!wheelchair) },
-                            { label: 'Bagage volumineux', active: largeLuggage, toggle: () => setLargeLuggage(!largeLuggage) },
-                          ].map((opt) => (
-                            <label key={opt.label} className="flex items-center gap-3 cursor-pointer py-1">
-                              <div onClick={opt.toggle}
-                                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center transition-colors ${
-                                  opt.active ? 'bg-[#4BC449] border-[#4BC449]' : 'border-gray-300'
-                                }`}>
-                                {opt.active && <IconCheck size={11} className="text-white" />}
-                              </div>
-                              <span className="text-sm text-gray-700">{opt.label}</span>
-                            </label>
                           ))}
                         </div>
                       </div>
-                    </div>
 
-                    <Nav step={step} ok={canContinue(3)} next={goNext} back={goBack} />
-                  </div>
-                )}
-
-                {/* STEP 4: CONFIRMATION OR OTP */}
-                {step === 4 && (
-                  showOtp ? (
-                    <div className="space-y-5">
-                      <div className="mb-2">
-                        <h2 className="text-2xl font-bold text-white mb-1">Vérification de sécurité</h2>
-                        <p className="text-white/50 text-sm">Confirmez votre demande avec le code reçu par e-mail.</p>
-                      </div>
-
-                      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md mx-auto text-center space-y-6">
-                        <div className="w-16 h-16 rounded-full bg-[#4BC449]/10 flex items-center justify-center mx-auto text-[#4BC449]">
-                          <IconShieldCheck size={36} />
-                        </div>
+                      <div className={`${PANEL} space-y-7`}>
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900">Code de vérification</h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Un code à 6 chiffres a été envoyé par e-mail à <strong className="text-gray-800 break-all">{email}</strong>.
-                          </p>
-                        </div>
-
-                        <div className="flex justify-center gap-2">
-                          {otpCode.map((digit, idx) => (
-                            <input
-                              key={idx}
-                              id={`otp-input-${idx}`}
-                              type="text"
-                              inputMode="numeric"
-                              maxLength={6}
-                              value={digit}
-                              onChange={(e) => handleOtpInput(idx, e.target.value)}
-                              onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                              className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold rounded-xl border-2 border-gray-200 focus:border-[#4BC449] focus:outline-none transition-colors"
-                            />
-                          ))}
-                        </div>
-
-                        {otpError && (
-                          <p className="text-xs text-red-600 font-medium">{otpError}</p>
-                        )}
-                        {otpInfo && (
-                          <p className="text-xs text-[#4BC449] font-medium">{otpInfo}</p>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={verifyOtp}
-                          disabled={submitting || otpCode.join('').length !== 6}
-                          className="w-full py-3.5 bg-[#4BC449] hover:bg-[#3fb340] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-lg shadow-[#4BC449]/25 flex items-center justify-center gap-2 cursor-pointer"
-                        >
-                          {submitting ? (
-                            <>
-                              <IconLoader2 size={18} className="animate-spin" />
-                              Vérification en cours…
-                            </>
-                          ) : (
-                            <>
-                              Confirmer ma réservation
-                              <IconArrowRight size={18} />
-                            </>
-                          )}
-                        </button>
-
-                        <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
-                          <button
-                            type="button"
-                            onClick={() => setShowOtp(false)}
-                            className="text-gray-600 hover:text-gray-900 underline cursor-pointer"
-                          >
-                            Modifier mes informations
-                          </button>
-                          <button
-                            type="button"
-                            onClick={resendOtp}
-                            disabled={resendIn > 0}
-                            className="text-[#4BC449] font-medium hover:underline disabled:text-gray-400 disabled:no-underline cursor-pointer"
-                          >
-                            {resendIn > 0 ? `Renvoyer (${resendIn}s)` : 'Renvoyer le code'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-5">
-                      <div className="mb-2">
-                        <h2 className="text-2xl font-bold text-white mb-1">Confirmation</h2>
-                        <p className="text-white/50 text-sm">Vérifiez votre réservation et finalisez.</p>
-                      </div>
-
-                      <div className="bg-white rounded-2xl shadow-xl p-6">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-4">Récapitulatif</h3>
-                        <div className="divide-y divide-gray-100">
-                          {[
-                            {
-                              label: 'Service',
-                              value: serviceType === 'hourly'
-                                ? `Mise à disposition (${formatHours(hours)})`
-                                : direction === 'round-trip'
-                                  ? 'Transfert aller-retour'
-                                  : 'Transfert aller simple',
-                            },
-                            { label: 'Départ', value: pickupText.split(',')[0] },
-                            ...(serviceType === 'transfer' || dropoffText
-                              ? [{ label: 'Destination', value: dropoffText.split(',')[0] || pickupText.split(',')[0] }]
-                              : [{ label: 'Destination', value: 'Retour au point de départ' }]),
-                            ...(serviceType === 'hourly'
-                              ? [{ label: 'Durée & Distance', value: `${formatHours(hours)} • jusqu’à ${includedKm} km inclus` }]
-                              : []),
-                            { label: 'Date', value: selectedDate ? formatLongDate(selectedDate) : '—' },
-                            { label: 'Heure', value: selectedTime || '—' },
-                            ...(serviceType === 'transfer' && direction === 'round-trip' && returnDate
-                              ? [{ label: 'Retour', value: `${formatShortDate(returnDate)}${returnTime ? ` à ${returnTime}` : ''}` }]
-                              : []),
-                            ...(serviceType === 'transfer' && quote
-                              ? [{ label: 'Distance', value: `${quote.distances.tp.toFixed(1)} km • ${Math.round(quote.duration)} min` }]
-                              : []),
-                            { label: 'Passagers', value: passengersText() || '1 adulte' },
-                            { label: 'Bagages', value: `${suitcases} valise${suitcases > 1 ? 's' : ''}` },
-                            { label: 'Prix estimé', value: priceLabel, highlight: true },
-                          ].map((row) => (
-                            <div key={row.label} className="flex items-center justify-between py-3">
-                              <span className="text-sm text-gray-500">{row.label}</span>
-                              <span className={`text-sm font-medium ${(row as { highlight?: boolean }).highlight ? 'text-[#4BC449] text-lg font-bold' : 'text-gray-900'}`}>{row.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
-                        <h3 className="text-sm font-semibold text-gray-900">Vos coordonnées</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-xs font-medium text-gray-600 mb-1 block">Prénom</label>
-                            <input type="text" placeholder="Votre prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)}
-                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]" />
+                          <PanelTitle>Type de service</PanelTitle>
+                          <div role="radiogroup" aria-label="Type de service" className="grid gap-3 sm:grid-cols-2">
+                            {[
+                              { id: 'transfer' as const, label: 'Transfert', desc: 'De A à B, au prix fixe', Icon: IconRoute },
+                              { id: 'hourly' as const, label: 'Mise à disposition', desc: 'Un chauffeur à l’heure, au forfait', Icon: IconClockHour4 },
+                            ].map((t) => {
+                              const on = serviceType === t.id;
+                              return (
+                                <button
+                                  key={t.id}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={on}
+                                  onClick={() => setServiceType(t.id)}
+                                  className={`relative flex items-start gap-4 rounded-2xl border p-5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449] ${
+                                    on
+                                      ? 'border-transparent bg-[#07111f] text-white shadow-[0_20px_40px_-18px_rgba(7,17,31,0.7)]'
+                                      : 'border-stone-200 bg-white hover:border-stone-400'
+                                  }`}
+                                >
+                                  <span
+                                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                                      on ? 'bg-white/10 text-[#d9b36a]' : 'bg-stone-100 text-stone-600'
+                                    }`}
+                                  >
+                                    <t.Icon size={22} />
+                                  </span>
+                                  <span className="min-w-0">
+                                    <span className="block text-base font-semibold">{t.label}</span>
+                                    <span className={`mt-0.5 block text-sm ${on ? 'text-white/65' : 'text-stone-500'}`}>{t.desc}</span>
+                                  </span>
+                                  {on && (
+                                    <span className="absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full bg-[#4BC449]">
+                                      <IconCheck size={13} strokeWidth={3} className="text-[#06210a]" />
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
-                          <div>
-                            <label className="text-xs font-medium text-gray-600 mb-1 block">Nom</label>
-                            <input type="text" placeholder="Votre nom" value={lastName} onChange={(e) => setLastName(e.target.value)}
-                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]" />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-xs font-medium text-gray-600 mb-1 block">Téléphone</label>
-                            <input type="tel" placeholder="+33 6 00 00 00 00" value={phone} onChange={(e) => setPhone(e.target.value)}
-                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]" />
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-gray-600 mb-1 block">E-mail</label>
-                            <input type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)}
-                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449]" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-gray-600 mb-1 block">Note au chauffeur (optionnel)</label>
-                          <textarea placeholder="Numéro de vol, accès particulier, itinéraire souhaité..." value={note} onChange={(e) => setNote(e.target.value)} rows={2}
-                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4BC449]/20 focus:border-[#4BC449] resize-none" />
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-2xl shadow-xl p-5">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                          <div onClick={() => setAcceptTerms(!acceptTerms)}
-                            className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center transition-colors shrink-0 ${
-                              acceptTerms ? 'bg-[#4BC449] border-[#4BC449]' : 'border-gray-300'
-                            }`}>
-                            {acceptTerms && <IconCheck size={11} className="text-white" />}
-                          </div>
-                          <span className="text-sm text-gray-700">
-                            J&apos;accepte les <Link href="/cgv" target="_blank" className="text-[#4BC449] font-medium hover:underline">conditions générales</Link>
-                          </span>
-                        </label>
-                      </div>
-
-                      {submitError && (
-                        <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl p-4 text-xs text-red-700">
-                          <IconAlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
-                          <span>{submitError}</span>
-                        </div>
-                      )}
-
-                      <Nav
-                        step={step}
-                        ok={canContinue(4) && !submitting}
-                        next={handleBookingSubmit}
-                        back={goBack}
-                        lastLabel={submitting ? 'Envoi en cours…' : 'Réserver maintenant'}
-                      />
-
-                      <div className="flex items-center justify-center gap-4 text-white/40 text-xs pb-2">
-                        <span className="flex items-center gap-1"><IconShieldCheck size={14} /> Paiement sécurisé</span>
-                        <span>•</span>
-                        <span>Aucun paiement immédiat</span>
-                        <span>•</span>
-                        <span>Confirmation rapide</span>
-                      </div>
-                    </div>
-                  )
-                )}
-
-                {/* Mobile Debug Inspector */}
-                <div className="lg:hidden mt-8">
-                  <PricingDebugSidebar
-                    pickupPlace={pickupPlace}
-                    dropoffPlace={dropoffPlace}
-                    serviceType={serviceType}
-                    direction={direction}
-                    hours={hours}
-                    selectedDate={selectedDate}
-                    selectedTime={selectedTime}
-                    returnDate={returnDate}
-                    returnTime={returnTime}
-                    quote={quote}
-                    quoteLoading={quoteLoading}
-                    quoteError={quoteError}
-                    immobilisation={immobilisation}
-                    totalPrice={totalPrice}
-                    priceLabel={priceLabel}
-                    includedKm={includedKm}
-                  />
-                </div>
-              </div>
-
-              {/* Sticky sidebar + Debug Inspector */}
-              <div className="hidden lg:block w-[300px] shrink-0">
-                <div className="sticky top-6 space-y-4 max-h-[calc(100vh-2rem)] overflow-y-auto pr-1">
-                  {/* Your Trip Card */}
-                  <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                    <div className="p-5">
-                      <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Votre trajet</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-2.5">
-                          <IconMapPin size={14} className="text-[#4BC449] mt-0.5 shrink-0" />
-                          <span className="text-sm leading-snug text-gray-900">{pickupText.split(',')[0] || <span className="text-gray-300">Départ</span>}</span>
                         </div>
 
                         {serviceType === 'transfer' ? (
-                          <div className="flex items-start gap-2.5">
-                            <IconMapPin size={14} className="text-red-400 mt-0.5 shrink-0" />
-                            <span className="text-sm leading-snug text-gray-900">{dropoffText.split(',')[0] || <span className="text-gray-300">Destination</span>}</span>
-                          </div>
-                        ) : dropoffText ? (
-                          <div className="flex items-start gap-2.5">
-                            <IconMapPin size={14} className="text-blue-500 mt-0.5 shrink-0" />
-                            <span className="text-sm leading-snug text-gray-900">{dropoffText.split(',')[0]}</span>
-                          </div>
-                        ) : null}
-
-                        <div className="border-t border-gray-100 my-1" />
-
-                        {serviceType === 'hourly' && (
-                          <div className="flex items-center gap-2.5">
-                            <IconClock size={14} className="text-[#4BC449] shrink-0" />
-                            <span className="text-sm font-semibold text-gray-800">
-                              {formatHours(hours)} ({includedKm} km inclus)
-                            </span>
-                          </div>
-                        )}
-
-                        {selectedDate && (
-                          <div className="flex items-center gap-2.5">
-                            <IconCalendar size={14} className="text-gray-400 shrink-0" />
-                            <span className="text-sm text-gray-700">{formatShortDate(selectedDate)}</span>
-                          </div>
-                        )}
-                        {selectedTime && (
-                          <div className="flex items-center gap-2.5">
-                            <IconClock size={14} className="text-gray-400 shrink-0" />
-                            <span className="text-sm text-gray-700">{selectedTime}</span>
-                          </div>
-                        )}
-                        {serviceType === 'transfer' && quote && (
-                          <div className="flex items-center gap-2.5">
-                            <IconRoute size={14} className="text-gray-400 shrink-0" />
-                            <span className="text-sm text-gray-700">{quote.distances.tp.toFixed(1)} km • {Math.round(quote.duration)} min</span>
-                          </div>
-                        )}
-                        {step >= 3 && (
-                          <>
-                            <div className="flex items-center gap-2.5">
-                              <IconUsers size={14} className="text-gray-400 shrink-0" />
-                              <span className="text-sm text-gray-700">{totalPassengers} passager{totalPassengers > 1 ? 's' : ''}</span>
+                          <div>
+                            <PanelTitle>Direction</PanelTitle>
+                            <div role="radiogroup" aria-label="Direction" className="grid grid-cols-2 gap-1 rounded-2xl bg-stone-200/70 p-1">
+                              {[
+                                { id: 'one-way' as const, label: 'Aller simple', Icon: IconArrowRight },
+                                { id: 'round-trip' as const, label: 'Aller-retour', Icon: IconArrowsExchange },
+                              ].map((d) => (
+                                <button
+                                  key={d.id}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={direction === d.id}
+                                  onClick={() => setDirection(d.id)}
+                                  className={`flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449] ${
+                                    direction === d.id ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+                                  }`}
+                                >
+                                  <d.Icon size={17} />
+                                  {d.label}
+                                </button>
+                              ))}
                             </div>
-                            <div className="flex items-center gap-2.5">
-                              <IconLuggage size={14} className="text-gray-400 shrink-0" />
-                              <span className="text-sm text-gray-700">{suitcases} valise{suitcases > 1 ? 's' : ''}</span>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                              <h2 className={OVERLINE}>Durée de mise à disposition</h2>
+                              <span className="rounded-full bg-[#4BC449]/12 px-3 py-1 text-xs font-semibold text-[#1f7a24]">
+                                {formatHours(hours)} · {includedKm} km inclus
+                              </span>
                             </div>
-                          </>
-                        )}
-                        {(quote || quoteLoading) && (
-                          <>
-                            <div className="border-t border-gray-100 my-1" />
-                            <div className="flex items-center justify-between pt-1">
-                              <span className="text-xs text-gray-400">Prix estimé</span>
-                              {quoteLoading ? (
-                                <IconLoader2 size={16} className="text-[#4BC449] animate-spin" />
-                              ) : (
-                                <span className="text-xl font-bold text-[#4BC449]">{priceLabel}</span>
-                              )}
+                            <div role="radiogroup" aria-label="Durée" className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                              {hourlyForfaits.map((f) => (
+                                <button
+                                  key={f.hours}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={hours === f.hours}
+                                  onClick={() => setHours(f.hours)}
+                                  className={`rounded-2xl border px-2 py-3 text-center transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449] ${
+                                    hours === f.hours
+                                      ? 'border-transparent bg-[#07111f] text-white shadow-[0_14px_30px_-14px_rgba(7,17,31,0.7)]'
+                                      : 'border-stone-200 bg-white text-stone-800 hover:border-stone-400'
+                                  }`}
+                                >
+                                  <span className="block text-base font-semibold tabular-nums">{formatHours(f.hours)}</span>
+                                  <span className={`mt-0.5 block text-[11px] ${hours === f.hours ? 'text-white/60' : 'text-stone-500'}`}>
+                                    {f.maxKm} km
+                                  </span>
+                                </button>
+                              ))}
                             </div>
-                          </>
+                            <p className="mt-4 rounded-2xl bg-stone-100 p-4 text-sm leading-relaxed text-stone-600">
+                              Chauffeur privé à disposition pendant {formatHours(hours)}, jusqu&apos;à {includedKm} km de trajet inclus.
+                            </p>
+                          </div>
                         )}
                       </div>
-                    </div>
-                    <div className="bg-[#4BC449]/5 border-t border-[#4BC449]/10 px-5 py-3">
-                      <p className="text-[#4BC449] text-xs font-semibold flex items-center gap-1.5">
-                        <IconPhone size={13} />
-                        Besoin d&apos;aide ?
-                      </p>
-                      <a href={`tel:${CONTACT.whatsapp}`} className="text-gray-900 text-sm font-bold mt-0.5 block hover:underline">
-                        {CONTACT.phone}
-                      </a>
-                    </div>
-                  </div>
 
-                  {/* Live Debug Calculations Section */}
-                  <PricingDebugSidebar
-                    pickupPlace={pickupPlace}
-                    dropoffPlace={dropoffPlace}
-                    serviceType={serviceType}
-                    direction={direction}
-                    hours={hours}
-                    selectedDate={selectedDate}
-                    selectedTime={selectedTime}
-                    returnDate={returnDate}
-                    returnTime={returnTime}
-                    quote={quote}
-                    quoteLoading={quoteLoading}
-                    quoteError={quoteError}
-                    immobilisation={immobilisation}
-                    totalPrice={totalPrice}
-                    priceLabel={priceLabel}
-                    includedKm={includedKm}
-                  />
+                      <Nav {...navProps} ok={canContinue(1)} />
+                    </>
+                  )}
+
+                  {/* =========================== STEP 2 : QUAND =========================== */}
+                  {step === 2 && (
+                    <>
+                      <StepHeader
+                        step={2}
+                        title={
+                          <>
+                            Quand <em>partez-vous</em> ?
+                          </>
+                        }
+                        subtitle={
+                          serviceType === 'hourly'
+                            ? `Choisissez la date et l'heure de début de votre mise à disposition (${formatHours(hours)}).`
+                            : 'Choisissez votre date et votre heure de départ.'
+                        }
+                      />
+
+                      <div className={PANEL}>
+                        <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10">
+                          <div>
+                            <PanelTitle>{serviceType === 'hourly' ? 'Date de mise à disposition' : 'Date de départ'}</PanelTitle>
+                            <Calendar
+                              viewMonth={viewMonth}
+                              onMonthChange={setViewMonth}
+                              selected={selectedDate}
+                              minDate={minPickupDay}
+                              onSelect={(d) => {
+                                setSelectedDate(d);
+                                setShowTimePicker(true);
+                                if (returnDate && returnDate < d) {
+                                  setReturnDate(null);
+                                  setReturnTime('');
+                                  setReturnChoice('');
+                                  setShowReturnTime(false);
+                                }
+                              }}
+                            />
+                            {earliestPickup && (
+                              <p className="mt-4 flex items-start gap-2 rounded-2xl bg-stone-100 p-3.5 text-xs leading-relaxed text-stone-600">
+                                <IconClock size={14} className="mt-0.5 shrink-0" />
+                                Première prise en charge possible : {formatShortDate(earliestPickup)} à {pad(earliestPickup.getHours())}:
+                                {pad(earliestPickup.getMinutes())}
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <PanelTitle>{serviceType === 'hourly' ? 'Heure de prise en charge' : 'Heure de départ'}</PanelTitle>
+                            {showTimePicker && selectedDate ? (
+                              <TimeGrid value={selectedTime} onChange={setSelectedTime} minDateTime={earliestPickup} day={selectedDate} />
+                            ) : (
+                              <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-stone-300 p-6 text-center">
+                                <IconCalendar size={26} className="text-stone-400" />
+                                <p className="text-sm text-stone-500">Choisissez d&apos;abord une date : les horaires s&apos;affichent ici.</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {serviceType === 'transfer' && direction === 'round-trip' && selectedDate && selectedTime && (
+                        <div className={`${PANEL} space-y-5`}>
+                          <PanelTitle>Retour</PanelTitle>
+                          <div role="radiogroup" aria-label="Date de retour" className="space-y-2">
+                            {[
+                              { id: 'same' as const, label: 'Le même jour', detail: formatLongDate(selectedDate) },
+                              { id: 'next' as const, label: 'Le lendemain', detail: formatLongDate(addDays(selectedDate, 1)) },
+                              { id: 'custom' as const, label: 'Choisir une autre date', detail: '' },
+                            ].map((opt) => {
+                              const on = returnChoice === opt.id;
+                              return (
+                                <button
+                                  key={opt.id}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={on}
+                                  onClick={() => {
+                                    setReturnChoice(opt.id);
+                                    if (opt.id === 'same') {
+                                      setReturnDate(selectedDate);
+                                      setShowReturnTime(true);
+                                      setShowReturnCalendar(false);
+                                    } else if (opt.id === 'next') {
+                                      setReturnDate(addDays(selectedDate, 1));
+                                      setShowReturnTime(true);
+                                      setShowReturnCalendar(false);
+                                    } else {
+                                      setReturnViewMonth(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+                                      setShowReturnCalendar(true);
+                                      setShowReturnTime(false);
+                                    }
+                                  }}
+                                  className={`flex w-full cursor-pointer items-center gap-4 rounded-2xl border p-4 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449] ${
+                                    on ? 'border-transparent bg-[#07111f] text-white' : 'border-stone-200 bg-white hover:border-stone-400'
+                                  }`}
+                                >
+                                  <span
+                                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                                      on ? 'border-[#4BC449]' : 'border-stone-300'
+                                    }`}
+                                  >
+                                    {on && <span className="h-2.5 w-2.5 rounded-full bg-[#4BC449]" />}
+                                  </span>
+                                  <span className="min-w-0">
+                                    <span className="block text-[15px] font-semibold">{opt.label}</span>
+                                    {opt.detail && (
+                                      <span className={`block text-xs ${on ? 'text-white/60' : 'text-stone-500'}`}>{opt.detail}</span>
+                                    )}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {showReturnCalendar && (
+                            <div className="rounded-2xl bg-stone-100/70 p-4">
+                              <Calendar
+                                compact
+                                viewMonth={returnViewMonth}
+                                onMonthChange={setReturnViewMonth}
+                                selected={returnDate}
+                                minDate={selectedDate}
+                                onSelect={(d) => {
+                                  setReturnDate(d);
+                                  setShowReturnTime(true);
+                                }}
+                              />
+                            </div>
+                          )}
+
+                          {showReturnTime && returnDate && (
+                            <div>
+                              <h3 className={`${OVERLINE} mb-3`}>Heure de retour</h3>
+                              <TimeGrid
+                                compact
+                                value={returnTime}
+                                onChange={setReturnTime}
+                                minDateTime={sameDay(returnDate, selectedDate) ? combineDateTime(selectedDate, selectedTime) : null}
+                                day={returnDate}
+                              />
+                            </div>
+                          )}
+
+                          {arTooShort && (
+                            <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                              <IconAlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600" />
+                              <p className="text-sm leading-relaxed text-amber-900">
+                                Ce trajet fait moins de 25 km au total. Pour un aller-retour avec retour 1 à 3 jours après
+                                l&apos;aller, nous vous conseillons le forfait agglomération (aller simple).
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Estimation */}
+                      {quoteLoading ? (
+                        <div className="flex items-center gap-3 rounded-[28px] bg-white/[0.07] p-6 ring-1 ring-white/12">
+                          <IconLoader2 size={20} className="animate-spin text-[#4BC449]" />
+                          <span className="text-sm text-white/70">Calcul du tarif en cours…</span>
+                        </div>
+                      ) : quoteError ? (
+                        <div className="flex items-start gap-3 rounded-[28px] bg-red-500/10 p-6 ring-1 ring-red-400/30">
+                          <IconAlertTriangle size={20} className="mt-0.5 shrink-0 text-red-300" />
+                          <div>
+                            <p className="text-sm font-semibold text-white">Estimation indisponible</p>
+                            <p className="mt-0.5 text-sm text-white/65">{quoteError}</p>
+                          </div>
+                        </div>
+                      ) : quote ? (
+                        <div className="overflow-hidden rounded-[28px] bg-[#0b1f3a] ring-1 ring-white/12">
+                          <div className="flex flex-wrap items-end justify-between gap-4 p-6 sm:p-8">
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">Estimation du prix</p>
+                              <p className="mt-1.5 text-sm text-white/65">
+                                {serviceType === 'hourly'
+                                  ? `Mise à disposition ${formatHours(hours)} • ${quote.pricing.rateType}`
+                                  : `${direction === 'round-trip' ? 'Aller-retour' : 'Aller simple'} • ${quote.pricing.rateType}`}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className={`${DISPLAY} text-[56px] leading-none tabular-nums`} style={{ color: GOLD }}>
+                                {priceLabel}
+                              </span>
+                              <p className="mt-1 text-[11px] text-white/45">
+                                {tvaSettings.tvaApplicable ? 'Prix forfaitaire TTC' : 'Prix forfaitaire'}
+                                {!tvaSettings.tvaApplicable && tvaSettings.tvaLegalMention ? ` — ${tvaSettings.tvaLegalMention}` : ''}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2.5 border-t border-white/10 px-6 py-5 text-sm sm:px-8">
+                            {serviceType === 'hourly' ? (
+                              <>
+                                <div className="flex items-center justify-between">
+                                  <span className="flex items-center gap-2 text-white/60">
+                                    <IconClock size={15} /> Durée du forfait
+                                  </span>
+                                  <span className="font-medium tabular-nums">{formatHours(hours)}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="flex items-center gap-2 text-white/60">
+                                    <IconRoute size={15} /> Distance incluse
+                                  </span>
+                                  <span className="font-medium tabular-nums">Jusqu&apos;à {includedKm} km</span>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex items-center justify-between">
+                                  <span className="flex items-center gap-2 text-white/60">
+                                    <IconRoute size={15} /> Distance passager
+                                  </span>
+                                  <span className="font-medium tabular-nums">
+                                    {quote.distances.tp.toFixed(1)} km • {Math.round(quote.duration)} min
+                                  </span>
+                                </div>
+                                {quote.pricing.tollInfo?.detected && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-white/60">Péages inclus</span>
+                                    <span className="font-medium tabular-nums">{formatEuro2(quote.pricing.tollInfo.totalIncluded)}</span>
+                                  </div>
+                                )}
+                                {immobilisation && immobilisation.priceTTC > 0 && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-white/60">Immobilisation</span>
+                                    <span className="font-medium">{immobilisation.label}</span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            {tvaSettings.tvaApplicable && tvaSettings.tvaDisplayClient && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-white/60">Dont TVA ({tvaSettings.tvaRate}%)</span>
+                                <span className="font-medium tabular-nums">{formatEuro2(quote.pricing.tva)}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 border-t border-white/10 px-6 py-5 sm:px-8">
+                            {[
+                              { icon: IconShieldCheck, text: 'Prix fixe garanti' },
+                              { icon: IconClock, text: "60 min d'annulation gratuite" },
+                              ...(serviceType === 'hourly'
+                                ? [{ icon: IconRoute, text: `${includedKm} km inclus` }]
+                                : [{ icon: IconClock, text: "10 min d'attente gratuits" }]),
+                              { icon: IconCalendar, text: 'Aucun paiement immédiat' },
+                            ].map((chip) => (
+                              <span
+                                key={chip.text}
+                                className="inline-flex items-center gap-1.5 rounded-full bg-[#4BC449]/12 px-3 py-1.5 text-xs font-medium text-[#8fe08d] ring-1 ring-[#4BC449]/25"
+                              >
+                                <chip.icon size={13} className="shrink-0" />
+                                {chip.text}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <Nav {...navProps} ok={canContinue(2)} />
+                    </>
+                  )}
+
+                  {/* ========================== STEP 3 : VOYAGEURS ========================== */}
+                  {step === 3 && (
+                    <>
+                      <StepHeader
+                        step={3}
+                        title={
+                          <>
+                            Qui <em>voyage</em> ?
+                          </>
+                        }
+                        subtitle="Indiquez le nombre de passagers et vos bagages."
+                      />
+
+                      <div className={PANEL}>
+                        <PanelTitle hint={`${totalPassengers} passager${totalPassengers > 1 ? 's' : ''} sur 4 maximum`}>Passagers</PanelTitle>
+                        <div className="divide-y divide-stone-200">
+                          <CountRow icon={IconUser} label="Adultes" sub="13 ans et +" value={adults} min={1} max={4} blocked={totalPassengers >= 4} onChange={setAdults} />
+                          <CountRow icon={IconUsers} label="Enfants" sub="2 à 12 ans" value={children} min={0} max={3} blocked={totalPassengers >= 4} onChange={setChildren} />
+                          <CountRow icon={IconBabyCarriage} label="Bébés" sub="Moins de 2 ans" value={babies} min={0} max={2} blocked={totalPassengers >= 4} onChange={setBabies} />
+                        </div>
+                      </div>
+
+                      <div className={PANEL}>
+                        <PanelTitle>Bagages</PanelTitle>
+                        <CountRow icon={IconLuggage} label="Valises" value={suitcases} min={0} max={6} onChange={setSuitcases} />
+                      </div>
+
+                      <div className={PANEL}>
+                        <PanelTitle hint="Indiquez-nous ce qui peut faciliter votre trajet.">Besoins supplémentaires</PanelTitle>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          {[
+                            { label: 'Siège bébé', icon: IconBabyCarriage, active: babySeat, toggle: () => setBabySeat(!babySeat) },
+                            { label: 'Accessibilité PMR', icon: IconWheelchair, active: wheelchair, toggle: () => setWheelchair(!wheelchair) },
+                            { label: 'Bagage volumineux', icon: IconBriefcase, active: largeLuggage, toggle: () => setLargeLuggage(!largeLuggage) },
+                          ].map((opt) => (
+                            <button
+                              key={opt.label}
+                              type="button"
+                              aria-pressed={opt.active}
+                              onClick={opt.toggle}
+                              className={`relative flex flex-col items-start gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449] ${
+                                opt.active ? 'border-transparent bg-[#07111f] text-white' : 'border-stone-200 bg-white hover:border-stone-400'
+                              }`}
+                            >
+                              <span
+                                className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                                  opt.active ? 'bg-white/10 text-[#d9b36a]' : 'bg-stone-100 text-stone-600'
+                                }`}
+                              >
+                                <opt.icon size={20} />
+                              </span>
+                              <span className="text-sm font-semibold leading-snug">{opt.label}</span>
+                              {opt.active && (
+                                <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#4BC449]">
+                                  <IconCheck size={13} strokeWidth={3} className="text-[#06210a]" />
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <Nav {...navProps} ok={canContinue(3)} />
+                    </>
+                  )}
+
+                  {/* ========================= STEP 4 : CONFIRMATION ========================= */}
+                  {step === 4 &&
+                    (showOtp ? (
+                      <>
+                        <StepHeader
+                          step={4}
+                          title={
+                            <>
+                              Un dernier <em>code</em>
+                            </>
+                          }
+                          subtitle="Confirmez votre demande avec le code reçu par e-mail."
+                        />
+
+                        <div className={`${PANEL} mx-auto max-w-md space-y-6 text-center`}>
+                          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#4BC449]/12 text-[#1f7a24]">
+                            <IconShieldCheck size={34} />
+                          </div>
+                          <div>
+                            <h2 className={`${DISPLAY} text-3xl`}>Code de vérification</h2>
+                            <p className="mt-2 text-sm leading-relaxed text-stone-500">
+                              Un code à 6 chiffres a été envoyé par e-mail à{' '}
+                              <strong className="break-all text-stone-800">{email}</strong>.
+                            </p>
+                          </div>
+
+                          <div className="flex justify-center gap-2">
+                            {otpCode.map((digit, idx) => (
+                              <input
+                                key={idx}
+                                id={`otp-input-${idx}`}
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete={idx === 0 ? 'one-time-code' : 'off'}
+                                maxLength={6}
+                                aria-label={`Chiffre ${idx + 1} sur 6`}
+                                value={digit}
+                                onChange={(e) => handleOtpInput(idx, e.target.value)}
+                                onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                                className="h-14 w-11 rounded-2xl border border-stone-200 bg-white text-center text-2xl font-semibold tabular-nums transition focus:border-[#4BC449] focus:outline-none focus:ring-4 focus:ring-[#4BC449]/15 sm:h-16 sm:w-12"
+                              />
+                            ))}
+                          </div>
+
+                          {otpError && <p role="alert" className="text-sm font-medium text-red-600">{otpError}</p>}
+                          {otpInfo && <p role="status" className="text-sm font-medium text-[#1f7a24]">{otpInfo}</p>}
+
+                          <button
+                            type="button"
+                            onClick={verifyOtp}
+                            disabled={submitting || otpCode.join('').length !== 6}
+                            className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#4BC449] text-[15px] font-semibold text-[#06210a] shadow-[0_12px_32px_-8px_rgba(75,196,73,0.65)] transition hover:bg-[#5fd45d] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400 disabled:shadow-none"
+                          >
+                            {submitting ? (
+                              <>
+                                <IconLoader2 size={18} className="animate-spin" />
+                                Vérification en cours…
+                              </>
+                            ) : (
+                              <>
+                                Confirmer ma réservation
+                                <IconArrowRight size={18} />
+                              </>
+                            )}
+                          </button>
+
+                          <div className="flex items-center justify-between border-t border-stone-200 pt-4 text-sm">
+                            <button
+                              type="button"
+                              onClick={() => setShowOtp(false)}
+                              className="text-stone-600 underline underline-offset-4 hover:text-stone-900"
+                            >
+                              Modifier mes informations
+                            </button>
+                            <button
+                              type="button"
+                              onClick={resendOtp}
+                              disabled={resendIn > 0}
+                              className="font-medium text-[#1f7a24] underline-offset-4 hover:underline disabled:text-stone-400 disabled:no-underline"
+                            >
+                              {resendIn > 0 ? `Renvoyer (${resendIn}s)` : 'Renvoyer le code'}
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <StepHeader
+                          step={4}
+                          title={
+                            <>
+                              Votre <em>réservation</em>
+                            </>
+                          }
+                          subtitle="Vérifiez les détails, renseignez vos coordonnées et finalisez."
+                        />
+
+                        <div className={PANEL}>
+                          <PanelTitle>Récapitulatif</PanelTitle>
+                          <div className="relative flex flex-col gap-5 pl-8">
+                            <span aria-hidden className="absolute bottom-3 left-[5px] top-3 border-l-2 border-dashed border-stone-300" />
+                            <div className="relative">
+                              <span aria-hidden className={`absolute -left-8 top-[11px] ${DOT.origin}`} />
+                              <p className={`${DISPLAY} text-[28px] leading-tight`}>{pickupText.split(',')[0]}</p>
+                              {pickupText.includes(',') && (
+                                <p className="mt-0.5 text-sm text-stone-500">{pickupText.slice(pickupText.indexOf(',') + 1).trim()}</p>
+                              )}
+                            </div>
+                            <div className="relative">
+                              <span aria-hidden className={`absolute -left-8 top-[11px] ${serviceType === 'transfer' ? DOT.destination : DOT.stop}`} />
+                              <p className={`${DISPLAY} text-[28px] leading-tight`}>
+                                {serviceType === 'transfer' || dropoffText
+                                  ? dropoffText.split(',')[0] || pickupText.split(',')[0]
+                                  : 'Retour au point de départ'}
+                              </p>
+                              {dropoffText.includes(',') && (
+                                <p className="mt-0.5 text-sm text-stone-500">{dropoffText.slice(dropoffText.indexOf(',') + 1).trim()}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <dl className="mt-7 grid gap-x-10 sm:grid-cols-2">
+                            {[
+                              {
+                                label: 'Service',
+                                value:
+                                  serviceType === 'hourly'
+                                    ? `Mise à disposition (${formatHours(hours)})`
+                                    : direction === 'round-trip'
+                                      ? 'Transfert aller-retour'
+                                      : 'Transfert aller simple',
+                              },
+                              ...(serviceType === 'hourly'
+                                ? [{ label: 'Durée & distance', value: `${formatHours(hours)} • jusqu’à ${includedKm} km inclus` }]
+                                : []),
+                              { label: 'Date', value: selectedDate ? formatLongDate(selectedDate) : '—' },
+                              { label: 'Heure', value: selectedTime || '—' },
+                              ...(serviceType === 'transfer' && direction === 'round-trip' && returnDate
+                                ? [{ label: 'Retour', value: `${formatShortDate(returnDate)}${returnTime ? ` à ${returnTime}` : ''}` }]
+                                : []),
+                              ...(serviceType === 'transfer' && quote
+                                ? [{ label: 'Distance', value: `${quote.distances.tp.toFixed(1)} km • ${Math.round(quote.duration)} min` }]
+                                : []),
+                              { label: 'Passagers', value: passengersText() || '1 adulte' },
+                              { label: 'Bagages', value: `${suitcases} valise${suitcases > 1 ? 's' : ''}` },
+                            ].map((row) => (
+                              <div key={row.label} className="flex items-baseline justify-between gap-4 border-b border-stone-200 py-3.5">
+                                <dt className="text-sm text-stone-500">{row.label}</dt>
+                                <dd className="text-right text-sm font-semibold">{row.value}</dd>
+                              </div>
+                            ))}
+                          </dl>
+
+                          <div className="mt-6 flex items-center justify-between rounded-2xl bg-[#07111f] px-6 py-5 text-white">
+                            <span className="text-sm text-white/65">Prix estimé</span>
+                            <span className={`${DISPLAY} text-[44px] leading-none tabular-nums`} style={{ color: GOLD }}>
+                              {priceLabel}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className={`${PANEL} space-y-5`}>
+                          <PanelTitle hint="Pour vous envoyer la confirmation et joindre votre chauffeur.">Vos coordonnées</PanelTitle>
+                          <div className="grid gap-5 sm:grid-cols-2">
+                            <div>
+                              <label htmlFor="rf-first" className={FIELD_LABEL}>Prénom</label>
+                              <input id="rf-first" name="given-name" type="text" autoComplete="given-name" placeholder="Votre prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={INPUT} />
+                            </div>
+                            <div>
+                              <label htmlFor="rf-last" className={FIELD_LABEL}>Nom</label>
+                              <input id="rf-last" name="family-name" type="text" autoComplete="family-name" placeholder="Votre nom" value={lastName} onChange={(e) => setLastName(e.target.value)} className={INPUT} />
+                            </div>
+                            <div>
+                              <label htmlFor="rf-phone" className={FIELD_LABEL}>Téléphone</label>
+                              <input id="rf-phone" name="tel" type="tel" inputMode="tel" autoComplete="tel" placeholder="+33 6 00 00 00 00" value={phone} onChange={(e) => setPhone(e.target.value)} className={INPUT} />
+                            </div>
+                            <div>
+                              <label htmlFor="rf-email" className={FIELD_LABEL}>E-mail</label>
+                              <input id="rf-email" name="email" type="email" inputMode="email" autoComplete="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT} />
+                            </div>
+                          </div>
+                          <div>
+                            <label htmlFor="rf-note" className={FIELD_LABEL}>
+                              Note au chauffeur <span className="font-normal normal-case tracking-normal text-stone-400">(optionnel)</span>
+                            </label>
+                            <textarea
+                              id="rf-note"
+                              placeholder="Numéro de vol, accès particulier, itinéraire souhaité…"
+                              value={note}
+                              onChange={(e) => setNote(e.target.value)}
+                              rows={3}
+                              className={`${INPUT} h-auto resize-none py-3.5`}
+                            />
+                          </div>
+                        </div>
+
+                        <label className={`${PANEL} flex cursor-pointer items-start gap-4 !p-5 sm:!p-6`}>
+                          <input
+                            type="checkbox"
+                            checked={acceptTerms}
+                            onChange={(e) => setAcceptTerms(e.target.checked)}
+                            className="peer sr-only"
+                          />
+                          <span
+                            aria-hidden
+                            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#4BC449] ${
+                              acceptTerms ? 'border-[#1f7a24] bg-[#1f7a24]' : 'border-stone-300 bg-white'
+                            }`}
+                          >
+                            {acceptTerms && <IconCheck size={15} strokeWidth={3} className="text-white" />}
+                          </span>
+                          <span className="text-[15px] leading-snug text-stone-700">
+                            J&apos;accepte les{' '}
+                            <Link href="/cgv" target="_blank" className="font-semibold text-[#1f7a24] underline underline-offset-4">
+                              conditions générales
+                            </Link>
+                          </span>
+                        </label>
+
+                        {submitError && (
+                          <div role="alert" className="flex items-start gap-3 rounded-2xl border border-red-300/40 bg-red-500/10 p-4 text-sm text-red-100">
+                            <IconAlertTriangle size={18} className="mt-0.5 shrink-0 text-red-300" />
+                            <span>{submitError}</span>
+                          </div>
+                        )}
+
+                        <Nav
+                          {...navProps}
+                          ok={canContinue(4) && !submitting}
+                          next={handleBookingSubmit}
+                          lastLabel={submitting ? 'Envoi en cours…' : 'Réserver maintenant'}
+                        />
+
+                        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 pb-2 text-xs text-white/45">
+                          <span className="flex items-center gap-1.5"><IconShieldCheck size={14} /> Paiement sécurisé</span>
+                          <span className="flex items-center gap-1.5"><IconCalendar size={14} /> Aucun paiement immédiat</span>
+                          <span className="flex items-center gap-1.5"><IconClock size={14} /> Confirmation rapide</span>
+                        </div>
+                      </>
+                    ))}
+                </div>
+
+                {/* Mobile : billet + détail du prix sous le formulaire */}
+                <div className="mt-12 space-y-5 lg:hidden">
+                  {ticket}
+                  {breakdown}
                 </div>
               </div>
+
+              {/* Desktop : billet + détail du prix, toujours visibles */}
+              <aside aria-label="Résumé et détail du prix" className="hidden w-[400px] shrink-0 lg:block xl:w-[460px]">
+                <div className="sticky top-24 max-h-[calc(100vh-7rem)] space-y-5 overflow-y-auto pb-2 pr-1 [scrollbar-width:thin]">
+                  {ticket}
+                  {breakdown}
+                </div>
+              </aside>
             </div>
           </div>
-        </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------- controls ------------------------------- */
+
+function CountRow({
+  icon: Icon,
+  label,
+  sub,
+  value,
+  min,
+  max,
+  blocked = false,
+  onChange,
+}: {
+  icon: typeof IconUser;
+  label: string;
+  sub?: string;
+  value: number;
+  min: number;
+  max: number;
+  /** Bloque le « + » (ex. total de passagers atteint). */
+  blocked?: boolean;
+  onChange: (value: number) => void;
+}) {
+  const btn =
+    'flex h-10 w-10 items-center justify-center rounded-full text-stone-700 transition hover:bg-stone-200/80 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent focus-visible:outline-2 focus-visible:outline-[#4BC449]';
+  return (
+    <div className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
+      <div className="flex min-w-0 items-center gap-3.5">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-stone-100 text-stone-600">
+          <Icon size={20} />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[15px] font-semibold">{label}</span>
+          {sub && <span className="block text-xs text-stone-500">{sub}</span>}
+        </span>
+      </div>
+      <div role="group" aria-label={label} className="flex shrink-0 items-center rounded-full border border-stone-200 bg-white p-1">
+        <button
+          type="button"
+          aria-label={`Moins — ${label}`}
+          disabled={value <= min}
+          onClick={() => onChange(Math.max(min, value - 1))}
+          className={btn}
+        >
+          <IconMinus size={16} />
+        </button>
+        <span aria-live="polite" className="w-9 text-center text-base font-semibold tabular-nums">
+          {value}
+        </span>
+        <button
+          type="button"
+          aria-label={`Plus — ${label}`}
+          disabled={value >= max || blocked}
+          onClick={() => onChange(Math.min(max, value + 1))}
+          className={btn}
+        >
+          <IconPlus size={16} />
+        </button>
       </div>
     </div>
   );
@@ -2051,82 +2739,64 @@ function Nav({
   next,
   back,
   lastLabel,
+  hint,
+  price,
 }: {
   step: Step;
   ok: boolean;
   next: () => void;
   back: () => void;
   lastLabel?: string;
+  hint?: string | null;
+  price?: string | null;
 }) {
   return (
-    <div className="flex items-center gap-4 pt-2">
-      {step > 1 && (
-        <button
-          type="button"
-          onClick={back}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 border border-white/10 text-sm font-medium text-white hover:bg-white/15 transition-colors cursor-pointer"
-        >
-          <IconArrowLeft size={16} />
-          Retour
-        </button>
+    <div className="sticky bottom-0 z-20 -mx-5 bg-gradient-to-t from-[#06101d] via-[#06101d]/90 to-transparent px-5 pb-4 pt-8 sm:static sm:mx-0 sm:bg-none sm:p-0 sm:pt-1">
+      <div className="flex items-center gap-3">
+        {step > 1 && (
+          <button
+            type="button"
+            onClick={back}
+            className="inline-flex h-14 items-center gap-2 rounded-full px-5 text-sm font-medium text-white/75 ring-1 ring-white/15 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449]"
+          >
+            <IconArrowLeft size={16} />
+            Retour
+          </button>
+        )}
+        <div className="ml-auto flex items-center gap-4">
+          {price && (
+            <div className="text-right leading-tight lg:hidden">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">Estimé</p>
+              <p className="text-base font-semibold tabular-nums">{price}</p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={next}
+            disabled={!ok}
+            className={`group inline-flex h-14 items-center gap-2.5 rounded-full px-7 text-[15px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4BC449] ${
+              ok
+                ? 'bg-[#4BC449] text-[#06210a] shadow-[0_12px_32px_-8px_rgba(75,196,73,0.65)] hover:bg-[#5fd45d] active:scale-[0.98]'
+                : 'cursor-not-allowed bg-white/[0.08] text-white/35'
+            }`}
+          >
+            {step === 4 ? lastLabel || 'Confirmer' : 'Continuer'}
+            <IconArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
+          </button>
+        </div>
+      </div>
+      {!ok && hint && (
+        <p role="status" className="mt-3 text-right text-sm text-white/55">
+          {hint}
+        </p>
       )}
-      <button
-        type="button"
-        onClick={next}
-        disabled={!ok}
-        className={`flex items-center gap-2 ml-auto px-6 py-3 rounded-xl text-sm font-semibold transition-all ${
-          ok
-            ? 'bg-[#4BC449] hover:bg-[#3fb340] text-white shadow-lg shadow-[#4BC449]/25 cursor-pointer'
-            : 'bg-white/10 text-white/20 cursor-not-allowed'
-        }`}
-      >
-        {step === 4 ? (lastLabel || 'Confirmer') : 'Continuer'}
-        <IconArrowRight size={16} />
-      </button>
-    </div>
-  );
-}
-
-function HeroBg() {
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      <div className="absolute top-[40%] left-[45%] -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-[#1a6090]/25 rounded-full blur-[150px]" />
-      <div className="absolute bottom-[10%] right-[20%] w-[400px] h-[300px] bg-[#145580]/20 rounded-full blur-[100px]" />
-      <svg className="absolute top-[10%] left-[6%]" width="26" height="34" viewBox="0 0 24 32" fill="none">
-        <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="rgba(255,255,255,0.12)" />
-        <circle cx="12" cy="12" r="4" fill="rgba(255,255,255,0.2)" />
-      </svg>
-      <svg className="absolute top-[6%] left-[3%] w-[250px] h-[600px]" viewBox="0 0 250 600" fill="none">
-        <path d="M140 30 C 190 90, 40 140, 100 240 C 160 340, 30 380, 90 480 C 110 530, 70 570, 100 600" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="5 7" fill="none" />
-      </svg>
-      <div className="absolute top-[40%] left-[5.5%] w-3 h-3 rounded-full bg-[#4BC449] shadow-[0_0_16px_rgba(75,196,73,0.6)]" />
-      <svg className="absolute bottom-[12%] left-[9%]" width="22" height="30" viewBox="0 0 24 32" fill="none">
-        <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="rgba(255,255,255,0.1)" />
-        <circle cx="12" cy="12" r="4" fill="rgba(255,255,255,0.15)" />
-      </svg>
-      <svg className="absolute bottom-0 left-[20%] w-[60%] h-[220px] opacity-[0.06]" viewBox="0 0 800 220" fill="none" preserveAspectRatio="xMidYMax meet">
-        <path d="M0 220 L60 90 L100 140 L160 40 L220 130 L260 80 L320 150 L380 55 L440 135 L480 85 L540 155 L600 45 L660 125 L720 95 L800 220 Z" stroke="white" strokeWidth="1.2" fill="none" />
-        <rect x="230" y="155" width="22" height="65" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <rect x="258" y="135" width="28" height="85" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <rect x="292" y="145" width="18" height="75" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <rect x="316" y="120" width="16" height="100" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <rect x="338" y="140" width="24" height="80" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <rect x="368" y="150" width="20" height="70" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <rect x="394" y="118" width="14" height="102" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <rect x="414" y="155" width="26" height="65" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <path d="M446 150 L455 90 L464 150" stroke="white" strokeWidth="0.8" fill="none" />
-        <rect x="448" y="150" width="14" height="70" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <rect x="470" y="142" width="22" height="78" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <rect x="498" y="158" width="16" height="62" stroke="white" strokeWidth="0.8" fill="none" rx="1" />
-        <path d="M180 220 C 300 195, 420 200, 560 220" stroke="white" strokeWidth="1" fill="none" />
-      </svg>
     </div>
   );
 }
 
 export default function ReservationPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0d2847 30%, #0f3060 50%, #0d2847 70%, #0a1628 100%)' }} />}>
+    <Suspense fallback={<div className="min-h-screen bg-[#06101d]" />}>
       <ReservationFlow />
     </Suspense>
   );
