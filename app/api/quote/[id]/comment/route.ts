@@ -5,7 +5,7 @@ import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
 import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
-import { FROM_EMAIL, sendEmailOrThrow } from '@/lib/email/resend';
+import { FROM_EMAIL, sendEmailOrThrow, EMAIL_ENABLED } from '@/lib/email/resend';
 
 // POST /api/quote/[id]/comment - Customer adds a comment to the quote
 export async function POST(
@@ -59,7 +59,7 @@ export async function POST(
             .where(eq(bookings.id, bookingId));
 
         // Notify driver of new comment
-        if (process.env.RESEND_API_KEY && DRIVER.email) {
+        if (EMAIL_ENABLED && DRIVER.email) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';

@@ -3,6 +3,7 @@ import { otpVerifications } from '@/lib/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import crypto from 'crypto';
 import { resend, FROM_EMAIL } from './resend';
+import { sendMail } from '@/lib/email/resend';
 
 /**
  * Interface pour les paramètres d'envoi d'email OTP
@@ -180,7 +181,7 @@ www.mobiservice-vtc.fr
 
     // Envoyer l'email via Resend
     try {
-        await resend.emails.send({
+        await sendMail({
             from: FROM_EMAIL,
             to,
             subject,

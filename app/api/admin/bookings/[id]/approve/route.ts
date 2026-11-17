@@ -6,7 +6,7 @@ import { getAdminFromRequest } from '@/lib/auth/admin';
 import { adminBookingApproveSchema } from '@/lib/validations/admin-booking';
 import { Resend } from 'resend';
 import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
-import { FROM_EMAIL, sendEmailOrThrow } from '@/lib/email/resend';
+import { FROM_EMAIL, sendEmailOrThrow, sendMail, EMAIL_ENABLED } from '@/lib/email/resend';
 
 function parseBookingId(id: string): number | null {
     const bookingId = Number.parseInt(id, 10);
@@ -74,11 +74,11 @@ export async function POST(
         console.log(`[APPROVED] Booking ${bookingId} approved by admin ${admin.adminId}`);
 
         // Send confirmation email to customer
-        if (process.env.RESEND_API_KEY && booking.guestEmail) {
+        if (EMAIL_ENABLED && booking.guestEmail) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
 
-                await resend.emails.send({
+                await sendMail({
                     from: FROM_EMAIL,
                     to: [booking.guestEmail],
                     subject: '🎉 Réservation confirmée - MobiService VTC',
@@ -139,7 +139,7 @@ export async function POST(
         }
 
         // Send notification to driver
-        if (process.env.RESEND_API_KEY && DRIVER.email) {
+        if (EMAIL_ENABLED && DRIVER.email) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
 

@@ -7,7 +7,7 @@ import { completeBookingSchema } from '@/lib/validations/booking';
 import { Resend } from 'resend';
 import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
 import { recomputeBookingPrice, type ServerPrice } from '@/lib/pricing/booking-price';
-import { FROM_EMAIL, sendEmailOrThrow } from '@/lib/email/resend';
+import { FROM_EMAIL, sendEmailOrThrow, EMAIL_ENABLED } from '@/lib/email/resend';
 import { checkLeadTime, parisDateTime } from '@/lib/booking/ca-lead-time';
 
 // Échappe le texte saisi par le client avant insertion dans l'e-mail HTML du chauffeur
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
       .returning();
 
     // Send email notification to driver
-    if (process.env.RESEND_API_KEY && DRIVER.email) {
+    if (EMAIL_ENABLED && DRIVER.email) {
       try {
         const resend = new Resend(process.env.RESEND_API_KEY);
 

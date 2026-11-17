@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { DRIVER_RECIPIENTS } from '@/lib/constants';
-import { FROM_EMAIL, resend, sendEmailOrThrow } from '@/lib/email/resend';
+import { FROM_EMAIL, resend, sendEmailOrThrow, EMAIL_ENABLED } from '@/lib/email/resend';
 
 /**
  * POST /api/contact
@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
   // Robot : on répond « envoyé » sans rien envoyer
   if (data.website) return NextResponse.json({ success: true });
 
-  if (!process.env.RESEND_API_KEY) {
-    console.error('[CONTACT] RESEND_API_KEY missing, message not sent');
+  if (!EMAIL_ENABLED) {
+    console.error('[CONTACT] no email provider configured, message not sent');
     return NextResponse.json(
       { success: false, error: "L'envoi est momentanément indisponible. Merci d'appeler ou d'écrire directement." },
       { status: 503 }

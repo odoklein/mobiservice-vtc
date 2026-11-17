@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
-import { resend, FROM_EMAIL } from '@/lib/email/resend';
+import { resend, FROM_EMAIL, sendMail } from '@/lib/email/resend';
 
 export async function POST(
     request: NextRequest,
@@ -162,7 +162,7 @@ MobiService VTC - Transport premium en Haute-Savoie
 +33 (0)6 07 72 50 07 | contact@mobiservice-vtc.fr
         `;
 
-        await resend.emails.send({
+        await sendMail({
             from: FROM_EMAIL,
             to: recipientEmail,
             subject,

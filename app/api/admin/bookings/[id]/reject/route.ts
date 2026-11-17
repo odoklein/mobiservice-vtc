@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
 import { adminBookingRejectSchema } from '@/lib/validations/admin-booking';
 import { Resend } from 'resend';
-import { FROM_ADDRESS, FROM_EMAIL } from '@/lib/email/resend';
+import { FROM_ADDRESS, FROM_EMAIL, sendMail, EMAIL_ENABLED } from '@/lib/email/resend';
 
 function parseBookingId(id: string): number | null {
     const bookingId = Number.parseInt(id, 10);
@@ -72,12 +72,12 @@ export async function POST(
         console.log(`[REJECTED] Booking ${bookingId} rejected by admin ${admin.adminId}`);
 
         // Send rejection email to customer
-        if (process.env.RESEND_API_KEY && booking.guestEmail) {
+        if (EMAIL_ENABLED && booking.guestEmail) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
                 const fromEmail = FROM_ADDRESS;
 
-                await resend.emails.send({
+                await sendMail({
                     from: FROM_EMAIL,
                     to: [booking.guestEmail],
                     subject: 'Réservation non disponible - MobiService VTC',

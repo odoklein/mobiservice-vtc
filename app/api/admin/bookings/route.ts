@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
 import { adminBookingCreateSchema } from '@/lib/validations/admin-booking';
 import { Resend } from 'resend';
 import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
-import { FROM_EMAIL, sendEmailOrThrow } from '@/lib/email/resend';
+import { FROM_EMAIL, sendEmailOrThrow, EMAIL_ENABLED } from '@/lib/email/resend';
 
 export async function GET(request: NextRequest) {
     const admin = await getAdminFromRequest();
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
             .returning();
 
         // Send email notification to driver
-        if (process.env.RESEND_API_KEY && DRIVER.email && booking.guestEmail) {
+        if (EMAIL_ENABLED && DRIVER.email && booking.guestEmail) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
 

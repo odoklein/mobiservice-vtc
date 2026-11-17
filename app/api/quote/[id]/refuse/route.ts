@@ -5,7 +5,7 @@ import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
 import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
-import { FROM_EMAIL, sendEmailOrThrow } from '@/lib/email/resend';
+import { FROM_EMAIL, sendEmailOrThrow, sendMail, EMAIL_ENABLED } from '@/lib/email/resend';
 
 // POST /api/quote/[id]/refuse - Customer refuses the quote
 export async function POST(
@@ -61,12 +61,12 @@ export async function POST(
             .where(eq(bookings.id, bookingId));
 
         // Send confirmation email to customer
-        if (process.env.RESEND_API_KEY && booking.guestEmail) {
+        if (EMAIL_ENABLED && booking.guestEmail) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-                await resend.emails.send({
+                await sendMail({
                     from: FROM_EMAIL,
                     to: [booking.guestEmail],
                     subject: 'Devis Refusé - MobiService VTC',
@@ -101,7 +101,7 @@ export async function POST(
         }
 
         // Notify driver
-        if (process.env.RESEND_API_KEY && DRIVER.email) {
+        if (EMAIL_ENABLED && DRIVER.email) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
 

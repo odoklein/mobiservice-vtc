@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { bookings, otpVerifications } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
-import { FROM_EMAIL } from '@/lib/email/resend';
+import { FROM_EMAIL, sendMail, EMAIL_ENABLED } from '@/lib/email/resend';
 
 // Generate a 6-digit OTP code
 function generateOTP(): string {
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     step: '',
     bookingId: '',
     hasEmail: false,
-    hasResendKey: !!process.env.RESEND_API_KEY,
+    emailEnabled: EMAIL_ENABLED,
     timestamp: new Date().toISOString(),
   };
 
@@ -157,14 +157,14 @@ export async function POST(request: NextRequest) {
 
     // Step 7: Send email with Resend
     debugContext.step = 'SENDING_EMAIL';
-    if (process.env.RESEND_API_KEY) {
+    if (EMAIL_ENABLED) {
       console.log(`[OTP-DEBUG] [SEND] Attempting to send email via Resend to: ${booking.guestEmail}`);
 
       try {
         const resend = new Resend(process.env.RESEND_API_KEY);
         console.log(`[OTP-DEBUG] [SEND] Using from address: ${FROM_EMAIL}`);
 
-        const { error, data } = await resend.emails.send({
+        const { error, data } = await sendMail({
           from: FROM_EMAIL,
           to: [booking.guestEmail!],
           subject: 'Votre code de verification - MobiService VTC',
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      console.warn(`[OTP-DEBUG] [WARN] No RESEND_API_KEY configured - OTP not sent via email`);
+      console.warn(`[OTP-DEBUG] [WARN] No email provider configured - OTP not sent via email`);
       console.log(`[OTP-DEBUG] [MOCK] Would send OTP ${otpCode} to ${booking.guestEmail}`);
     }
 
