@@ -5,15 +5,15 @@ import type { Booking } from '@/lib/db/schema';
 // Styles pour le PDF
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 32,
     fontSize: 10,
     fontFamily: 'Helvetica',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
-    paddingBottom: 20,
+    marginBottom: 18,
+    paddingBottom: 14,
     borderBottomWidth: 3,
     borderBottomColor: '#00FF88',
   },
@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   title: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#000000',
     marginBottom: 5,
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   companyInfo: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#666666',
     textAlign: 'right',
     lineHeight: 1.5,
@@ -45,9 +45,9 @@ const styles = StyleSheet.create({
   },
   infoSection: {
     backgroundColor: '#f9f9f9',
-    padding: 15,
+    padding: 9,
     borderRadius: 8,
-    marginBottom: 20,
+    marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   infoLine: {
-    marginBottom: 8,
+    marginBottom: 5,
     fontSize: 10,
   },
   infoLabel: {
@@ -64,10 +64,10 @@ const styles = StyleSheet.create({
   },
   clientSection: {
     backgroundColor: '#f0f9ff',
-    padding: 15,
+    padding: 9,
     borderLeftWidth: 4,
     borderLeftColor: '#00FF88',
-    marginBottom: 20,
+    marginBottom: 12,
     borderRadius: 4,
   },
   sectionTitle: {
@@ -78,12 +78,12 @@ const styles = StyleSheet.create({
   },
   table: {
     marginTop: 20,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#000000',
-    padding: 12,
+    padding: 9,
     color: '#ffffff',
     fontWeight: 'bold',
   },
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#eeeeee',
-    padding: 12,
+    padding: 9,
   },
   tableCol1: { width: '50%' },
   tableCol2: { width: '15%', textAlign: 'right' },
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#000000',
     color: '#ffffff',
-    padding: 15,
+    padding: 9,
     borderRadius: 8,
     marginTop: 10,
     fontSize: 20,
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     color: '#00FF88',
   },
   footer: {
-    marginTop: 50,
+    marginTop: 30,
     paddingTop: 20,
     borderTopWidth: 2,
     borderTopColor: '#eeeeee',
@@ -242,7 +242,7 @@ export const InvoicePDF: React.FC<PDFDocumentProps> = ({ type, booking, company,
           <View style={styles.infoColumn}>
             <Text style={styles.infoLine}>
               <Text style={styles.infoLabel}>Type de service: </Text>
-              {booking.serviceType}
+              {booking.serviceType === 'hourly' ? 'Trajet forfaitaire' : booking.serviceType === 'airport' ? 'Aéroport' : 'Transfert'}
             </Text>
             <Text style={styles.infoLine}>
               <Text style={styles.infoLabel}>Type de trajet: </Text>
@@ -276,7 +276,7 @@ export const InvoicePDF: React.FC<PDFDocumentProps> = ({ type, booking, company,
           <View style={styles.tableRow}>
             <View style={styles.tableCol1}>
               <Text style={styles.itemDescription}>
-                Service VTC {booking.serviceType} - {booking.tripType === 'round-trip' ? 'A/R' : 'A/S'}
+                Service VTC {booking.serviceType === 'hourly' ? 'Trajet forfaitaire' : booking.serviceType === 'airport' ? 'Aéroport' : 'Transfert'} - {booking.tripType === 'round-trip' ? 'A/R' : 'A/S'}
               </Text>
               <Text style={styles.itemDetails}>
                 De {booking.pickupAddress}{'\n'}
@@ -292,7 +292,7 @@ export const InvoicePDF: React.FC<PDFDocumentProps> = ({ type, booking, company,
         </View>
 
         {/* Totals */}
-        <View style={styles.totalsSection}>
+        <View style={styles.totalsSection} wrap={false}>
           {tvaApplicable && (
             <>
               <View style={styles.totalLine}>
@@ -336,7 +336,7 @@ export const InvoicePDF: React.FC<PDFDocumentProps> = ({ type, booking, company,
         )}
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={styles.footer} wrap={false}>
           <Text style={{ fontWeight: 'bold', color: '#000000', marginBottom: 5 }}>
             {company.footerText || company.name || 'MobiService VTC'}
           </Text>

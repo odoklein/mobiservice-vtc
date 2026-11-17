@@ -170,15 +170,21 @@ export default function BookingDetailPage() {
     };
 
     const generatePDF = async (type: 'bon' | 'facture') => {
+        // L'onglet est ouvert tout de suite, pendant le clic : ouvert après l'attente du
+        // serveur, il serait bloqué par le navigateur (fenêtre pop-up).
+        const tab = window.open('', '_blank');
         try {
             const response = await fetch(`/api/admin/bookings/${bookingId}/generate-pdf?type=${type}`, { method: 'POST' });
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
             if (response.ok && data.url) {
-                window.open(data.url, '_blank');
+                if (tab) tab.location.href = data.url;
+                else window.location.href = data.url;
             } else {
-                alert('Erreur lors de la génération du PDF');
+                tab?.close();
+                alert(`Erreur lors de la génération du PDF${data.error || data.message ? ` : ${data.error || data.message}` : ''}`);
             }
         } catch (error) {
+            tab?.close();
             console.error('Error generating PDF:', error);
             alert('Erreur serveur');
         }

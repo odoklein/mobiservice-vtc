@@ -57,6 +57,7 @@ export type MailPayload = {
     html?: string;
     text?: string;
     replyTo?: string | string[];
+    attachments?: { filename: string; content: Buffer; contentType?: string }[];
 };
 
 type MailResult =
@@ -110,6 +111,7 @@ export async function sendMail(payload: MailPayload): Promise<MailResult> {
             html: message.html,
             text: message.text,
             replyTo: message.replyTo,
+            attachments: message.attachments?.map((x) => ({ filename: x.filename, content: x.content })),
         } as Parameters<Resend['emails']['send']>[0]);
         if (result.error) {
             console.error(`[EMAIL] Resend failed for ${to}: ${result.error.name} - ${result.error.message}`);

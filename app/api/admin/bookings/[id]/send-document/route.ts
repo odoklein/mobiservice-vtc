@@ -3,7 +3,9 @@ import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
-import { FROM_EMAIL, sendMail } from '@/lib/email/resend';
+import { FROM_EMAIL, sendEmailOrThrow } from '@/lib/email/resend';
+import { DRIVER_RECIPIENTS } from '@/lib/constants';
+import { PDF_TYPES, isPdfType, renderBookingPdf } from '@/lib/pdf/render-booking-pdf';
 
 export async function POST(
     request: NextRequest,
@@ -24,42 +26,23 @@ export async function POST(
 
         console.log(`[Send Document] Booking: ${bookingId}, Type: ${type}, Recipient: ${recipient}`);
 
-        // Récupérer la réservation
-        const [booking] = await db
-            .select()
-            .from(bookings)
-            .where(eq(bookings.id, bookingId))
-            .limit(1);
+        if (!isPdfType(type)) {
+            return NextResponse.json(
+                { success: false, message: 'Type invalide (bon, facture, devis ou bdr)' },
+                { status: 400 }
+            );
+        }
 
-        if (!booking) {
+        // Le PDF est généré à l'envoi et joint à l'email (plus besoin de lien de stockage)
+        const pdf = await renderBookingPdf(bookingId, type);
+        if (!pdf) {
             return NextResponse.json(
                 { success: false, message: 'Réservation introuvable' },
                 { status: 404 }
             );
         }
-
-        // Déterminer l'URL du PDF
-        let pdfUrl = '';
-        let documentName = '';
-
-        if (type === 'facture' && booking.facturePdfUrl) {
-            pdfUrl = booking.facturePdfUrl;
-            documentName = 'Facture';
-        } else if (type === 'devis' && booking.devisPdfUrl) {
-            pdfUrl = booking.devisPdfUrl;
-            documentName = 'Devis';
-        } else if (type === 'bon' && booking.bonCommandePdfUrl) {
-            pdfUrl = booking.bonCommandePdfUrl;
-            documentName = 'Bon de commande';
-        } else if (type === 'bdr' && booking.bonReservationPdfUrl) {
-            pdfUrl = booking.bonReservationPdfUrl;
-            documentName = 'Bon de réservation';
-        } else {
-            return NextResponse.json(
-                { success: false, message: 'Document non trouvé. Veuillez d\'abord générer le document.' },
-                { status: 404 }
-            );
-        }
+        const booking = pdf.booking;
+        const documentName = PDF_TYPES[type].label;
 
         // Déterminer le destinataire
         let recipientEmail = '';
@@ -69,7 +52,7 @@ export async function POST(
             recipientEmail = booking.guestEmail || '';
             recipientName = booking.guestName || 'Client';
         } else if (recipient === 'driver') {
-            recipientEmail = process.env.DRIVER_EMAIL || '';
+            recipientEmail = DRIVER_RECIPIENTS.join(', ');
             recipientName = 'Chauffeur';
         } else {
             return NextResponse.json(
@@ -116,14 +99,8 @@ export async function POST(
             </p>
         </div>
 
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="${pdfUrl}" target="_blank" style="display: inline-block; background: #00FF88; color: #000000; text-decoration: none; padding: 15px 40px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                📄 Télécharger ${documentName}
-            </a>
-        </div>
-
-        <p style="font-size: 12px; color: #666; margin-top: 30px;">
-            Ce document est également accessible directement via le lien ci-dessus.
+        <p style="background: #f5f5f5; padding: 16px; border-radius: 8px; text-align: center;">
+            📎 Votre ${documentName.toLowerCase()} est joint à cet email (PDF).
         </p>
 
         <p style="margin-bottom: 0;">
@@ -151,8 +128,7 @@ Détails de la réservation:
 - À: ${booking.dropoffAddress}
 - ${booking.passengers} passager(s) | ${booking.luggage} bagage(s)
 
-Télécharger le document:
-${pdfUrl}
+Le document est joint à cet email (PDF).
 
 Cordialement,
 L'équipe MobiService VTC
@@ -162,12 +138,13 @@ MobiService VTC - Transport premium en Haute-Savoie
 +33 (0)6 07 72 50 07 | contact@mobiservice-vtc.fr
         `;
 
-        await sendMail({
+        await sendEmailOrThrow({
             from: FROM_EMAIL,
-            to: recipientEmail,
+            to: recipient === 'driver' ? DRIVER_RECIPIENTS : recipientEmail,
             subject,
             html,
             text,
+            attachments: [{ filename: pdf.filename, content: pdf.buffer, contentType: 'application/pdf' }],
         });
 
         console.log(`[Send Document] Email envoyé à ${recipientEmail}`);
