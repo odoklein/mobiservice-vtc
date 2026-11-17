@@ -24,18 +24,34 @@ export default function ContactPage() {
     email: '',
     phone: '',
     message: '',
+    website: '', // champ piège anti-robot, invisible
   });
+  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Le message n'a pas pu être envoyé.");
+      }
+      setIsSubmitted(true);
+      setFormData({ name: '', email: '', phone: '', message: '', website: '' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Le message n'a pas pu être envoyé.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -118,7 +134,7 @@ export default function ContactPage() {
                       <Button
                         onClick={() => {
                           setIsSubmitted(false);
-                          setFormData({ name: '', email: '', phone: '', message: '' });
+                          setFormData({ name: '', email: '', phone: '', message: '', website: '' });
                         }}
                         variant="outline"
                       >
@@ -172,6 +188,21 @@ export default function ContactPage() {
                             required
                           />
                         </div>
+                        <input
+                          type="text"
+                          name="website"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          aria-hidden="true"
+                          className="hidden"
+                          value={formData.website}
+                          onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                        />
+                        {error && (
+                          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {error} Téléphone : <a className="underline" href={`tel:${CONTACT.phone}`}>{CONTACT.phone}</a>
+                          </p>
+                        )}
                         <Button
                           type="submit"
                           className="w-full h-14 bg-[#5CD85A] hover:bg-[#4BC449] text-[#0A0A0A] rounded-xl text-base font-semibold"

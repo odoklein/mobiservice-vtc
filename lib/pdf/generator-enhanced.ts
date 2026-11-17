@@ -348,7 +348,7 @@ export async function generateFactureEnhanced(
           <tr>
             <td>
               <div class="item-description">
-                Service VTC ${booking.serviceType === 'transfer' ? 'Transfert' : booking.serviceType === 'airport' ? 'Aéroport' : booking.serviceType === 'hourly' ? 'Mise à disposition' : booking.serviceType} - ${booking.tripType === 'round-trip' ? 'Aller-Retour (A/R)' : 'Aller Simple (A/S)'}
+                Service VTC ${booking.serviceType === 'transfer' ? 'Transfert' : booking.serviceType === 'airport' ? 'Aéroport' : booking.serviceType === 'hourly' ? 'Trajet forfaitaire' : booking.serviceType} - ${booking.tripType === 'round-trip' ? 'Aller-Retour (A/R)' : 'Aller Simple (A/S)'}
               </div>
               <div class="item-details">
                 <strong>📍 Trajet:</strong> De ${booking.pickupAddress} à ${booking.dropoffAddress}<br>
@@ -718,7 +718,7 @@ export async function generateDevisEnhanced(
           <tr>
             <td>
               <div class="item-description">
-                Service VTC ${booking.serviceType === 'transfer' ? 'Transfert' : booking.serviceType === 'airport' ? 'Aéroport' : booking.serviceType === 'hourly' ? 'Mise à disposition' : booking.serviceType} - ${booking.tripType === 'round-trip' ? 'Aller-Retour (A/R)' : 'Aller Simple (A/S)'}
+                Service VTC ${booking.serviceType === 'transfer' ? 'Transfert' : booking.serviceType === 'airport' ? 'Aéroport' : booking.serviceType === 'hourly' ? 'Trajet forfaitaire' : booking.serviceType} - ${booking.tripType === 'round-trip' ? 'Aller-Retour (A/R)' : 'Aller Simple (A/S)'}
               </div>
               <div class="item-details">
                 <strong>📍 Trajet:</strong> De ${booking.pickupAddress} à ${booking.dropoffAddress}<br>

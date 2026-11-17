@@ -21,6 +21,8 @@ export async function uploadPDF(
     // Upload vers Vercel Blob avec le token configuré
     const blob = await put(filename, buffer, {
       access: 'public',
+      // Suffixe aléatoire : l'URL ne peut pas être devinée à partir du n° de réservation
+      addRandomSuffix: true,
       token: process.env.BLOB_READ_WRITE_TOKEN,
       contentType: 'application/pdf',
     });

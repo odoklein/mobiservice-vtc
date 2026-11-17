@@ -77,3 +77,35 @@ export function getEarliestPickupDateTime(caAllerKm: number): Date {
   d.setMinutes(d.getMinutes() + leadTimeMinutes);
   return d;
 }
+
+/**
+ * Converts a date (YYYY-MM-DD) and time (HH:mm) typed by the customer, read as Paris
+ * local time, into an instant. The server may run in UTC, so `new Date(y, m, d, h, mi)`
+ * would be off by one or two hours.
+ */
+export function parisDateTime(date: string | Date, time: string): Date | null {
+  const iso = date instanceof Date ? date.toISOString() : String(date);
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  const t = /^(\d{1,2}):(\d{2})/.exec(String(time).trim());
+  if (!m || !t) return null;
+  const asUtc = Date.UTC(+m[1], +m[2] - 1, +m[3], +t[1], +t[2]);
+  // Paris offset at that moment (handles summer/winter time)
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date(asUtc));
+  const get = (k: string) => Number(parts.find((p) => p.type === k)?.value);
+  const parisAsUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'));
+  const offset = parisAsUtc - asUtc;
+  return new Date(asUtc - offset);
+}
+
+/**
+ * Server-side check of the minimum lead time (the booking page only checked it in the
+ * browser). A 5-minute grace covers the time spent filling in the form.
+ */
+export function checkLeadTime(pickupAt: Date, caAllerKm: number, now = new Date()) {
+  const { leadTimeMinutes } = getMinimumLeadTimeForCA(caAllerKm);
+  const earliest = new Date(now.getTime() + (leadTimeMinutes - 5) * 60_000);
+  return { ok: pickupAt.getTime() >= earliest.getTime(), leadTimeMinutes };
+}

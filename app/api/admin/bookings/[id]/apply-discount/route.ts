@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { quoteUrl } from '@/lib/auth/quote-link';
+import { getAdminFromRequest } from '@/lib/auth/admin';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -10,6 +12,11 @@ export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const admin = await getAdminFromRequest();
+    if (!admin) {
+        return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 });
+    }
+
     try {
         const { id } = await params;
         const bookingId = parseInt(id);
@@ -79,7 +86,7 @@ export async function POST(
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-                const quoteUrl = `${appUrl}/quote/${bookingId}`;
+                const quoteLink = quoteUrl(appUrl, bookingId);
 
                 await resend.emails.send({
                     from: FROM_EMAIL,
@@ -114,7 +121,7 @@ export async function POST(
                 </div>
 
                 <div style="text-align: center; margin: 32px 0;">
-                  <a href="${quoteUrl}" 
+                  <a href="${quoteLink}" 
                      style="display: inline-block; background: #5CD85A; color: #0A0A0A; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px;">
                     Accepter cette offre
                   </a>

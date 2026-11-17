@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAdminFromRequest } from '@/lib/auth/admin';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 // GET all bookings for driver (protected route - add auth later)
 export async function GET(request: NextRequest) {
+    const admin = await getAdminFromRequest();
+    if (!admin) {
+        return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 });
+    }
+
   try {
-    // TODO: Add authentication check for driver
-    // For now, return all bookings
 
     const allBookings = await db.query.bookings.findMany({
       orderBy: (bookings, { desc }) => [desc(bookings.pickupDate)],

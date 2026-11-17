@@ -100,7 +100,7 @@ export function Footer() {
                 <li>
                   <Link href="/reservation" className="text-sm text-white/60 hover:text-[#5CD85A] transition-colors duration-300 flex items-center gap-2 group">
                     <ArrowRight className="h-3 w-3 opacity-0 -ml-5 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
-                    Mise à Disposition
+                    Trajet forfaitaire
                   </Link>
                 </li>
                 <li>

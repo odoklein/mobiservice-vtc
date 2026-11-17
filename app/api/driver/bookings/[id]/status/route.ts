@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAdminFromRequest } from '@/lib/auth/admin';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -8,8 +9,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+    const admin = await getAdminFromRequest();
+    if (!admin) {
+        return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 });
+    }
+
   try {
-    // TODO: Add authentication check for driver
 
     const { id } = await params;
     const bookingId = parseInt(id);

@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isValidQuoteToken } from '@/lib/auth/quote-link';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
-import { DRIVER } from '@/lib/constants';
-import { FROM_EMAIL } from '@/lib/email/resend';
+import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
+import { FROM_EMAIL, sendEmailOrThrow } from '@/lib/email/resend';
 
 // POST /api/quote/[id]/refuse - Customer refuses the quote
 export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id: rawId } = await params;
+    if (!isValidQuoteToken(parseInt(rawId), request.nextUrl.searchParams.get('t'))) {
+        return NextResponse.json({ success: false, error: 'Lien invalide' }, { status: 403 });
+    }
+
     try {
         const { id } = await params;
         const bookingId = parseInt(id);
@@ -99,9 +105,9 @@ export async function POST(
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
 
-                await resend.emails.send({
+                await sendEmailOrThrow(resend, {
                     from: FROM_EMAIL,
-                    to: [DRIVER.email],
+                    to: DRIVER_RECIPIENTS,
                     subject: `❌ Devis #${bookingId} Refusé par ${booking.guestName}`,
                     html: `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">

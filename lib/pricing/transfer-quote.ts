@@ -266,10 +266,11 @@ export async function computeHourlyQuote(input: HourlyQuoteInput) {
       distanceCA: segments.distanceCA,
       distanceTP: segments.distanceTP,
       distanceReturn: segments.distanceReturn,
-      duration: segments.totalDuration,
+      // Durée du trajet client seul : c'est elle qui choisit le forfait
+      duration: segments.durationTP,
       depot: depotLocation,
     }),
-    measures: { duration: segments.totalDuration },
+    measures: { duration: segments.durationTP },
   };
 }
 

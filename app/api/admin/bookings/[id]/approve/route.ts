@@ -5,8 +5,8 @@ import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
 import { adminBookingApproveSchema } from '@/lib/validations/admin-booking';
 import { Resend } from 'resend';
-import { DRIVER } from '@/lib/constants';
-import { FROM_EMAIL } from '@/lib/email/resend';
+import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
+import { FROM_EMAIL, sendEmailOrThrow } from '@/lib/email/resend';
 
 function parseBookingId(id: string): number | null {
     const bookingId = Number.parseInt(id, 10);
@@ -143,9 +143,9 @@ export async function POST(
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
 
-                await resend.emails.send({
+                await sendEmailOrThrow(resend, {
                     from: FROM_EMAIL,
-                    to: [DRIVER.email],
+                    to: DRIVER_RECIPIENTS,
                     subject: `✅ Réservation #${booking.id} confirmée - ${booking.guestName}`,
                     html: `
                         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -194,7 +194,7 @@ export async function POST(
                         </div>
                     `,
                 });
-                console.log(`[EMAIL] Driver notification sent to ${DRIVER.email}`);
+                console.log(`[EMAIL] Driver notification sent to ${DRIVER_RECIPIENTS.join(', ')}`);
             } catch (emailError) {
                 console.error('Driver email error:', emailError);
             }

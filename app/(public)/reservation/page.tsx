@@ -64,6 +64,7 @@ const DAY_NAMES = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'
 
 // Forfaits horaires par défaut : remplacés par ceux de l'admin (GET /api/pricing/forfaits)
 const DEFAULT_HOURLY_FORFAITS = [
+  { hours: 0.5, maxKm: 45 },
   { hours: 1, maxKm: 90 },
   { hours: 1.5, maxKm: 135 },
   { hours: 2, maxKm: 180 },
@@ -346,7 +347,7 @@ function buildTvaLines(
     // Forfait mise à disposition : le moteur donne directement HT et TTC
     const rate = pricing.totalHT > 0 ? Math.round((pricing.totalTTC / pricing.totalHT - 1) * 100) / 100 : 0;
     lines.push({
-      label: pricing.forfait?.name || b.forfaitName || 'Forfait mise à disposition',
+      label: pricing.forfait?.name || b.forfaitName || 'Trajet forfaitaire',
       ht: pricing.totalHT,
       rate,
       tva: pricing.tva,
@@ -1583,7 +1584,7 @@ function ReservationFlow() {
         totalPrice: totalPrice ?? 0,
         notes: [
           note.trim() ? `Note client : ${note.trim()}` : null,
-          serviceType === 'hourly' ? `Mise à disposition ${formatHours(hours)} (${includedKm} km inclus)` : null,
+          serviceType === 'hourly' ? `Trajet forfaitaire ${formatHours(hours)} (${includedKm} km inclus)` : null,
           babySeat ? 'Siège bébé demandé' : null,
           wheelchair ? 'Accessibilité PMR' : null,
           largeLuggage ? 'Bagage volumineux' : null,
@@ -1975,7 +1976,7 @@ function ReservationFlow() {
                           <div role="radiogroup" aria-label="Type de service" className="grid gap-3 sm:grid-cols-2">
                             {[
                               { id: 'transfer' as const, label: 'Transfert', desc: 'De A à B, au prix fixe', Icon: IconRoute },
-                              { id: 'hourly' as const, label: 'Mise à disposition', desc: 'Un chauffeur à l’heure, au forfait', Icon: IconClockHour4 },
+                              { id: 'hourly' as const, label: 'Trajet forfaitaire', desc: 'Taux horaire/km TTC, de 0h30 à 8h00', Icon: IconClockHour4 },
                             ].map((t) => {
                               const on = serviceType === t.id;
                               return (
@@ -2040,7 +2041,7 @@ function ReservationFlow() {
                         ) : (
                           <div>
                             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                              <h2 className={OVERLINE}>Durée de mise à disposition</h2>
+                              <h2 className={OVERLINE}>Durée du trajet forfaitaire</h2>
                               <span className="rounded-full bg-[#4BC449]/12 px-3 py-1 text-xs font-semibold text-[#1f7a24]">
                                 {formatHours(hours)} · {includedKm} km inclus
                               </span>
@@ -2089,7 +2090,7 @@ function ReservationFlow() {
                         }
                         subtitle={
                           serviceType === 'hourly'
-                            ? `Choisissez la date et l'heure de début de votre mise à disposition (${formatHours(hours)}).`
+                            ? `Choisissez la date et l'heure de début de votre trajet forfaitaire (${formatHours(hours)}).`
                             : 'Choisissez votre date et votre heure de départ.'
                         }
                       />
@@ -2097,7 +2098,7 @@ function ReservationFlow() {
                       <div className={PANEL}>
                         <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10">
                           <div>
-                            <PanelTitle>{serviceType === 'hourly' ? 'Date de mise à disposition' : 'Date de départ'}</PanelTitle>
+                            <PanelTitle>{serviceType === 'hourly' ? 'Date du trajet forfaitaire' : 'Date de départ'}</PanelTitle>
                             <Calendar
                               viewMonth={viewMonth}
                               onMonthChange={setViewMonth}
@@ -2253,7 +2254,7 @@ function ReservationFlow() {
                               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">Estimation du prix</p>
                               <p className="mt-1.5 text-sm text-white/65">
                                 {serviceType === 'hourly'
-                                  ? `Mise à disposition ${formatHours(hours)} • ${quote.pricing.rateType}`
+                                  ? `Trajet forfaitaire ${formatHours(hours)} • ${quote.pricing.rateType}`
                                   : `${direction === 'round-trip' ? 'Aller-retour' : 'Aller simple'} • ${quote.pricing.rateType}`}
                               </p>
                             </div>
@@ -2365,7 +2366,7 @@ function ReservationFlow() {
 
                       <div className={PANEL}>
                         <PanelTitle>Bagages</PanelTitle>
-                        <CountRow icon={IconLuggage} label="Valises" value={suitcases} min={0} max={6} onChange={setSuitcases} />
+                        <CountRow icon={IconLuggage} label="Valises" sub="5 maximum" value={suitcases} min={0} max={5} onChange={setSuitcases} />
                       </div>
 
                       <div className={PANEL}>
@@ -2534,7 +2535,7 @@ function ReservationFlow() {
                                 label: 'Service',
                                 value:
                                   serviceType === 'hourly'
-                                    ? `Mise à disposition (${formatHours(hours)})`
+                                    ? `Trajet forfaitaire (${formatHours(hours)})`
                                     : direction === 'round-trip'
                                       ? 'Transfert aller-retour'
                                       : 'Transfert aller simple',

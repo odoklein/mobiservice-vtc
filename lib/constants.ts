@@ -32,6 +32,18 @@ export const DRIVER = {
   bio: 'Chauffeur professionnel avec plus de 15 ans d\'expérience dans le transport de personnes. Discrétion, ponctualité et confort sont mes maîtres-mots.',
 };
 
+// Boîtes qui reçoivent les demandes clients. DRIVER_EMAIL peut contenir plusieurs
+// adresses séparées par des virgules ; la boîte de secours est toujours ajoutée.
+export const DRIVER_BACKUP_EMAIL =
+  process.env.DRIVER_BACKUP_EMAIL || 'contact.mobiservice.vtc@gmail.com';
+export const DRIVER_RECIPIENTS: string[] = Array.from(
+  new Set(
+    [...(DRIVER.email || '').split(','), DRIVER_BACKUP_EMAIL]
+      .map((e) => e.trim().replace(/^["']|["']$/g, ''))
+      .filter(Boolean)
+  )
+);
+
 // Core values
 export const VALUES = [
   {
@@ -253,3 +265,6 @@ export const POPULAR_LOCATIONS = [
     icon: '⛷️',
   },
 ];
+
+/** Statuts d'une demande qui attend une réponse de Patrice (« À approuver » dans l'admin). */
+export const AWAITING_APPROVAL_STATUSES = ['verified', 'quote_pending', 'quote_sent', 'quote_modified'];

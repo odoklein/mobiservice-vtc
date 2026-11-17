@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { bookings, workingHours, type WorkingHours } from '@/lib/db/schema';
-import { eq, gte, and, sql, desc } from 'drizzle-orm';
+import { eq, gte, and, sql, desc, inArray } from 'drizzle-orm';
+import { AWAITING_APPROVAL_STATUSES } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -65,11 +66,11 @@ async function getStats() {
             .from(bookings)
             .where(eq(bookings.status, 'pending'));
 
-        // Count verified bookings awaiting approval (status = 'verified')
+        // Demandes qui attendent une réponse (site et admin)
         const verifiedBookings = await db
             .select({ count: sql<number>`count(*)` })
             .from(bookings)
-            .where(eq(bookings.status, 'verified'));
+            .where(inArray(bookings.status, AWAITING_APPROVAL_STATUSES));
 
         // Count cash payments pending (paymentMethod = 'cash' AND paymentStatus = 'pending')
         const cashPendingBookings = await db
@@ -469,7 +470,7 @@ export default async function AdminDashboard() {
                                                     <span
                                                         className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'confirmed'
                                                             ? 'bg-emerald-100 text-emerald-700'
-                                                            : booking.status === 'verified'
+                                                            : AWAITING_APPROVAL_STATUSES.includes(booking.status)
                                                                 ? 'bg-blue-100 text-blue-700'
                                                                 : booking.status === 'pending'
                                                                     ? 'bg-amber-100 text-amber-700'

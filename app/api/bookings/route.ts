@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAdminFromRequest } from '@/lib/auth/admin';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { completeBookingSchema } from '@/lib/validations/booking';
 import { Resend } from 'resend';
-import { DRIVER } from '@/lib/constants';
+import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
 import { recomputeBookingPrice, type ServerPrice } from '@/lib/pricing/booking-price';
-import { FROM_EMAIL } from '@/lib/email/resend';
+import { FROM_EMAIL, sendEmailOrThrow } from '@/lib/email/resend';
+import { checkLeadTime, parisDateTime } from '@/lib/booking/ca-lead-time';
 
 // Échappe le texte saisi par le client avant insertion dans l'e-mail HTML du chauffeur
 const esc = (value: unknown): string =>
@@ -57,6 +59,32 @@ export async function POST(request: NextRequest) {
     }
     // Distances measured server-side replace the browser's values
     const measured = serverCalculatedPrice.measures;
+
+    // Délai minimum de réservation, vérifié côté serveur (selon la distance dépôt → prise en charge)
+    const pickupAt = parisDateTime(validatedData.pickupDate as any, validatedData.pickupTime);
+    const caKm = measured?.distanceCA ?? validatedData.distanceCA;
+    if (pickupAt) {
+      if (pickupAt.getTime() < Date.now()) {
+        return NextResponse.json(
+          { success: false, error: 'La date de prise en charge est déjà passée.' },
+          { status: 400 }
+        );
+      }
+      if (typeof caKm === 'number' && isFinite(caKm)) {
+        const lead = checkLeadTime(pickupAt, caKm);
+        if (!lead.ok) {
+          const h = Math.floor(lead.leadTimeMinutes / 60);
+          const min = lead.leadTimeMinutes % 60;
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Cette prise en charge doit être réservée au moins ${h} h${min ? ` ${min}` : ''} à l'avance. Merci de choisir une heure plus tardive ou d'appeler le chauffeur.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
 
     // Use server-calculated price (more secure - prevents price manipulation)
     const totalPriceTTC = serverCalculatedPrice.totalPrice;
@@ -124,6 +152,8 @@ export async function POST(request: NextRequest) {
         priceBreakdown: serverCalculatedPrice.breakdown,
 
         notes: validatedData.notes,
+        // Le site annonce un paiement à bord : on enregistre ce qui est envoyé (sinon « carte » par défaut)
+        paymentMethod: validatedData.paymentMethod === 'card' ? 'stripe' : 'cash',
         status: 'quote_sent', // Changed from 'pending' to 'quote_sent' for Devis workflow
         paymentStatus: 'pending',
       })
@@ -134,9 +164,10 @@ export async function POST(request: NextRequest) {
       try {
         const resend = new Resend(process.env.RESEND_API_KEY);
 
-        await resend.emails.send({
+        await sendEmailOrThrow(resend, {
           from: FROM_EMAIL,
-          to: [DRIVER.email],
+          to: DRIVER_RECIPIENTS,
+          replyTo: validatedData.guestEmail || undefined,
           subject: `📄 Nouvelle demande de devis #${booking.id} - ${esc(validatedData.guestName)}`,
           html: `<!DOCTYPE html>
             <html>
@@ -212,7 +243,7 @@ export async function POST(request: NextRequest) {
             </html>
           `,
         });
-        console.log(`[BOOKING] Driver notification email sent to ${DRIVER.email} for booking #${booking.id}`);
+        console.log(`[BOOKING] Driver notification email sent to ${DRIVER_RECIPIENTS.join(', ')} for booking #${booking.id}`);
       } catch (emailError) {
         console.error('[BOOKING] Failed to send driver notification email:', emailError);
         // Don't fail the booking creation if email fails
@@ -237,7 +268,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Liste des réservations d'une adresse email : réservé à l'admin (sinon n'importe qui
+// pouvait lire les noms, téléphones et adresses d'un client en tapant son email).
 export async function GET(request: NextRequest) {
+  const admin = await getAdminFromRequest();
+  if (!admin) {
+    return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');

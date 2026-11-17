@@ -70,9 +70,9 @@ export const adminBookingCreateSchema = z.object({
   specialRequests: z.any().optional(),
 
   // Status
-  status: z.enum(['pending', 'verified', 'confirmed', 'in_progress', 'completed', 'cancelled']).optional(),
+  status: z.enum(['pending', 'verified', 'quote_pending', 'quote_sent', 'quote_modified', 'quote_accepted', 'quote_refused', 'refused', 'confirmed', 'in_progress', 'completed', 'cancelled']).optional(),
   paymentStatus: z.enum(['pending', 'paid', 'refunded']).optional(),
-  paymentMethod: z.enum(['stripe', 'cash', 'other']).optional(),
+  paymentMethod: z.enum(['stripe', 'card', 'cash', 'other']).optional(),
 
   // Legal
   cgvAccepted: z.boolean().optional(),

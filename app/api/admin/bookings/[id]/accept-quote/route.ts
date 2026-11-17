@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { quoteUrl } from '@/lib/auth/quote-link';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -53,7 +54,8 @@ export async function POST(
         }
 
         // Check if booking can be accepted (must be in quote_pending or quote_sent status)
-        const acceptableStatuses = ['quote_pending', 'quote_sent', 'quote_modified'];
+        // 'pending' / 'verified' : réservations saisies dans l'admin, qui doivent pouvoir être acceptées
+        const acceptableStatuses = ['quote_pending', 'quote_sent', 'quote_modified', 'verified', 'pending'];
         if (!acceptableStatuses.includes(booking.status)) {
             return NextResponse.json(
                 { message: `Cette demande ne peut pas être acceptée. Statut actuel: ${booking.status}` },
@@ -215,7 +217,7 @@ export async function POST(
 
                                 <!-- Action CTA -->
                                 <div style="text-align: center;">
-                                    <a href="${appUrl}/quote/${booking.id}" style="display: block; background: #0f172a; color: white; padding: 18px; border-radius: 16px; text-decoration: none; font-weight: 700; font-size: 16px; margin-bottom: 24px;">
+                                    <a href="${quoteUrl(appUrl, booking.id)}" style="display: block; background: #0f172a; color: white; padding: 18px; border-radius: 16px; text-decoration: none; font-weight: 700; font-size: 16px; margin-bottom: 24px;">
                                         Suivre ma réservation en temps réel
                                     </a>
                                     <p style="margin: 0; color: #64748b; font-size: 13px;">Paiement à bord auprès du chauffeur (Espèces ou CB)</p>

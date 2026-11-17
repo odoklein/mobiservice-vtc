@@ -212,7 +212,7 @@ export function HourlyForfaitsEditor({ rules, onChange }: HourlyForfaitsEditorPr
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-xl font-semibold text-[#0A0A0A]">Forfaits horaires (mise à disposition)</h3>
+          <h3 className="text-xl font-semibold text-[#0A0A0A]">Trajets forfaitaires (taux horaire/km TTC)</h3>
           <p className="text-sm text-gray-500 mt-1">
             Ces forfaits sont proposés tels quels sur la page de réservation. Prix saisis hors taxe ; la TVA est ajoutée au calcul du total.
           </p>

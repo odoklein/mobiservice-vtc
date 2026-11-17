@@ -17,6 +17,7 @@ import { Search, Download, Plus, Loader2, Calendar } from 'lucide-react';
 import { formatPrice } from '@/lib/pricing';
 import type { Booking } from '@/lib/db/schema';
 import { cn } from '@/lib/utils';
+import { AWAITING_APPROVAL_STATUSES } from '@/lib/constants';
 
 export default function AdminBookingsPage() {
     const [bookings, setBookings] = useState<Booking[]>([]);
@@ -59,7 +60,9 @@ export default function AdminBookingsPage() {
         }
 
         if (statusFilter !== 'all') {
-            filtered = filtered.filter((b) => b.status === statusFilter);
+            filtered = filtered.filter((b) =>
+                statusFilter === 'verified' ? AWAITING_APPROVAL_STATUSES.includes(b.status) : b.status === statusFilter
+            );
         }
 
         setFilteredBookings(filtered);
@@ -69,6 +72,12 @@ export default function AdminBookingsPage() {
         const variants: Record<string, { className: string; label: string }> = {
             pending: { className: 'bg-amber-100 text-amber-700 border-amber-200', label: 'En attente' },
             verified: { className: 'bg-blue-100 text-blue-700 border-blue-200', label: 'À approuver' },
+            quote_pending: { className: 'bg-blue-100 text-blue-700 border-blue-200', label: 'À approuver' },
+            quote_sent: { className: 'bg-blue-100 text-blue-700 border-blue-200', label: 'À approuver' },
+            quote_modified: { className: 'bg-blue-100 text-blue-700 border-blue-200', label: 'À approuver' },
+            quote_accepted: { className: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Accepté' },
+            quote_refused: { className: 'bg-red-100 text-red-700 border-red-200', label: 'Refusé par le client' },
+            refused: { className: 'bg-red-100 text-red-700 border-red-200', label: 'Refusé' },
             confirmed: { className: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Confirmé' },
             in_progress: { className: 'bg-purple-100 text-purple-700 border-purple-200', label: 'En cours' },
             completed: { className: 'bg-slate-100 text-slate-700 border-slate-200', label: 'Terminé' },
@@ -156,7 +165,7 @@ export default function AdminBookingsPage() {
                                     <Link
                                         key={booking.id}
                                         href={`/admin/bookings/${booking.id}`}
-                                        className={`block p-4 transition-colors active:bg-slate-100 ${booking.status === 'verified'
+                                        className={`block p-4 transition-colors active:bg-slate-100 ${AWAITING_APPROVAL_STATUSES.includes(booking.status)
                                             ? 'bg-blue-50/50 hover:bg-blue-50'
                                             : 'hover:bg-slate-50'
                                             }`}
@@ -166,7 +175,7 @@ export default function AdminBookingsPage() {
                                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                                     <span className="font-bold text-slate-900">#{booking.id}</span>
                                                     {getStatusBadge(booking.status)}
-                                                    {booking.status === 'verified' && (
+                                                    {AWAITING_APPROVAL_STATUSES.includes(booking.status) && (
                                                         <Badge className="bg-blue-200 text-blue-800 border border-blue-300">
                                                             ⚠️ Action requise
                                                         </Badge>

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { VTC_DEPOT } from '@/lib/constants';
-import { ArrowRight, MapPin, Info, CheckCircle2, Sun, Moon, Clock, Download, FileText } from 'lucide-react';
+import { ArrowRight, MapPin, Info, CheckCircle2, Sun, Moon, Clock, FileText } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 
 // Forfaits MDA complets selon grille 2026 (1H à 8H)
 const FORFAITS_MDA = [
+  { hours: '0H30', km: 45, dayHT: 52.73, dayTTC: 58, nightHT: 63.64, nightTTC: 70, hourlyDay: 116, hourlyNight: 140 },
   { hours: '1H', km: 90, dayHT: 105.45, dayTTC: 116, nightHT: 127.27, nightTTC: 140, hourlyDay: 116, hourlyNight: 140 },
   { hours: '1H30', km: 135, dayHT: 158.18, dayTTC: 174, nightHT: 190.91, nightTTC: 210, hourlyDay: 116, hourlyNight: 140 },
   { hours: '2H', km: 180, dayHT: 210.91, dayTTC: 232, nightHT: 254.55, nightTTC: 280, hourlyDay: 116, hourlyNight: 140 },
@@ -53,17 +54,9 @@ export default function TarifsPage() {
               Trajet hors agglomération, déplacement au km en A/S ou A/R
             </p>
             <p className="text-sm mt-4 italic opacity-80">
-              Forfait hors agglomération par MAD de votre chauffeur (Forfaits de 1h00 à 8h00 - calcul suivant un taux horaire jour ou nuit avec un kilométrage maximum, établi à l’avance... Déplacement conçu pour un A/R le même jour. Mise à disposition (MAD) automatique (mini 15 min).
+              Trajet forfaitaire hors agglomération (forfaits de 0h30 à 8h00 - calcul suivant un taux horaire jour ou nuit avec un kilométrage maximum, établi à l’avance... Déplacement conçu pour un A/R le même jour. Mise à disposition (MAD) automatique (mini 15 min).
             </p>
           </div>
-          <a
-            href="/docs/grille-tarifaire-2025-2026.pdf"
-            download
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
-          >
-            <Download className="h-5 w-5" />
-            Télécharger la grille PDF
-          </a>
         </div>
       </section>
 
@@ -197,8 +190,8 @@ export default function TarifsPage() {
               <div className="flex items-center justify-center gap-2 mb-4">
                 <Clock className="h-8 w-8 text-[#5CD85A]" />
               </div>
-              <h2 className="text-3xl font-bold text-[#0A0A0A] mb-3">Mise à Disposition (MAD)</h2>
-              <p className="text-gray-600">Chauffeur à disposition - A/R le même jour - Péage inclus</p>
+              <h2 className="text-3xl font-bold text-[#0A0A0A] mb-3">Trajet forfaitaire</h2>
+              <p className="text-gray-600">Taux horaire/km TTC - de 0h30 à 8h00 - A/R le même jour - Péage inclus</p>
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-lg">

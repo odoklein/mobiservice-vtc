@@ -268,21 +268,31 @@ function calculatePriceWithConfig(input: PricingInput, config: any): PricingResu
     let actualHours = requestedHours;
     let adjusted = false;
 
+    // Le forfait se choisit sur le trajet du client seulement (prise en charge → dépose),
+    // pas sur l'approche ni le retour au dépôt du chauffeur. Un forfait convient si le
+    // trajet tient dans sa durée OU dans ses km inclus (« 1h00 ou 90 km »).
+    // `input.duration` doit donc être la durée client (TP), en minutes.
     if (input.duration) {
-      // Round to nearest 30-min slot with +10 min tolerance
-      // e.g. 192 min → overage 12 min > 10 → rounds up to 210 min (3.5h)
-      //      188 min → overage 8 min ≤ 10 → stays at 180 min (3h)
+      // Durée arrondie au créneau de 30 min, avec 10 min de tolérance
+      // ex. 72 min → 12 min de dépassement > 10 → 90 min ; 68 min → reste à 60 min
       const SLOT = 30;
       const TOLERANCE = 10;
       const lowerSlot = Math.floor(input.duration / SLOT) * SLOT;
       const overage = input.duration - lowerSlot;
-      const roundedMinutes = overage > TOLERANCE ? lowerSlot + SLOT : lowerSlot;
-      const estimatedHours = roundedMinutes / 60;
+      const tripHours = (overage > TOLERANCE ? lowerSlot + SLOT : lowerSlot) / 60;
+      const tripKm = input.distanceTP ?? 0;
 
-      if (estimatedHours > requestedHours) {
-        actualHours = estimatedHours;
+      const fits = (f: { hours: number; maxKm: number }) =>
+        f.hours >= requestedHours &&
+        (tripHours <= f.hours || (tripKm > 0 && f.maxKm > 0 && tripKm <= f.maxKm));
+      const sorted = [...config.forfaits].sort((a, b) => a.hours - b.hours);
+      const covering = sorted.find(fits);
+      const neededHours = covering ? covering.hours : Math.max(requestedHours, tripHours);
+
+      if (neededHours > requestedHours) {
+        actualHours = neededHours;
         adjusted = true;
-        console.log(`[PRICING] Hourly service: Requested ${requestedHours}h but estimated duration is ${estimatedHours}h. Using ${actualHours}h for pricing.`);
+        console.log(`[PRICING] Hourly service: requested ${requestedHours}h, client trip ${input.duration} min / ${tripKm} km → ${actualHours}h.`);
       }
     }
 
@@ -291,7 +301,7 @@ function calculatePriceWithConfig(input: PricingInput, config: any): PricingResu
     totalPrice = forfait.price;
     breakdown.forfaitApplied = true;
     breakdown.forfaitName = `Forfait ${forfait.hours}H`;
-    rateType = `Mise à disposition ${forfait.hours}H`;
+    rateType = `Trajet forfaitaire ${forfait.hours}H`;
 
     // Apply minimum price
     totalPrice = Math.max(totalPrice, config.minPrice);

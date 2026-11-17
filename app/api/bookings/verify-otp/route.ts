@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { quoteUrl } from '@/lib/auth/quote-link';
 import { db } from '@/lib/db';
 import { bookings, otpVerifications } from '@/lib/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
     console.log(`[VERIFIED] Booking ${bookingId} phone verified. Quote sent.`);
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const quoteUrl = `${appUrl}/quote/${booking.id}`;
+    const quoteLink = quoteUrl(appUrl, booking.id);
 
     // Send "Your Quote" email with Resend
     if (process.env.RESEND_API_KEY) {
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
                 </div>
 
                 <div style="text-align: center; margin: 32px 0;">
-                  <a href="${quoteUrl}" 
+                  <a href="${quoteLink}" 
                      style="display: inline-block; background: #5CD85A; color: #0A0A0A; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
                     Suivre ma demande
                   </a>
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Quote sent successfully',
-      redirectUrl: `${appUrl}/quote/${bookingId}`, // Redirect to Quote Page
+      redirectUrl: quoteUrl(appUrl, bookingId), // Redirect to Quote Page
     });
   } catch (error) {
     console.error('Verify OTP error:', error);

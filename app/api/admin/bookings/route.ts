@@ -5,8 +5,8 @@ import { getAdminFromRequest } from '@/lib/auth/admin';
 import { sql } from 'drizzle-orm';
 import { adminBookingCreateSchema } from '@/lib/validations/admin-booking';
 import { Resend } from 'resend';
-import { DRIVER } from '@/lib/constants';
-import { FROM_EMAIL } from '@/lib/email/resend';
+import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
+import { FROM_EMAIL, sendEmailOrThrow } from '@/lib/email/resend';
 
 export async function GET(request: NextRequest) {
     const admin = await getAdminFromRequest();
@@ -126,9 +126,9 @@ export async function POST(request: NextRequest) {
             try {
                 const resend = new Resend(process.env.RESEND_API_KEY);
 
-                await resend.emails.send({
+                await sendEmailOrThrow(resend, {
                     from: FROM_EMAIL,
-                    to: [DRIVER.email],
+                    to: DRIVER_RECIPIENTS,
                     subject: `🚗 Nouvelle réservation #${booking.id} - ${booking.guestName || 'Client'}`,
                     html: `<!DOCTYPE html>
             <html>
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
             </html>
           `,
                 });
-                console.log(`[BOOKING-ADMIN] Driver notification email sent to ${DRIVER.email} for booking #${booking.id}`);
+                console.log(`[BOOKING-ADMIN] Driver notification email sent to ${DRIVER_RECIPIENTS.join(', ')} for booking #${booking.id}`);
             } catch (emailError) {
                 console.error('[BOOKING-ADMIN] Failed to send driver notification email:', emailError);
                 // Don't fail the booking creation if email fails

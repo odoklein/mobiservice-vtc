@@ -14,3 +14,19 @@ export const FROM_ADDRESS = (RAW_FROM.match(/<([^>]+)>/)?.[1] ?? RAW_FROM).trim(
 
 /** Expéditeur Resend complet : "MobiService VTC <adresse>" (jamais imbriqué deux fois). */
 export const FROM_EMAIL = RAW_FROM.includes('<') ? RAW_FROM : `MobiService VTC <${FROM_ADDRESS}>`;
+
+/**
+ * Envoie un email et lève une erreur si Resend la renvoie.
+ * Le SDK ne lève pas d'exception : il renvoie { data, error }, donc un échec
+ * (domaine non vérifié, adresse refusée...) passait pour un envoi réussi.
+ */
+export async function sendEmailOrThrow(
+    client: Pick<typeof resend, 'emails'>,
+    payload: Parameters<typeof resend.emails.send>[0]
+) {
+    const result = await client.emails.send(payload);
+    if (result.error) {
+        throw new Error(`Resend: ${result.error.name} - ${result.error.message}`);
+    }
+    return result.data;
+}

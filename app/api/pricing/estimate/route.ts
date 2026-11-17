@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         const h = Number(hours);
         // Les durées proposées viennent des forfaits de l'admin (voir /api/pricing/forfaits)
         if (!isFinite(h) || h < 0.5 || h > 24) {
-          return NextResponse.json({ success: false, error: 'Durée de mise à disposition invalide (0,5 à 24 h)' }, { status: 400 });
+          return NextResponse.json({ success: false, error: 'Durée de trajet forfaitaire invalide (0,5 à 24 h)' }, { status: 400 });
         }
         const { result } = await computeHourlyQuote({ pickup, dropoff, pickupDateTime, hours: h });
         return NextResponse.json({ success: true, estimation: result });

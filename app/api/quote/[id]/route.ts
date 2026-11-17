@@ -37,8 +37,6 @@ export async function GET(
                 status: booking.status,
                 // Customer info
                 guestName: booking.guestName,
-                guestEmail: booking.guestEmail,
-                guestPhone: booking.guestPhone,
                 // Trip details
                 pickupAddress: booking.pickupAddress,
                 dropoffAddress: booking.dropoffAddress,
@@ -63,7 +61,6 @@ export async function GET(
                 discountAmount: booking.discountAmount,
                 // Comments
                 customerComment: booking.customerComment,
-                adminNotes: booking.adminNotes,
                 rejectionReason: booking.rejectionReason,
                 // Timestamps
                 createdAt: booking.createdAt,

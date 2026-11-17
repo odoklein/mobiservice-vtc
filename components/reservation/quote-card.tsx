@@ -92,7 +92,7 @@ export function QuoteCard({
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-gray-900">Estimation du prix</h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            {quote.kind === 'hourly' ? 'Mise à disposition' : isRoundTrip ? 'Aller-retour' : 'Aller simple'}
+            {quote.kind === 'hourly' ? 'Trajet forfaitaire' : isRoundTrip ? 'Aller-retour' : 'Aller simple'}
           </p>
           <span
             className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
