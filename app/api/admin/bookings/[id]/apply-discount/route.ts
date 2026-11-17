@@ -4,7 +4,6 @@ import { getAdminFromRequest } from '@/lib/auth/admin';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { Resend } from 'resend';
 import { FROM_EMAIL, sendMail, EMAIL_ENABLED } from '@/lib/email/resend';
 
 // POST /api/admin/bookings/[id]/apply-discount - Driver applies a discount
@@ -84,7 +83,6 @@ export async function POST(
         // Send email to customer with modified quote
         if (EMAIL_ENABLED && booking.guestEmail) {
             try {
-                const resend = new Resend(process.env.RESEND_API_KEY);
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
                 const quoteLink = quoteUrl(appUrl, bookingId);
 

@@ -3,7 +3,6 @@ import { isValidQuoteToken } from '@/lib/auth/quote-link';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { Resend } from 'resend';
 import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
 import { FROM_EMAIL, sendEmailOrThrow, sendMail, EMAIL_ENABLED } from '@/lib/email/resend';
 
@@ -63,7 +62,6 @@ export async function POST(
         // Send confirmation email to customer
         if (EMAIL_ENABLED && booking.guestEmail) {
             try {
-                const resend = new Resend(process.env.RESEND_API_KEY);
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
                 await sendMail({
@@ -103,9 +101,8 @@ export async function POST(
         // Notify driver
         if (EMAIL_ENABLED && DRIVER.email) {
             try {
-                const resend = new Resend(process.env.RESEND_API_KEY);
 
-                await sendEmailOrThrow(resend, {
+                await sendEmailOrThrow({
                     from: FROM_EMAIL,
                     to: DRIVER_RECIPIENTS,
                     subject: `❌ Devis #${bookingId} Refusé par ${booking.guestName}`,

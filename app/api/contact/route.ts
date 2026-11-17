@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { DRIVER_RECIPIENTS } from '@/lib/constants';
-import { FROM_EMAIL, resend, sendEmailOrThrow, EMAIL_ENABLED } from '@/lib/email/resend';
+import { FROM_EMAIL, sendEmailOrThrow, EMAIL_ENABLED } from '@/lib/email/resend';
 
 /**
  * POST /api/contact
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await sendEmailOrThrow(resend, {
+    await sendEmailOrThrow({
       from: FROM_EMAIL,
       to: DRIVER_RECIPIENTS,
       replyTo: data.email,

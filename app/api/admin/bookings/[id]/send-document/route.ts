@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
-import { resend, FROM_EMAIL, sendMail } from '@/lib/email/resend';
+import { FROM_EMAIL, sendMail } from '@/lib/email/resend';
 
 export async function POST(
     request: NextRequest,

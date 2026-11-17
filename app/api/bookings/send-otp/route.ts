@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings, otpVerifications } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { Resend } from 'resend';
 import { FROM_EMAIL, sendMail, EMAIL_ENABLED } from '@/lib/email/resend';
 
 // Generate a 6-digit OTP code
@@ -161,7 +160,6 @@ export async function POST(request: NextRequest) {
       console.log(`[OTP-DEBUG] [SEND] Attempting to send email via Resend to: ${booking.guestEmail}`);
 
       try {
-        const resend = new Resend(process.env.RESEND_API_KEY);
         console.log(`[OTP-DEBUG] [SEND] Using from address: ${FROM_EMAIL}`);
 
         const { error, data } = await sendMail({

@@ -30,7 +30,10 @@ if (!EMAIL_ENABLED) {
     console.warn('[EMAIL] Neither SMTP_* nor RESEND_API_KEY is set - emails will not be sent');
 }
 
-export const resend = new Resend(process.env.RESEND_API_KEY);
+// Créé seulement au premier envoi : `new Resend()` lève une erreur sans clé, ce qui
+// cassait le build quand RESEND_API_KEY n'est pas défini (envoi par SMTP seul).
+let resendClient: Resend | null = null;
+const getResend = () => (resendClient ??= new Resend(process.env.RESEND_API_KEY));
 
 // MAIL_FROM (ou RESEND_FROM_EMAIL) peut valoir "adresse@domaine.fr" ou "MobiService VTC <adresse@domaine.fr>"
 const RAW_FROM = clean(process.env.MAIL_FROM) || clean(process.env.RESEND_FROM_EMAIL) || 'onboarding@resend.dev';
@@ -100,14 +103,14 @@ export async function sendMail(payload: MailPayload): Promise<MailResult> {
     }
 
     if (RESEND_ENABLED) {
-        const result = await resend.emails.send({
+        const result = await getResend().emails.send({
             from: message.from,
             to: message.to,
             subject: message.subject,
             html: message.html,
             text: message.text,
             replyTo: message.replyTo,
-        } as Parameters<typeof resend.emails.send>[0]);
+        } as Parameters<Resend['emails']['send']>[0]);
         if (result.error) {
             console.error(`[EMAIL] Resend failed for ${to}: ${result.error.name} - ${result.error.message}`);
             return { data: null, error: { name: result.error.name, message: result.error.message } };
@@ -124,9 +127,9 @@ export async function sendMail(payload: MailPayload): Promise<MailResult> {
 
 /**
  * Envoie un email et lève une erreur en cas d'échec (au lieu de faire passer un échec
- * pour un envoi réussi). Le premier argument est gardé pour compatibilité, il est ignoré.
+ * pour un envoi réussi).
  */
-export async function sendEmailOrThrow(_client: unknown, payload: MailPayload) {
+export async function sendEmailOrThrow(payload: MailPayload) {
     const result = await sendMail(payload);
     if (result.error) {
         throw new Error(`Email: ${result.error.name} - ${result.error.message}`);

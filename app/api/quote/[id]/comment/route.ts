@@ -3,7 +3,6 @@ import { isValidQuoteToken } from '@/lib/auth/quote-link';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { Resend } from 'resend';
 import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
 import { FROM_EMAIL, sendEmailOrThrow, EMAIL_ENABLED } from '@/lib/email/resend';
 
@@ -61,10 +60,9 @@ export async function POST(
         // Notify driver of new comment
         if (EMAIL_ENABLED && DRIVER.email) {
             try {
-                const resend = new Resend(process.env.RESEND_API_KEY);
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-                await sendEmailOrThrow(resend, {
+                await sendEmailOrThrow({
                     from: FROM_EMAIL,
                     to: DRIVER_RECIPIENTS,
                     subject: `💬 Nouveau commentaire sur le devis #${bookingId}`,

@@ -4,7 +4,6 @@ import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { completeBookingSchema } from '@/lib/validations/booking';
-import { Resend } from 'resend';
 import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
 import { recomputeBookingPrice, type ServerPrice } from '@/lib/pricing/booking-price';
 import { FROM_EMAIL, sendEmailOrThrow, EMAIL_ENABLED } from '@/lib/email/resend';
@@ -162,9 +161,8 @@ export async function POST(request: NextRequest) {
     // Send email notification to driver
     if (EMAIL_ENABLED && DRIVER.email) {
       try {
-        const resend = new Resend(process.env.RESEND_API_KEY);
 
-        await sendEmailOrThrow(resend, {
+        await sendEmailOrThrow({
           from: FROM_EMAIL,
           to: DRIVER_RECIPIENTS,
           replyTo: validatedData.guestEmail || undefined,

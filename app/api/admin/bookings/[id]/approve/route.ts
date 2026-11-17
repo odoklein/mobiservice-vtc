@@ -4,7 +4,6 @@ import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
 import { adminBookingApproveSchema } from '@/lib/validations/admin-booking';
-import { Resend } from 'resend';
 import { DRIVER, DRIVER_RECIPIENTS } from '@/lib/constants';
 import { FROM_EMAIL, sendEmailOrThrow, sendMail, EMAIL_ENABLED } from '@/lib/email/resend';
 
@@ -76,7 +75,6 @@ export async function POST(
         // Send confirmation email to customer
         if (EMAIL_ENABLED && booking.guestEmail) {
             try {
-                const resend = new Resend(process.env.RESEND_API_KEY);
 
                 await sendMail({
                     from: FROM_EMAIL,
@@ -141,9 +139,8 @@ export async function POST(
         // Send notification to driver
         if (EMAIL_ENABLED && DRIVER.email) {
             try {
-                const resend = new Resend(process.env.RESEND_API_KEY);
 
-                await sendEmailOrThrow(resend, {
+                await sendEmailOrThrow({
                     from: FROM_EMAIL,
                     to: DRIVER_RECIPIENTS,
                     subject: `✅ Réservation #${booking.id} confirmée - ${booking.guestName}`,

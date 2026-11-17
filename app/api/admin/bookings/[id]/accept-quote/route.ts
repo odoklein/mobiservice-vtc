@@ -4,7 +4,6 @@ import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
-import { Resend } from 'resend';
 import { DRIVER, CONTACT } from '@/lib/constants';
 import { FROM_EMAIL, sendMail, EMAIL_ENABLED } from '@/lib/email/resend';
 
@@ -119,7 +118,6 @@ export async function POST(
         // Send confirmation email to customer - THIS IS THE ONLY EMAIL SENT
         if (EMAIL_ENABLED && booking.guestEmail) {
             try {
-                const resend = new Resend(process.env.RESEND_API_KEY);
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
                 const discountHtml = appliedDiscount ? `

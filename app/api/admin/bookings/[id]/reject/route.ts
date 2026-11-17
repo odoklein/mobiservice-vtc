@@ -4,7 +4,6 @@ import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAdminFromRequest } from '@/lib/auth/admin';
 import { adminBookingRejectSchema } from '@/lib/validations/admin-booking';
-import { Resend } from 'resend';
 import { FROM_ADDRESS, FROM_EMAIL, sendMail, EMAIL_ENABLED } from '@/lib/email/resend';
 
 function parseBookingId(id: string): number | null {
@@ -74,7 +73,6 @@ export async function POST(
         // Send rejection email to customer
         if (EMAIL_ENABLED && booking.guestEmail) {
             try {
-                const resend = new Resend(process.env.RESEND_API_KEY);
                 const fromEmail = FROM_ADDRESS;
 
                 await sendMail({

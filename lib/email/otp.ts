@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { otpVerifications } from '@/lib/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import crypto from 'crypto';
-import { resend, FROM_EMAIL } from './resend';
+import { FROM_EMAIL } from './resend';
 import { sendMail } from '@/lib/email/resend';
 
 /**
