@@ -80,12 +80,45 @@ function smtp(): Transporter {
     return transporter;
 }
 
+/** Retire les emojis d'un objet : ils augmentent le score spam des filtres. */
+function plainSubject(subject: string): string {
+    return subject
+        .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}‍️]/gu, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+}
+
+/** Version texte brut d'un email HTML (les emails HTML seuls sont pénalisés). */
+function htmlToText(html: string): string {
+    return html
+        .replace(/<(style|script|head)[\s\S]*?<\/\1>/gi, '')
+        .replace(/<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_m, href, label) => {
+            const text = String(label).replace(/<[^>]+>/g, '').trim();
+            return !text || text === href || href.startsWith('mailto:') || href.startsWith('tel:') ? text || href : `${text} (${href})`;
+        })
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/(p|div|tr|h[1-6]|li|table)>/gi, '\n')
+        .replace(/<li[^>]*>/gi, '- ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#0?39;/g, "'")
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
 /**
  * Envoie un email. Ne lève pas d'exception : renvoie { data, error }, comme le SDK Resend.
  */
 export async function sendMail(payload: MailPayload): Promise<MailResult> {
     const message = {
         ...payload,
+        subject: plainSubject(payload.subject),
+        text: payload.text || (payload.html ? htmlToText(payload.html) : undefined),
         from: payload.from || FROM_EMAIL,
         replyTo: payload.replyTo || DEFAULT_REPLY_TO,
     };
